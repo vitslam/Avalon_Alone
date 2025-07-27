@@ -44,10 +44,14 @@ function connectWebSocket() {
     websocket.onopen = function() {
         console.log('WebSocket连接已建立');
         addChatMessage('系统', '已连接到游戏服务器', 'system');
+        
+        // 连接后立即获取当前游戏状态
+        fetchCurrentGameState();
     };
     
     websocket.onmessage = function(event) {
         const data = JSON.parse(event.data);
+        console.log('收到WebSocket消息:', data);
         handleWebSocketMessage(data);
     };
     
@@ -62,42 +66,73 @@ function connectWebSocket() {
     };
 }
 
+// 获取当前游戏状态
+async function fetchCurrentGameState() {
+    try {
+        const response = await fetch(`${API_BASE}/game/state`);
+        if (response.ok) {
+            const state = await response.json();
+            console.log('获取到当前游戏状态:', state);
+            updateGameState(state);
+        } else {
+            console.log('游戏尚未开始');
+        }
+    } catch (error) {
+        console.error('获取游戏状态失败:', error);
+    }
+}
+
 // 处理WebSocket消息
 function handleWebSocketMessage(data) {
     console.log('收到WebSocket消息:', data);
     
-    switch(data.event) {
-        case 'current_state':
-            updateGameState(data.data);
-            break;
+    switch (data.event) {
         case 'game_started':
+            console.log('游戏开始事件:', data.data);
             handleGameStarted(data.data);
+            // 游戏开始后立即获取最新状态
+            setTimeout(fetchCurrentGameState, 100);
             break;
         case 'team_selected':
+            console.log('队伍选择事件:', data.data);
             handleTeamSelected(data.data);
             break;
         case 'team_vote_recorded':
+            console.log('队伍投票事件:', data.data);
             handleTeamVoteRecorded(data.data);
             break;
         case 'mission_vote_recorded':
+            console.log('任务投票事件:', data.data);
             handleMissionVoteRecorded(data.data);
+            // 任务投票后立即获取最新状态
+            setTimeout(fetchCurrentGameState, 200);
             break;
         case 'assassination_result':
+            console.log('刺杀结果事件:', data.data);
             handleAssassinationResult(data.data);
             break;
         case 'game_reset':
+            console.log('游戏重置事件:', data.data);
             handleGameReset(data.data);
             break;
+        default:
+            console.log('未知事件类型:', data.event);
     }
 }
 
 // 添加玩家
 function addPlayer() {
+    console.log('添加玩家函数被调用');
+    
     const nameInput = document.getElementById('playerName');
     const isAICheckbox = document.getElementById('isAI');
     const aiEngineSelect = document.getElementById('aiEngine');
     
+    console.log('输入元素:', { nameInput, isAICheckbox, aiEngineSelect });
+    
     const name = nameInput.value.trim();
+    console.log('玩家名称:', name);
+    
     if (!name) {
         alert('请输入玩家名称');
         return;
@@ -114,7 +149,11 @@ function addPlayer() {
         ai_engine: isAICheckbox.checked ? aiEngineSelect.value : null
     };
     
+    console.log('新玩家对象:', player);
+    
     players.push(player);
+    console.log('当前玩家数组:', players);
+    
     updatePlayerList();
     
     // 清空输入框
@@ -129,17 +168,56 @@ function addPlayer() {
 // 更新玩家列表显示
 function updatePlayerList() {
     const playerList = document.getElementById('playerList');
+    if (!playerList) {
+        console.error('找不到playerList元素');
+        return;
+    }
+    
     playerList.innerHTML = '';
     
+    console.log('更新玩家列表，玩家数量:', players.length);
+    
+    if (!players || players.length === 0) {
+        console.log('没有玩家需要显示');
+        return;
+    }
+    
     players.forEach((player, index) => {
-        const playerItem = document.createElement('div');
-        playerItem.className = `player-item ${player.is_ai ? 'ai' : ''}`;
-        playerItem.innerHTML = `
-            <span>${player.name} ${player.is_ai ? '(AI)' : ''}</span>
-            <button onclick="removePlayer(${index})">删除</button>
-        `;
-        playerList.appendChild(playerItem);
+        try {
+            const playerItem = document.createElement('div');
+            playerItem.className = `player-item ${player.is_ai ? 'ai' : ''}`;
+            
+            // 添加玩家名称和AI引擎信息
+            const playerName = document.createElement('span');
+            playerName.className = 'player-name';
+            playerName.textContent = player.name || '未知玩家';
+            
+            const playerInfo = document.createElement('span');
+            playerInfo.className = 'player-info';
+            if (player.is_ai) {
+                playerInfo.textContent = `(AI - ${player.ai_engine || 'gpt-3.5'})`;
+                playerInfo.className = 'ai-engine';
+            } else {
+                playerInfo.textContent = '(玩家)';
+            }
+            
+            const deleteButton = document.createElement('button');
+            deleteButton.textContent = '删除';
+            deleteButton.onclick = () => removePlayer(index);
+            
+            playerItem.appendChild(playerName);
+            playerItem.appendChild(playerInfo);
+            playerItem.appendChild(deleteButton);
+            
+            playerList.appendChild(playerItem);
+            
+            console.log(`添加玩家项目 ${index}:`, player.name, player.is_ai ? 'AI' : '玩家');
+        } catch (error) {
+            console.error(`创建玩家项目 ${index} 时出错:`, error, player);
+        }
     });
+    
+    console.log('玩家列表更新完成，当前玩家数量:', players.length);
 }
 
 // 删除玩家
@@ -152,17 +230,50 @@ function removePlayer(index) {
 // 更新开始按钮状态
 function updateStartButton() {
     const startButton = document.getElementById('startButton');
-    startButton.disabled = players.length < 5 || players.length > 10;
+    const canStart = players.length >= 5 && players.length <= 10;
+    
+    console.log('更新开始按钮状态:', {
+        playersCount: players.length,
+        canStart: canStart,
+        currentDisabled: startButton.disabled
+    });
+    
+    startButton.disabled = !canStart;
+    
+    if (canStart) {
+        startButton.textContent = `开始游戏 (${players.length}名玩家)`;
+    } else if (players.length < 5) {
+        startButton.textContent = `需要至少5名玩家 (当前${players.length}名)`;
+    } else {
+        startButton.textContent = `玩家过多 (最多10名)`;
+    }
 }
 
 // 开始游戏
 async function startGame() {
-    if (players.length < 5 || players.length > 10) {
-        alert('玩家数量必须在5-10人之间');
+    console.log('开始游戏按钮被点击');
+    console.log('全局玩家数组:', players);
+    
+    // 检查玩家数组是否为空或未定义
+    if (!players || players.length === 0) {
+        alert('请先添加玩家');
+        return;
+    }
+    
+    if (players.length < 5) {
+        alert('至少需要5名玩家才能开始游戏');
+        return;
+    }
+    
+    if (players.length > 10) {
+        alert('最多只能有10名玩家');
         return;
     }
     
     try {
+        console.log('发送游戏开始请求到:', `${API_BASE}/game/start`);
+        console.log('请求数据:', JSON.stringify({ players: players }, null, 2));
+        
         const response = await fetch(`${API_BASE}/game/start`, {
             method: 'POST',
             headers: {
@@ -171,69 +282,147 @@ async function startGame() {
             body: JSON.stringify({ players: players })
         });
         
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
+        console.log('服务器响应状态:', response.status);
+        console.log('服务器响应头:', response.headers);
+        
+        if (response.ok) {
+            const result = await response.json();
+            console.log('游戏开始成功:', result);
+            
+            // 隐藏设置界面，显示游戏界面
+            document.getElementById('gameSetup').style.display = 'none';
+            document.getElementById('gameInterface').style.display = 'block';
+            
+            // 添加游戏开始消息
+            addChatMessage('系统', '游戏开始！角色已分配完成', 'system');
+            
+            // 显示角色信息
+            if (result.secret_messages) {
+                Object.entries(result.secret_messages).forEach(([playerName, message]) => {
+                    addChatMessage('上帝', `${playerName}: ${message}`, 'system');
+                });
+            }
+            
+            // 立即获取最新游戏状态
+            setTimeout(fetchCurrentGameState, 100);
+            
+        } else {
+            const errorText = await response.text();
+            console.error('服务器错误响应:', errorText);
+            
+            let errorMessage = '游戏开始失败';
+            try {
+                const errorData = JSON.parse(errorText);
+                errorMessage = errorData.detail || errorMessage;
+            } catch (e) {
+                errorMessage = `HTTP ${response.status}: ${errorText}`;
+            }
+            
+            alert(`游戏开始失败: ${errorMessage}`);
         }
-        
-        const result = await response.json();
-        console.log('游戏开始:', result);
-        
-        // 显示游戏界面
-        document.getElementById('gameSetup').style.display = 'none';
-        document.getElementById('gameInterface').style.display = 'grid';
-        
-        addChatMessage('系统', '游戏已开始！', 'system');
-        
     } catch (error) {
         console.error('开始游戏失败:', error);
-        alert('开始游戏失败: ' + error.message);
+        alert('开始游戏失败，请检查服务器连接: ' + error.message);
     }
 }
 
 // 更新游戏状态
 function updateGameState(state) {
+    console.log('更新游戏状态:', state);
     gameState = state;
+    
+    // 添加调试信息
+    console.log('游戏状态详情:');
+    console.log('- 游戏状态:', state.state);
+    console.log('- 当前阶段:', state.phase);
+    console.log('- 玩家数量:', state.players ? state.players.length : 0);
+    console.log('- 当前队长:', state.current_leader);
+    console.log('- 当前队伍:', state.current_team);
+    console.log('- 任务结果:', state.mission_results);
+    
     updateGameStatus();
     updateMissionProgress();
     updatePlayersDisplay();
     updateCurrentPhase();
+    
+    // 如果游戏已开始，隐藏设置界面，显示游戏界面
+    if (state.state === '游戏进行中' || state.state === '游戏结束') {
+        document.getElementById('gameSetup').style.display = 'none';
+        document.getElementById('gameInterface').style.display = 'block';
+    }
 }
 
 // 更新游戏状态显示
 function updateGameStatus() {
     const gameStatus = document.getElementById('gameStatus');
     if (gameState) {
-        gameStatus.textContent = `游戏状态: ${gameState.state}`;
+        const statusText = gameState.state || '等待开始游戏';
+        console.log('更新游戏状态显示:', statusText);
+        gameStatus.textContent = statusText;
     }
 }
 
 // 更新任务进度
 function updateMissionProgress() {
     const missionProgress = document.getElementById('missionProgress');
+    if (!missionProgress) {
+        console.log('找不到任务进度元素');
+        return;
+    }
+    
+    console.log('更新任务进度，游戏状态:', gameState);
+    
+    // 清空现有内容
     missionProgress.innerHTML = '';
     
-    if (!gameState || !gameState.mission_results) return;
+    if (!gameState) {
+        console.log('游戏状态为空，无法显示任务进度');
+        return;
+    }
     
-    for (let i = 1; i <= 5; i++) {
+    // 任务总数固定为5（阿瓦隆标准）
+    const totalMissions = 5;
+    const currentMission = gameState.current_mission || 1;
+    const missionResults = gameState.mission_results || [];
+    
+    console.log('任务信息:', { 
+        totalMissions, 
+        currentMission, 
+        missionResults,
+        missionResultsLength: missionResults.length 
+    });
+    
+    for (let i = 1; i <= totalMissions; i++) {
         const missionItem = document.createElement('div');
         missionItem.className = 'mission-item';
+        missionItem.setAttribute('data-mission-num', i);
         
-        const result = gameState.mission_results.find(r => r.mission === i);
-        if (result) {
-            missionItem.classList.add(result.success ? 'success' : 'fail');
-            missionItem.innerHTML = `
-                <span>任务 ${i}: ${result.success ? '成功' : '失败'}</span>
-                <span>(${result.success_count}成功, ${result.fail_count}失败)</span>
-            `;
-        } else if (i === gameState.current_mission) {
+        // 确定任务状态
+        // 检查这个任务是否已经完成
+        const completedMissionResult = missionResults.find(result => result.mission === i);
+        
+        if (completedMissionResult) {
+            // 已完成的任务
+            console.log(`任务 ${i} 已完成:`, completedMissionResult);
+            if (completedMissionResult.success) {
+                missionItem.classList.add('success');
+            } else {
+                missionItem.classList.add('fail');
+            }
+        } else if (i === currentMission) {
+            // 当前任务
+            console.log(`任务 ${i} 是当前任务`);
             missionItem.classList.add('current');
-            missionItem.innerHTML = `<span>任务 ${i}: 进行中</span>`;
         } else {
-            missionItem.innerHTML = `<span>任务 ${i}: 等待中</span>`;
+            // 未开始的任务
+            console.log(`任务 ${i} 等待中`);
+            missionItem.classList.add('pending');
         }
         
         missionProgress.appendChild(missionItem);
     }
+    
+    console.log('任务进度更新完成');
 }
 
 // 更新玩家显示
@@ -241,9 +430,23 @@ function updatePlayersDisplay() {
     const playersContainer = document.getElementById('playersContainer');
     playersContainer.innerHTML = '';
     
-    if (!gameState || !gameState.players) return;
+    console.log('更新玩家显示:', gameState);
     
-    gameState.players.forEach(player => {
+    if (!gameState) {
+        console.log('游戏状态为空，无法显示玩家');
+        return;
+    }
+    
+    if (!gameState.players) {
+        console.log('游戏状态中没有玩家信息');
+        return;
+    }
+    
+    console.log('玩家列表:', gameState.players);
+    
+    gameState.players.forEach((player, index) => {
+        console.log(`创建玩家卡片 ${index}:`, player);
+        
         const playerCard = document.createElement('div');
         playerCard.className = 'player-card';
         
@@ -258,25 +461,56 @@ function updatePlayersDisplay() {
             playerCard.classList.add('on-mission');
         }
         
+        // 获取角色显示名称
+        let roleDisplay = '未知';
+        if (player.role) {
+            const roleNames = {
+                'merlin': '梅林',
+                'percival': '派西维尔',
+                'loyal_servant': '忠臣',
+                'morgana': '莫甘娜',
+                'assassin': '刺客',
+                'oberon': '奥伯伦',
+                'mordred': '莫德雷德',
+                'minion': '爪牙'
+            };
+            roleDisplay = roleNames[player.role] || player.role;
+        }
+        
+        // 生成状态信息
+        const statusParts = [];
+        if (player.name === gameState.current_leader) {
+            statusParts.push('队长');
+        }
+        if (player.is_ai) {
+            statusParts.push('AI');
+        } else {
+            statusParts.push('玩家');
+        }
+        if (gameState.current_team && gameState.current_team.includes(player.name)) {
+            statusParts.push('任务中');
+        }
+        
         playerCard.innerHTML = `
             <div class="player-avatar">${player.name.charAt(0)}</div>
-            <div class="player-name">${player.name}</div>
-            <div class="player-role">${player.role || '未知'}</div>
-            <div class="player-status">
-                ${player.name === gameState.current_leader ? '队长' : ''}
-                ${player.is_ai ? 'AI' : '玩家'}
-            </div>
+            <div class="player-role">${roleDisplay}</div>
+            <div class="player-status">${statusParts.join(' • ')}</div>
         `;
         
         playersContainer.appendChild(playerCard);
+        console.log(`玩家卡片 ${player.name} 已添加到容器`);
     });
+    
+    console.log('玩家显示更新完成，容器中的卡片数量:', playersContainer.children.length);
 }
 
 // 更新当前阶段显示
 function updateCurrentPhase() {
     const currentPhase = document.getElementById('currentPhase');
     if (gameState) {
-        currentPhase.textContent = gameState.phase || '未知阶段';
+        const phaseText = gameState.phase || '未知阶段';
+        console.log('更新当前阶段显示:', phaseText);
+        currentPhase.textContent = phaseText;
     }
 }
 
@@ -576,34 +810,59 @@ async function resetGame() {
             method: 'POST'
         });
         
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
+        if (response.ok) {
+            console.log('游戏重置成功');
+            
+            // 重置界面
+            document.getElementById('gameSetup').style.display = 'block';
+            document.getElementById('gameInterface').style.display = 'none';
+            
+            // 清空玩家列表
+            document.getElementById('playerList').innerHTML = '';
+            players = [];
+            updateStartButton();
+            
+            // 清空聊天记录
+            document.getElementById('chatMessages').innerHTML = '';
+            
+            // 重置游戏状态
+            gameState = null;
+            
+            // 隐藏结果模态框
+            document.getElementById('gameResultModal').style.display = 'none';
+            
+            addChatMessage('系统', '游戏已重置，可以开始新游戏', 'system');
+            
+        } else {
+            console.error('游戏重置失败');
         }
-        
-        // 隐藏模态框
-        document.getElementById('gameResultModal').style.display = 'none';
-        
-        // 重置界面
-        document.getElementById('gameInterface').style.display = 'none';
-        document.getElementById('gameSetup').style.display = 'block';
-        
-        // 清空数据
-        players = [];
-        selectedPlayers = [];
-        gameState = null;
-        updatePlayerList();
-        updateStartButton();
-        
-        addChatMessage('系统', '游戏已重置', 'system');
-        
     } catch (error) {
         console.error('重置游戏失败:', error);
-        alert('重置游戏失败: ' + error.message);
     }
 }
 
-// 处理游戏重置
+// 处理游戏重置事件
 function handleGameReset(data) {
+    console.log('收到游戏重置事件:', data);
+    
+    // 重置界面
+    document.getElementById('gameSetup').style.display = 'block';
+    document.getElementById('gameInterface').style.display = 'none';
+    
+    // 清空玩家列表
+    document.getElementById('playerList').innerHTML = '';
+    players = [];
+    updateStartButton();
+    
+    // 清空聊天记录
+    document.getElementById('chatMessages').innerHTML = '';
+    
+    // 重置游戏状态
+    gameState = null;
+    
+    // 隐藏结果模态框
+    document.getElementById('gameResultModal').style.display = 'none';
+    
     addChatMessage('系统', '游戏已重置', 'system');
 }
 

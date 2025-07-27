@@ -10,29 +10,34 @@ body {
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     min-height: 100vh;
     color: #333;
+    overflow-x: hidden;
 }
 
 #app {
     max-width: 1400px;
     margin: 0 auto;
-    padding: 20px;
+    padding: 10px;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
 }
 
 /* 游戏标题 */
 .game-header {
     text-align: center;
-    margin-bottom: 30px;
+    margin-bottom: 15px;
     color: white;
+    flex-shrink: 0;
 }
 
 .game-header h1 {
-    font-size: 3rem;
-    margin-bottom: 10px;
+    font-size: 2.5rem;
+    margin-bottom: 5px;
     text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
 }
 
 .game-status {
-    font-size: 1.2rem;
+    font-size: 1rem;
     opacity: 0.9;
 }
 
@@ -40,15 +45,17 @@ body {
 .game-setup {
     background: white;
     border-radius: 15px;
-    padding: 30px;
-    margin-bottom: 30px;
+    padding: 20px;
+    margin-bottom: 15px;
     box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+    flex-shrink: 0;
 }
 
 .game-setup h2 {
-    margin-bottom: 20px;
+    margin-bottom: 15px;
     color: #333;
     text-align: center;
+    font-size: 1.5rem;
 }
 
 .player-config {
@@ -58,37 +65,37 @@ body {
 
 .player-input {
     display: flex;
-    gap: 10px;
-    margin-bottom: 20px;
+    gap: 8px;
+    margin-bottom: 15px;
     align-items: center;
     flex-wrap: wrap;
 }
 
 .player-input input[type="text"] {
     flex: 1;
-    padding: 12px;
+    padding: 8px;
     border: 2px solid #ddd;
-    border-radius: 8px;
-    font-size: 16px;
-    min-width: 150px;
+    border-radius: 6px;
+    font-size: 14px;
+    min-width: 120px;
 }
 
 .player-input select {
-    padding: 12px;
+    padding: 8px;
     border: 2px solid #ddd;
-    border-radius: 8px;
-    font-size: 16px;
+    border-radius: 6px;
+    font-size: 14px;
     background: white;
 }
 
 .player-input button {
-    padding: 12px 20px;
+    padding: 8px 15px;
     background: #4CAF50;
     color: white;
     border: none;
-    border-radius: 8px;
+    border-radius: 6px;
     cursor: pointer;
-    font-size: 16px;
+    font-size: 14px;
     transition: background 0.3s;
 }
 
@@ -97,7 +104,9 @@ body {
 }
 
 .player-list {
-    margin-bottom: 20px;
+    margin-bottom: 15px;
+    max-height: 200px;
+    overflow-y: auto;
 }
 
 .player-item {
@@ -113,6 +122,24 @@ body {
 
 .player-item.ai {
     border-left-color: #2196F3;
+    background: #e3f2fd;
+}
+
+.player-item .player-name {
+    font-weight: bold;
+    margin-right: 10px;
+    color: #333;
+}
+
+.player-item .player-info {
+    color: #666;
+    font-size: 0.9em;
+    margin-right: auto;
+}
+
+.player-item .ai-engine {
+    color: #1976D2;
+    font-style: italic;
 }
 
 .player-item button {
@@ -123,6 +150,11 @@ body {
     border-radius: 4px;
     cursor: pointer;
     font-size: 12px;
+    margin-left: 10px;
+}
+
+.player-item button:hover {
+    background: #d32f2f;
 }
 
 #startButton {
@@ -149,172 +181,282 @@ body {
 /* 游戏主界面 */
 .game-interface {
     display: grid;
-    grid-template-columns: 300px 1fr 300px;
-    gap: 20px;
-    height: calc(100vh - 200px);
+    grid-template-columns: 250px 1fr 250px;
+    gap: 15px;
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
 }
 
 /* 游戏信息面板 */
 .game-info {
     background: white;
     border-radius: 15px;
-    padding: 20px;
+    padding: 15px;
     box-shadow: 0 10px 30px rgba(0,0,0,0.1);
     height: fit-content;
+    max-height: 100%;
+    overflow-y: auto;
 }
 
 .game-info h3 {
-    margin-bottom: 15px;
+    margin-bottom: 10px;
     color: #333;
     border-bottom: 2px solid #eee;
-    padding-bottom: 8px;
+    padding-bottom: 5px;
+    font-size: 1.1rem;
 }
 
+/* 任务进度样式 - 改为流程图样式 */
 .mission-progress {
     display: flex;
-    flex-direction: column;
-    gap: 10px;
+    flex-direction: row;
+    gap: 8px;
+    margin-top: 10px;
+    flex-wrap: wrap;
 }
 
 .mission-item {
     display: flex;
     align-items: center;
-    padding: 10px;
-    background: #f8f9fa;
-    border-radius: 8px;
-    border-left: 4px solid #ddd;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    background: #f5f5f5;
+    border: 2px solid #ddd;
+    border-radius: 50%;
+    font-size: 18px;
+    font-weight: bold;
+    position: relative;
+    transition: all 0.3s;
+}
+
+.mission-item:not(:last-child)::after {
+    content: '';
+    position: absolute;
+    right: -12px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 8px;
+    height: 2px;
+    background: #ddd;
+    z-index: 1;
 }
 
 .mission-item.success {
-    border-left-color: #4CAF50;
-    background: #e8f5e8;
+    background: #4CAF50;
+    border-color: #4CAF50;
+    color: white;
+}
+
+.mission-item.success::before {
+    content: '✓';
 }
 
 .mission-item.fail {
-    border-left-color: #f44336;
-    background: #ffebee;
+    background: #f44336;
+    border-color: #f44336;
+    color: white;
+}
+
+.mission-item.fail::before {
+    content: '✗';
 }
 
 .mission-item.current {
-    border-left-color: #2196F3;
-    background: #e3f2fd;
+    background: #2196F3;
+    border-color: #2196F3;
+    color: white;
+    animation: pulse 2s infinite;
 }
 
-/* 游戏桌子 */
-.game-table {
+.mission-item.current::before {
+    content: attr(data-mission-num);
+}
+
+.mission-item.pending {
+    background: #f5f5f5;
+    border-color: #ddd;
+    color: #999;
+}
+
+.mission-item.pending::before {
+    content: attr(data-mission-num);
+}
+
+@keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+    100% { transform: scale(1); }
+}
+
+/* 任务进度标题样式 */
+.mission-board h3 {
+    color: #333;
+    margin-bottom: 15px;
+    font-size: 18px;
+    border-bottom: 2px solid #e0e0e0;
+    padding-bottom: 8px;
+}
+
+/* 当前阶段样式 */
+.current-phase {
     background: white;
     border-radius: 15px;
     padding: 20px;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    margin-top: 20px;
+}
+
+.current-phase h3 {
+    color: #333;
+    margin-bottom: 10px;
+    font-size: 16px;
+}
+
+#currentPhase {
+    font-size: 18px;
+    font-weight: bold;
+    color: #2196F3;
+    padding: 10px;
+    background: #e3f2fd;
+    border-radius: 8px;
+    text-align: center;
+}
+
+/* 游戏桌子和玩家显示 */
+.game-table {
+    background: rgba(255,255,255,0.1);
+    border-radius: 20px;
+    padding: 15px;
     position: relative;
     overflow: hidden;
+    backdrop-filter: blur(10px);
+    border: 2px solid rgba(255,255,255,0.2);
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .game-table::before {
     content: '';
     position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    width: 200px;
-    height: 200px;
-    background: #8BC34A;
-    border-radius: 50%;
-    opacity: 0.1;
+    top: 20px;
+    left: 20px;
+    right: 20px;
+    bottom: 20px;
+    border: 3px solid rgba(255,255,255,0.3);
+    border-radius: 15px;
+    pointer-events: none;
 }
 
 .players-container {
     display: flex;
     flex-wrap: wrap;
+    gap: 10px;
+    align-items: center;
     justify-content: center;
-    gap: 20px;
-    padding: 20px;
-    position: relative;
-    z-index: 1;
+    max-width: 100%;
+    max-height: 100%;
+    overflow-y: auto;
 }
 
 .player-card {
-    width: 120px;
-    height: 160px;
     background: white;
-    border-radius: 15px;
+    border-radius: 12px;
     padding: 15px;
     text-align: center;
-    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-    border: 3px solid #ddd;
+    min-width: 120px;
+    max-width: 140px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
     transition: all 0.3s;
-    cursor: pointer;
+    position: relative;
+    border: 2px solid transparent;
+}
+
+.player-card::before {
+    content: '';
+    position: absolute;
+    top: -2px;
+    left: -2px;
+    right: -2px;
+    height: 4px;
+    background: #4CAF50;
+    border-radius: 12px 12px 0 0;
+}
+
+.player-card.ai::before {
+    background: #2196F3;
+}
+
+.player-card.leader::before {
+    background: #FF9800;
+}
+
+.player-card.on-mission::before {
+    background: #9C27B0;
 }
 
 .player-card:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 10px 25px rgba(0,0,0,0.15);
-}
-
-.player-card.selected {
-    border-color: #2196F3;
-    background: #e3f2fd;
-}
-
-.player-card.leader {
-    border-color: #FF9800;
-    background: #fff3e0;
-}
-
-.player-card.ai {
-    border-color: #9C27B0;
-    background: #f3e5f5;
-}
-
-.player-card.on-mission {
-    border-color: #4CAF50;
-    background: #e8f5e8;
+    transform: translateY(-3px);
+    box-shadow: 0 6px 20px rgba(0,0,0,0.2);
 }
 
 .player-avatar {
     width: 60px;
     height: 60px;
     border-radius: 50%;
-    background: #ddd;
-    margin: 0 auto 10px;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: white;
     display: flex;
     align-items: center;
     justify-content: center;
     font-size: 24px;
-    color: #666;
+    font-weight: bold;
+    margin: 0 auto 12px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    transition: all 0.3s;
 }
 
-.player-name {
-    font-weight: bold;
-    margin-bottom: 5px;
-    font-size: 14px;
+.player-card:hover .player-avatar {
+    transform: scale(1.1);
+    box-shadow: 0 4px 15px rgba(0,0,0,0.3);
 }
 
 .player-role {
+    background: rgba(103, 126, 234, 0.1);
+    color: #667eea;
+    padding: 4px 8px;
+    border-radius: 8px;
     font-size: 12px;
-    color: #666;
-    margin-bottom: 5px;
+    font-weight: 500;
+    margin-bottom: 6px;
+    border: 1px solid rgba(103, 126, 234, 0.3);
 }
 
 .player-status {
-    font-size: 10px;
-    color: #999;
+    font-size: 11px;
+    color: #666;
+    margin-top: 4px;
+    line-height: 1.2;
 }
 
-/* 游戏操作面板 */
+/* 游戏控制面板 */
 .game-controls {
     background: white;
     border-radius: 15px;
-    padding: 20px;
+    padding: 15px;
     box-shadow: 0 10px 30px rgba(0,0,0,0.1);
     height: fit-content;
+    max-height: 60%;
+    overflow-y: auto;
 }
 
 .game-controls h3 {
-    margin-bottom: 15px;
+    margin-bottom: 10px;
     color: #333;
-    border-bottom: 2px solid #eee;
-    padding-bottom: 8px;
+    font-size: 1.1rem;
 }
 
 .available-players {
@@ -345,18 +487,18 @@ body {
 
 .vote-options {
     display: flex;
-    gap: 10px;
-    margin-bottom: 15px;
+    gap: 8px;
+    margin-top: 10px;
 }
 
 .vote-btn {
     flex: 1;
-    padding: 12px;
+    padding: 8px 12px;
     border: none;
-    border-radius: 8px;
+    border-radius: 6px;
     cursor: pointer;
-    font-size: 16px;
-    font-weight: bold;
+    font-size: 14px;
+    font-weight: 500;
     transition: all 0.3s;
 }
 
@@ -379,51 +521,83 @@ body {
 }
 
 .vote-btn.success {
-    background: #4CAF50;
+    background: #2196F3;
     color: white;
 }
 
 .vote-btn.fail {
-    background: #f44336;
+    background: #FF9800;
     color: white;
+}
+
+.vote-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
 }
 
 /* 聊天面板 */
 .chat-panel {
     background: white;
     border-radius: 15px;
-    padding: 20px;
+    padding: 15px;
     box-shadow: 0 10px 30px rgba(0,0,0,0.1);
     display: flex;
     flex-direction: column;
     height: 100%;
+    min-height: 0;
 }
 
 .chat-messages {
     flex: 1;
-    overflow-y: auto;
-    margin-bottom: 15px;
-    padding: 10px;
-    background: #f8f9fa;
+    border: 1px solid #eee;
     border-radius: 8px;
-    max-height: 300px;
+    padding: 10px;
+    overflow-y: auto;
+    margin-bottom: 10px;
+    font-size: 13px;
+    line-height: 1.4;
+    min-height: 200px;
+    max-height: 400px;
 }
 
-.chat-message {
-    margin-bottom: 10px;
-    padding: 8px 12px;
-    border-radius: 8px;
+.chat-input-container {
+    display: flex;
+    gap: 8px;
+}
+
+.chat-input-container input {
+    flex: 1;
+    padding: 8px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
     font-size: 14px;
 }
 
+.chat-input-container button {
+    padding: 8px 15px;
+    background: #2196F3;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+.chat-message {
+    margin-bottom: 8px;
+    padding: 6px 8px;
+    border-radius: 6px;
+    font-size: 12px;
+}
+
 .chat-message.system {
-    background: #e3f2fd;
-    color: #1976D2;
+    background: #e8f5e8;
+    color: #2e7d32;
 }
 
 .chat-message.player {
-    background: #e8f5e8;
-    color: #2e7d32;
+    background: #e3f2fd;
+    color: #1565c0;
 }
 
 .chat-message.ai {
@@ -431,27 +605,19 @@ body {
     color: #7b1fa2;
 }
 
-.chat-input {
-    display: flex;
-    gap: 10px;
-}
-
-.chat-input input {
-    flex: 1;
-    padding: 10px;
-    border: 2px solid #ddd;
-    border-radius: 6px;
-    font-size: 14px;
-}
-
-.chat-input button {
-    padding: 10px 15px;
-    background: #2196F3;
+.reset-button {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: #f44336;
     color: white;
     border: none;
+    padding: 8px 15px;
     border-radius: 6px;
     cursor: pointer;
     font-size: 14px;
+    z-index: 1000;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
 }
 
 /* 模态框 */
@@ -499,37 +665,124 @@ body {
 }
 
 /* 响应式设计 */
-@media (max-width: 1200px) {
+@media screen and (max-width: 1200px) {
     .game-interface {
-        grid-template-columns: 1fr;
-        grid-template-rows: auto auto auto;
+        grid-template-columns: 200px 1fr 200px;
+        gap: 10px;
     }
     
     .game-info, .game-controls {
-        order: -1;
+        padding: 12px;
+    }
+    
+    .player-card {
+        min-width: 100px;
+        max-width: 120px;
+        padding: 12px;
+    }
+    
+    .player-avatar {
+        width: 50px;
+        height: 50px;
+        font-size: 20px;
+        margin-bottom: 10px;
     }
 }
 
-@media (max-width: 768px) {
-    #app {
+@media screen and (max-width: 900px) {
+    .game-interface {
+        grid-template-columns: 1fr;
+        grid-template-rows: auto 1fr auto;
+        gap: 10px;
+    }
+    
+    .game-info {
+        order: 1;
+    }
+    
+    .game-table {
+        order: 2;
+    }
+    
+    .game-controls {
+        order: 3;
+    }
+    
+    .chat-panel {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        height: 200px;
+        border-radius: 15px 15px 0 0;
+        z-index: 100;
+    }
+    
+    .mission-progress {
+        justify-content: center;
+    }
+    
+    .mission-item {
+        width: 35px;
+        height: 35px;
+        font-size: 16px;
+    }
+    
+    .player-card {
+        min-width: 90px;
+        max-width: 110px;
         padding: 10px;
+    }
+    
+    .player-avatar {
+        width: 45px;
+        height: 45px;
+        font-size: 18px;
+        margin-bottom: 8px;
+    }
+}
+
+@media screen and (max-width: 600px) {
+    #app {
+        padding: 5px;
     }
     
     .game-header h1 {
         font-size: 2rem;
     }
     
-    .player-input {
-        flex-direction: column;
-        align-items: stretch;
-    }
-    
-    .players-container {
-        gap: 10px;
-    }
-    
     .player-card {
-        width: 100px;
-        height: 140px;
+        min-width: 80px;
+        max-width: 100px;
+        padding: 8px;
+    }
+    
+    .player-avatar {
+        width: 40px;
+        height: 40px;
+        font-size: 16px;
+        margin-bottom: 6px;
+    }
+    
+    .player-role {
+        font-size: 10px;
+        padding: 2px 4px;
+    }
+    
+    .player-status {
+        font-size: 9px;
+    }
+    
+    .mission-item {
+        width: 30px;
+        height: 30px;
+        font-size: 14px;
+    }
+    
+    .reset-button {
+        top: 10px;
+        right: 10px;
+        padding: 6px 10px;
+        font-size: 12px;
     }
 } 
