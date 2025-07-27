@@ -107,6 +107,10 @@ function handleWebSocketMessage(data) {
             // 任务投票后立即获取最新状态
             setTimeout(fetchCurrentGameState, 200);
             break;
+        case 'player_speaking':
+            console.log('玩家发言事件:', data.data);
+            handlePlayerSpeaking(data.data);
+            break;
         case 'assassination_result':
             console.log('刺杀结果事件:', data.data);
             handleAssassinationResult(data.data);
@@ -117,6 +121,135 @@ function handleWebSocketMessage(data) {
             break;
         default:
             console.log('未知事件类型:', data.event);
+    }
+}
+
+// 处理玩家发言事件
+function handlePlayerSpeaking(speakingData) {
+    const { speaker, message, role, is_ai } = speakingData;
+    
+    console.log('处理玩家发言:', { speaker, message, role, is_ai });
+    
+    // 添加发言到聊天区域
+    addChatMessage(speaker, message, is_ai ? 'ai' : 'player');
+    
+    // 显示当前发言者指示器
+    showCurrentSpeakerIndicator(speaker);
+    
+    // 更新当前发言者状态
+    updateCurrentSpeaker(speaker);
+    
+    // 在玩家卡片上显示发言状态
+    showPlayerSpeaking(speaker, message);
+}
+
+// 显示当前发言者指示器
+function showCurrentSpeakerIndicator(speaker) {
+    const indicator = document.getElementById('currentSpeaker');
+    const speakerNameElement = document.getElementById('speakerName');
+    
+    if (indicator && speakerNameElement) {
+        speakerNameElement.textContent = speaker;
+        indicator.classList.add('visible');
+        
+        // 3秒后隐藏指示器
+        setTimeout(() => {
+            indicator.classList.remove('visible');
+        }, 3000);
+    }
+}
+
+// 更新当前发言者
+function updateCurrentSpeaker(speaker) {
+    // 清除所有玩家的发言状态
+    document.querySelectorAll('.player-card').forEach(card => {
+        card.classList.remove('speaking');
+    });
+    
+    // 为当前发言者添加发言状态
+    if (speaker && gameState && gameState.players) {
+        // 在游戏状态中找到对应的玩家
+        const speakerPlayer = gameState.players.find(p => p.name === speaker);
+        if (speakerPlayer) {
+            // 找到对应的玩家卡片（通过头像中的首字母）
+            const speakerCard = Array.from(document.querySelectorAll('.player-card')).find(card => {
+                const avatarElement = card.querySelector('.player-avatar');
+                if (avatarElement) {
+                    const avatarText = avatarElement.textContent.trim();
+                    return speakerPlayer.name.charAt(0) === avatarText;
+                }
+                return false;
+            });
+            
+            if (speakerCard) {
+                speakerCard.classList.add('speaking');
+                console.log(`玩家 ${speaker} 开始发言，卡片已高亮`);
+                
+                // 3秒后移除发言状态
+                setTimeout(() => {
+                    speakerCard.classList.remove('speaking');
+                    console.log(`玩家 ${speaker} 发言结束，移除高亮`);
+                }, 3000);
+            } else {
+                console.log(`未找到玩家 ${speaker} 的卡片`);
+            }
+        } else {
+            console.log(`在游戏状态中未找到玩家 ${speaker}`);
+        }
+    }
+}
+
+// 在玩家卡片上显示发言
+function showPlayerSpeaking(speaker, message) {
+    if (!gameState || !gameState.players) {
+        console.log('游戏状态为空，无法显示发言气泡');
+        return;
+    }
+    
+    // 在游戏状态中找到对应的玩家
+    const speakerPlayer = gameState.players.find(p => p.name === speaker);
+    if (!speakerPlayer) {
+        console.log(`在游戏状态中未找到玩家 ${speaker}`);
+        return;
+    }
+    
+    // 找到对应的玩家卡片
+    const speakerCard = Array.from(document.querySelectorAll('.player-card')).find(card => {
+        const avatarElement = card.querySelector('.player-avatar');
+        if (avatarElement) {
+            const avatarText = avatarElement.textContent.trim();
+            return speakerPlayer.name.charAt(0) === avatarText;
+        }
+        return false;
+    });
+    
+    if (speakerCard) {
+        console.log(`为玩家 ${speaker} 显示发言气泡: ${message}`);
+        
+        // 创建发言气泡
+        const speechBubble = document.createElement('div');
+        speechBubble.className = 'speech-bubble';
+        speechBubble.textContent = message;
+        
+        // 移除现有的发言气泡
+        const existingBubble = speakerCard.querySelector('.speech-bubble');
+        if (existingBubble) {
+            existingBubble.remove();
+        }
+        
+        // 确保玩家卡片有相对定位
+        speakerCard.style.position = 'relative';
+        speakerCard.appendChild(speechBubble);
+        
+        // 3秒后移除发言气泡
+        setTimeout(() => {
+            if (speechBubble.parentNode) {
+                speechBubble.remove();
+                console.log(`玩家 ${speaker} 的发言气泡已移除`);
+            }
+        }, 3000);
+    } else {
+        console.log(`未找到玩家 ${speaker} 的卡片，无法显示发言气泡`);
     }
 }
 

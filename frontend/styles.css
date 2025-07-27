@@ -786,3 +786,109 @@ body {
         font-size: 12px;
     }
 } 
+
+/* 玩家发言状态 */
+.player-card.speaking {
+    background: linear-gradient(135deg, #e3f2fd, #bbdefb);
+    box-shadow: 0 6px 20px rgba(33, 150, 243, 0.3);
+    transform: translateY(-2px);
+    border: 2px solid #2196F3;
+    animation: speaking-pulse 1.5s infinite;
+}
+
+.player-card.speaking::before {
+    background: #2196F3 !important;
+}
+
+@keyframes speaking-pulse {
+    0% { box-shadow: 0 6px 20px rgba(33, 150, 243, 0.3); }
+    50% { box-shadow: 0 8px 25px rgba(33, 150, 243, 0.5); }
+    100% { box-shadow: 0 6px 20px rgba(33, 150, 243, 0.3); }
+}
+
+/* 发言气泡 */
+.speech-bubble {
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #2196F3;
+    color: white;
+    padding: 8px 12px;
+    border-radius: 15px;
+    font-size: 12px;
+    max-width: 200px;
+    word-wrap: break-word;
+    z-index: 10;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    animation: speech-appear 0.3s ease-out;
+    margin-bottom: 8px;
+}
+
+.speech-bubble::after {
+    content: '';
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    border: 6px solid transparent;
+    border-top-color: #2196F3;
+}
+
+@keyframes speech-appear {
+    0% {
+        opacity: 0;
+        transform: translateX(-50%) translateY(10px) scale(0.9);
+    }
+    100% {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0) scale(1);
+    }
+}
+
+/* 聊天消息类型样式 */
+.chat-message.ai {
+    background: #f3e5f5;
+    color: #7b1fa2;
+    border-left: 4px solid #9c27b0;
+}
+
+.chat-message.player {
+    background: #e8f5e8;
+    color: #2e7d32;
+    border-left: 4px solid #4caf50;
+}
+
+.chat-message.system {
+    background: #e3f2fd;
+    color: #1565c0;
+    border-left: 4px solid #2196f3;
+}
+
+/* 当前发言者指示器 */
+.current-speaker-indicator {
+    position: fixed;
+    top: 100px;
+    right: 20px;
+    background: rgba(33, 150, 243, 0.9);
+    color: white;
+    padding: 8px 15px;
+    border-radius: 20px;
+    font-size: 14px;
+    font-weight: 500;
+    z-index: 1000;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    backdrop-filter: blur(10px);
+    opacity: 0;
+    transition: all 0.3s ease;
+}
+
+.current-speaker-indicator.visible {
+    opacity: 1;
+    transform: translateX(0);
+}
+
+.current-speaker-indicator::before {
+    content: '🎤';
+    margin-right: 8px;
+} 
