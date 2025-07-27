@@ -6,6 +6,7 @@ import json
 import asyncio
 from .game import AvalonGame
 from .player import Player, AIPlayer, God
+from .ai_controller import AIController
 
 app = FastAPI(title="Avalon Alone API", version="1.0.0")
 
@@ -20,6 +21,7 @@ app.add_middleware(
 
 # 全局游戏实例
 game_instance = None
+ai_controller = None
 websocket_connections = []
 
 # Pydantic模型
@@ -49,7 +51,7 @@ async def root():
 @app.post("/game/start")
 async def start_game(config: GameConfig):
     """开始新游戏"""
-    global game_instance
+    global game_instance, ai_controller
     
     if len(config.players) < 5 or len(config.players) > 10:
         raise HTTPException(status_code=400, detail="玩家数量必须在5-10人之间")
@@ -67,13 +69,28 @@ async def start_game(config: GameConfig):
     god = God()
     game_instance = AvalonGame(players, god)
     
+    # 创建AI控制器，传递WebSocket通知函数
+    ai_controller = AIController(game_instance, notify_all_connections)
+    
     # 开始游戏
     result = game_instance.start_game()
     
     # 通知所有WebSocket连接
     await notify_all_connections("game_started", result)
     
+    # 如果全是AI玩家，启动自动游戏
+    ai_players_count = sum(1 for p in players if p.is_ai)
+    if ai_players_count == len(players):
+        print("检测到全AI游戏，启动自动游戏模式")
+        asyncio.create_task(start_auto_game())
+    
     return result
+
+async def start_auto_game():
+    """启动自动游戏"""
+    global ai_controller
+    if ai_controller:
+        await ai_controller.start_auto_play()
 
 @app.get("/game/state")
 async def get_game_state():
@@ -81,7 +98,13 @@ async def get_game_state():
     if not game_instance:
         raise HTTPException(status_code=404, detail="游戏未开始")
     
-    return game_instance.get_game_state()
+    state = game_instance.get_game_state()
+    
+    # 添加AI控制器状态
+    if ai_controller:
+        state['ai_controller'] = ai_controller.get_ai_status()
+    
+    return state
 
 @app.get("/game/mission-config")
 async def get_mission_config():
@@ -181,13 +204,41 @@ async def get_phases():
 @app.post("/game/reset")
 async def reset_game():
     """重置游戏"""
-    global game_instance
+    global game_instance, ai_controller
+    
+    # 停止AI控制器
+    if ai_controller:
+        ai_controller.stop_auto_play()
+        ai_controller = None
+    
     game_instance = None
     
     # 通知所有WebSocket连接
     await notify_all_connections("game_reset", {"status": "reset"})
     
     return {"status": "reset"}
+
+@app.get("/game/ai-status")
+async def get_ai_status():
+    """获取AI控制器状态"""
+    if not ai_controller:
+        return {"is_running": False, "ai_players_count": 0}
+    
+    return ai_controller.get_ai_status()
+
+@app.post("/game/ai-control")
+async def control_ai(action: str):
+    """控制AI控制器"""
+    global ai_controller
+    
+    if action == "start" and ai_controller:
+        asyncio.create_task(ai_controller.start_auto_play())
+        return {"status": "ai_started"}
+    elif action == "stop" and ai_controller:
+        ai_controller.stop_auto_play()
+        return {"status": "ai_stopped"}
+    else:
+        raise HTTPException(status_code=400, detail="无效的AI控制操作")
 
 # WebSocket连接管理
 async def notify_all_connections(event: str, data: Dict[str, Any]):
@@ -234,4 +285,8 @@ async def websocket_endpoint(websocket: WebSocket):
 @app.get("/health")
 async def health_check():
     """健康检查端点"""
-    return {"status": "healthy", "game_active": game_instance is not None} 
+    return {
+        "status": "healthy", 
+        "game_active": game_instance is not None,
+        "ai_controller_active": ai_controller is not None and ai_controller.is_running
+    } 
