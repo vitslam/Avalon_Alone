@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>阿瓦隆 Alone</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div id="app">
+        <!-- 游戏标题 -->
+        <header class="game-header">
+            <h1>阿瓦隆 Alone</h1>
+            <div class="game-status" id="gameStatus">等待开始游戏</div>
+        </header>
+
+        <!-- 游戏设置面板 -->
+        <div id="gameSetup" class="game-setup">
+            <h2>游戏设置</h2>
+            <div class="player-config">
+                <div class="player-input">
+                    <input type="text" id="playerName" placeholder="玩家名称" maxlength="20">
+                    <label>
+                        <input type="checkbox" id="isAI"> AI玩家
+                    </label>
+                    <select id="aiEngine" disabled>
+                        <option value="gpt-3.5">GPT-3.5</option>
+                        <option value="gpt-4">GPT-4</option>
+                        <option value="claude">Claude</option>
+                    </select>
+                    <button onclick="addPlayer()">添加玩家</button>
+                </div>
+                <div class="player-list" id="playerList">
+                    <!-- 玩家列表将在这里显示 -->
+                </div>
+                <button onclick="startGame()" id="startButton" disabled>开始游戏</button>
+            </div>
+        </div>
+
+        <!-- 游戏主界面 -->
+        <div id="gameInterface" class="game-interface" style="display: none;">
+            <!-- 游戏信息面板 -->
+            <div class="game-info">
+                <div class="mission-board">
+                    <h3>任务进度</h3>
+                    <div class="mission-progress" id="missionProgress">
+                        <!-- 任务进度将在这里显示 -->
+                    </div>
+                </div>
+                <div class="current-phase">
+                    <h3>当前阶段</h3>
+                    <div id="currentPhase">等待开始</div>
+                </div>
+            </div>
+
+            <!-- 玩家桌子 -->
+            <div class="game-table">
+                <div class="players-container" id="playersContainer">
+                    <!-- 玩家将在这里显示 -->
+                </div>
+            </div>
+
+            <!-- 游戏操作面板 -->
+            <div class="game-controls">
+                <div class="team-selection" id="teamSelection" style="display: none;">
+                    <h3>选择任务队伍</h3>
+                    <div class="available-players" id="availablePlayers">
+                        <!-- 可选玩家将在这里显示 -->
+                    </div>
+                    <button onclick="confirmTeam()" id="confirmTeamBtn" disabled>确认队伍</button>
+                </div>
+
+                <div class="voting-panel" id="votingPanel" style="display: none;">
+                    <h3>投票</h3>
+                    <div class="vote-options">
+                        <button onclick="vote('approve')" class="vote-btn approve">赞成</button>
+                        <button onclick="vote('reject')" class="vote-btn reject">反对</button>
+                    </div>
+                </div>
+
+                <div class="mission-voting" id="missionVoting" style="display: none;">
+                    <h3>任务投票</h3>
+                    <div class="vote-options">
+                        <button onclick="voteMission('success')" class="vote-btn success">成功</button>
+                        <button onclick="voteMission('fail')" class="vote-btn fail">失败</button>
+                    </div>
+                </div>
+
+                <div class="assassination-panel" id="assassinationPanel" style="display: none;">
+                    <h3>刺客刺杀</h3>
+                    <div class="target-selection" id="targetSelection">
+                        <!-- 刺杀目标将在这里显示 -->
+                    </div>
+                    <button onclick="confirmAssassination()" id="confirmAssassinationBtn" disabled>确认刺杀</button>
+                </div>
+            </div>
+
+            <!-- 聊天和消息面板 -->
+            <div class="chat-panel">
+                <div class="chat-messages" id="chatMessages">
+                    <!-- 聊天消息将在这里显示 -->
+                </div>
+                <div class="chat-input">
+                    <input type="text" id="chatInput" placeholder="输入消息..." disabled>
+                    <button onclick="sendMessage()" disabled>发送</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 游戏结果模态框 -->
+        <div id="gameResultModal" class="modal" style="display: none;">
+            <div class="modal-content">
+                <h2 id="resultTitle">游戏结束</h2>
+                <p id="resultMessage"></p>
+                <button onclick="resetGame()">重新开始</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html> 
