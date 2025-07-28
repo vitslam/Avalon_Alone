@@ -218,6 +218,7 @@ function showPlayerSpeaking(speaker, message) {
         const avatarElement = card.querySelector('.player-avatar');
         if (avatarElement) {
             const avatarText = avatarElement.textContent.trim();
+            // 通过头像文本匹配玩家（头像显示的是玩家名称的第一个字符）
             return speakerPlayer.name.charAt(0) === avatarText;
         }
         return false;
@@ -225,6 +226,7 @@ function showPlayerSpeaking(speaker, message) {
     
     if (speakerCard) {
         console.log(`为玩家 ${speaker} 显示发言气泡: ${message}`);
+        console.log('找到的玩家卡片:', speakerCard);
         
         // 创建发言气泡
         const speechBubble = document.createElement('div');
@@ -241,6 +243,9 @@ function showPlayerSpeaking(speaker, message) {
         speakerCard.style.position = 'relative';
         speakerCard.appendChild(speechBubble);
         
+        console.log('发言气泡已添加到卡片:', speechBubble);
+        console.log('发言气泡的样式:', window.getComputedStyle(speechBubble));
+        
         // 3秒后移除发言气泡
         setTimeout(() => {
             if (speechBubble.parentNode) {
@@ -250,6 +255,10 @@ function showPlayerSpeaking(speaker, message) {
         }, 3000);
     } else {
         console.log(`未找到玩家 ${speaker} 的卡片，无法显示发言气泡`);
+        console.log('当前所有玩家卡片:', Array.from(document.querySelectorAll('.player-card')).map(card => {
+            const avatar = card.querySelector('.player-avatar');
+            return avatar ? avatar.textContent.trim() : '无头像';
+        }));
     }
 }
 
