@@ -3,6 +3,7 @@ import asyncio
 import json
 from typing import Optional, Dict, Any, List
 from dotenv import load_dotenv
+from .game_rules import get_complete_rules_for_player
 
 # 加载环境变量
 load_dotenv()
@@ -72,7 +73,7 @@ class AIService:
             
             if self.ai_provider == "zhipu":
                 response = self.client.chat.completions.create(
-                    model="glm-4-flash",
+                    model="glm-4.5",
                     messages=[
                         {"role": "system", "content": "你是一个阿瓦隆游戏中的AI玩家。请根据你的角色和当前游戏情况，给出简短的发言（不超过50字）。"},
                         {"role": "user", "content": prompt}
@@ -110,7 +111,7 @@ class AIService:
             
             if self.ai_provider == "zhipu":
                 response = self.client.chat.completions.create(
-                    model="glm-4-flash",
+                    model="glm-4.5",
                     messages=[
                         {"role": "system", "content": "你是阿瓦隆游戏中的AI玩家。请根据你的角色选择任务队伍。只返回JSON格式的玩家名称列表。"},
                         {"role": "user", "content": prompt}
@@ -159,7 +160,7 @@ class AIService:
             
             if self.ai_provider == "zhipu":
                 response = self.client.chat.completions.create(
-                    model="glm-4-flash",
+                    model="glm-4.5",
                     messages=[
                         {"role": "system", "content": f"你是阿瓦隆游戏中的AI玩家。请根据你的角色进行{vote_type}投票。只返回 'approve'/'reject' 或 'success'/'fail'。"},
                         {"role": "user", "content": prompt}
@@ -214,7 +215,7 @@ class AIService:
             
             if self.ai_provider == "zhipu":
                 response = self.client.chat.completions.create(
-                    model="glm-4-flash",
+                    model="glm-4.5",
                     messages=[
                         {"role": "system", "content": "你是阿瓦隆游戏中的刺客。请选择刺杀目标。"},
                         {"role": "user", "content": prompt}
@@ -297,17 +298,33 @@ class AIService:
         
         role_desc = role_names.get(role, role)
         
+        # 获取玩家的秘密信息
+        secret_info = ""
+        if hasattr(game_context, 'players'):
+            for player in game_context['players']:
+                if player['name'] == player_name:
+                    secret_info = player.get('secret_message', '')
+                    break
+        
+        # 获取完整的游戏规则
+        game_rules = get_complete_rules_for_player(role)
+        
         prompt = f"""
+{game_rules}
+
 你是阿瓦隆游戏中的玩家 {player_name}，你的角色是 {role_desc}。
 
+你的秘密信息：{secret_info}
+
 可选玩家：{available_players}
-需要选择 {team_size} 名玩家组成任务队伍。
+需要选择 {team_size} 名玩家组成任务队伍（必须包含你自己）。
 
 请根据你的角色特点和策略选择队伍成员：
 - 如果你是好人，尽量选择可信的玩家
 - 如果你是坏人，考虑是否要破坏任务
+- 记住：队长必须包含自己！
 
-返回JSON格式的玩家名称列表，例如：["玩家1", "玩家2"]
+返回JSON格式的玩家名称列表，例如：["{player_name}", "玩家2"]
 """
         return prompt
 
@@ -328,9 +345,24 @@ class AIService:
         
         role_desc = role_names.get(role, role)
         
+        # 获取玩家的秘密信息
+        secret_info = ""
+        if hasattr(game_context, 'players'):
+            for player in game_context['players']:
+                if player['name'] == player_name:
+                    secret_info = player.get('secret_message', '')
+                    break
+        
+        # 获取完整的游戏规则
+        game_rules = get_complete_rules_for_player(role)
+        
         if vote_type == "team":
             prompt = f"""
+{game_rules}
+
 你是阿瓦隆游戏中的玩家 {player_name}，你的角色是 {role_desc}。
+
+你的秘密信息：{secret_info}
 
 当前提议的任务队伍：{current_team}
 
@@ -343,7 +375,11 @@ class AIService:
 """
         else:  # mission
             prompt = f"""
+{game_rules}
+
 你是阿瓦隆游戏中的玩家 {player_name}，你的角色是 {role_desc}。
+
+你的秘密信息：{secret_info}
 
 你在任务队伍中，需要对任务进行投票：
 - 好人角色：总是投票成功

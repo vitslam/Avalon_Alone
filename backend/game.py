@@ -253,6 +253,16 @@ class AvalonGame:
 
     def get_game_state(self) -> Dict[str, Any]:
         """返回当前游戏状态信息"""
+        players_info = []
+        for p in self.players:
+            player_info = {
+                'name': p.name, 
+                'role': p.role, 
+                'is_ai': p.is_ai,
+                'secret_message': p.messages[-1] if p.messages else ''
+            }
+            players_info.append(player_info)
+            
         return {
             'state': self.state,
             'phase': self.phase,
@@ -264,7 +274,7 @@ class AvalonGame:
             'team_votes': self.team_votes,
             'mission_votes': self.mission_votes,
             'failed_team_votes': self.failed_team_votes,
-            'players': [{'name': p.name, 'role': p.role, 'is_ai': p.is_ai} for p in self.players],
+            'players': players_info,
             'winner': getattr(self, 'winner', None)
         }
 
