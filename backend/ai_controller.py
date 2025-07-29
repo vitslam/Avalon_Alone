@@ -125,6 +125,8 @@ class AIController:
         
         if voted_players >= total_players:
             print("所有玩家已完成投票，等待游戏状态更新...")
+            # 等待一小段时间让游戏状态更新
+            await asyncio.sleep(0.5)
             return
         
         # 让尚未投票的AI玩家进行投票
@@ -159,6 +161,8 @@ class AIController:
                         # 检查是否投票完成并进入下一阶段
                         if result.get('status') in ['team_approved', 'team_rejected', 'evil_win']:
                             print(f"队伍投票完成，结果: {result.get('status')}")
+                            # 等待一小段时间让游戏状态更新
+                            await asyncio.sleep(0.5)
                             return
                     else:
                         print(f"投票失败: {result['error']}")
@@ -180,6 +184,8 @@ class AIController:
         
         if voted_members >= total_team_members:
             print("所有队伍成员已完成任务投票，等待游戏状态更新...")
+            # 等待一小段时间让游戏状态更新
+            await asyncio.sleep(0.5)
             return
         
         for player in team_ai_players:
@@ -208,6 +214,8 @@ class AIController:
                         # 检查是否任务投票完成
                         if result.get('status') in ['good_mission_win', 'evil_win', 'mission_completed']:
                             print(f"任务投票完成，结果: {result.get('status')}")
+                            # 等待一小段时间让游戏状态更新
+                            await asyncio.sleep(0.5)
                             return
                     else:
                         print(f"任务投票失败: {result['error']}")
