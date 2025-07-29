@@ -11,6 +11,7 @@ const API_BASE = 'http://localhost:8000';
 // 初始化
 document.addEventListener('DOMContentLoaded', function() {
     initializeEventListeners();
+    loadAIEngines();
     connectWebSocket();
 });
 
@@ -35,6 +36,40 @@ function initializeEventListeners() {
             sendMessage();
         }
     });
+}
+
+// 加载AI引擎选项
+async function loadAIEngines() {
+    const aiEngineSelect = document.getElementById('aiEngine');
+    if (aiEngineSelect) {
+        try {
+            const response = await fetch(`${API_BASE}/game/ai-engines`);
+            if (response.ok) {
+                const data = await response.json();
+                // 清空现有选项
+                aiEngineSelect.innerHTML = '';
+                
+                // 添加新的选项
+                data.engines.forEach(engine => {
+                    const option = document.createElement('option');
+                    option.value = engine.id;
+                    option.textContent = engine.name;
+                    aiEngineSelect.appendChild(option);
+                });
+                
+                // 设置默认选项
+                if (data.engines.length > 0) {
+                    aiEngineSelect.value = data.engines[0].id;
+                }
+            } else {
+                console.error('获取AI引擎失败:', response.status);
+                aiEngineSelect.innerHTML = '<option value="">获取AI引擎失败</option>';
+            }
+        } catch (error) {
+            console.error('加载AI引擎失败:', error);
+            aiEngineSelect.innerHTML = '<option value="">加载AI引擎失败</option>';
+        }
+    }
 }
 
 // 连接WebSocket

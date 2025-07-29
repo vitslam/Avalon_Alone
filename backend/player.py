@@ -1,6 +1,9 @@
 import random
 from typing import List, Dict, Any, Optional
 from .constants import ROLES
+import sys
+sys.path.append('..')
+from config import AI_CONFIG
 
 class Player:
     def __init__(self, name: str, role: Optional[str] = None):
@@ -58,6 +61,15 @@ class AIPlayer(Player):
         self.is_ai = True
         self.ai_engine = ai_engine
         self.knowledge_base = []
+        
+        # 验证AI引擎是否有效
+        if ai_engine not in AI_CONFIG:
+            print(f"警告: 不支持的AI引擎 '{ai_engine}'，使用默认引擎 'gpt-3.5'")
+            self.ai_engine = 'gpt-3.5'
+
+    def get_ai_engine_info(self) -> Dict[str, Any]:
+        """获取AI引擎信息"""
+        return AI_CONFIG.get(self.ai_engine, {})
 
     def decide(self, game_state: Dict[str, Any]) -> Dict[str, Any]:
         """AI 玩家决策逻辑"""

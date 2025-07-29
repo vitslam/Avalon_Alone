@@ -10,6 +10,7 @@
 - 实时 WebSocket 通信
 - 完整的游戏流程控制
 - 现代化的 Web 界面
+- AI 请求日志记录
 
 ## 功能特性
 
@@ -22,6 +23,13 @@
 - ✅ 刺杀阶段
 - ✅ 游戏结果判定
 
+### AI 功能
+- ✅ 支持多种 AI 引擎（GPT-3.5、GPT-4、Claude、GLM-4.5-Flash）
+- ✅ 可配置的 AI 模型选择
+- ✅ AI 请求日志记录（JSONL 格式）
+- ✅ 环境变量配置管理
+- ✅ AI 玩家智能决策
+
 ### 技术特性
 - ✅ FastAPI 后端 API
 - ✅ WebSocket 实时通信
@@ -29,6 +37,51 @@
 - ✅ AI 玩家支持
 - ✅ 完整的错误处理
 - ✅ API 文档自动生成
+- ✅ 详细的 AI 请求日志
+
+## 配置说明
+
+### 环境变量配置
+
+复制 `env.example` 文件为 `.env` 并配置以下变量：
+
+```bash
+# AI提供商配置
+AI_PROVIDER=zhipu                    # AI提供商：zhipu/openai/anthropic
+AI_MODEL=glm-4.5-flash              # 默认AI模型
+AI_RESPONSE_TIMEOUT=30               # AI响应超时时间
+AI_FALLBACK_ENABLED=true             # 是否启用备用逻辑
+
+# API密钥配置
+ZHIPU_API_KEY=your_zhipu_api_key_here
+OPENAI_API_KEY=your_openai_api_key_here
+ANTHROPIC_API_KEY=your_anthropic_api_key_here
+
+# 日志配置
+AVALON_AI_LOG_FILE=ai_requests.jsonl # AI请求日志文件
+AVALON_AI_LOG_ENABLED=true          # 是否启用AI日志记录
+```
+
+### 支持的 AI 引擎
+
+| 引擎ID | 名称 | 提供商 | 模型 |
+|--------|------|--------|------|
+| gpt-3.5 | GPT-3.5 | OpenAI | gpt-3.5-turbo |
+| gpt-4 | GPT-4 | OpenAI | gpt-4 |
+| claude | Claude | Anthropic | claude-3-sonnet-20240229 |
+| glm-4.5-flash | GLM-4.5-Flash | 智谱AI | glm-4.5-flash |
+
+### AI 日志记录
+
+系统会自动记录所有 AI 请求到 JSONL 格式的日志文件中，包含以下信息：
+- 时间戳
+- 模型名称
+- 请求类型（发言、队伍选择、投票、刺杀）
+- 玩家ID
+- 系统提示和用户提示
+- 模型回复
+- 请求耗时
+- 错误信息（如果有）
 
 ## 目录结构
 
@@ -39,13 +92,18 @@ Avalon_Alone/
 │   ├── constants.py        # 游戏常量定义
 │   ├── game.py             # 游戏流程控制主类
 │   ├── player.py           # 玩家、AI 玩家、上帝角色类
+│   ├── ai_service.py       # AI 服务
+│   ├── ai_controller.py    # AI 控制器
+│   ├── ai_logger.py        # AI 日志记录器
 │   └── api.py              # FastAPI 接口
 ├── frontend/               # 前端代码
 │   ├── index.html          # 主页面
 │   ├── styles.css          # 样式文件
 │   └── script.js           # JavaScript 逻辑
+├── config.py               # 配置文件
 ├── requirements.txt        # Python 依赖
 ├── start_server.py         # 服务器启动脚本
+├── env.example            # 环境变量示例
 └── README.md              # 项目说明
 ```
 

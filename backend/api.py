@@ -7,6 +7,9 @@ import asyncio
 from .game import AvalonGame
 from .player import Player, AIPlayer, God
 from .ai_controller import AIController
+import sys
+sys.path.append('..')
+from config import AI_CONFIG
 
 app = FastAPI(title="Avalon Alone API", version="1.0.0")
 
@@ -188,6 +191,19 @@ async def assassinate(assassination: Assassination):
     await notify_all_connections("assassination_result", result)
     
     return result
+
+@app.get("/game/ai-engines")
+async def get_ai_engines():
+    """获取可用的AI引擎列表"""
+    engines = []
+    for engine_id, config in AI_CONFIG.items():
+        engines.append({
+            'id': engine_id,
+            'name': config['name'],
+            'description': config['description'],
+            'provider': config['provider']
+        })
+    return {"engines": engines}
 
 @app.get("/game/roles")
 async def get_roles():

@@ -256,33 +256,39 @@ class AIController:
     async def _ai_select_team_with_llm(self, leader, available_players: List[str], team_size: int) -> Optional[List[str]]:
         """使用LLM API选择队伍"""
         game_context = self.game.get_game_state()
-        return await ai_service.get_ai_team_selection(leader.name, leader.role, game_context, available_players, team_size)
+        engine_name = getattr(leader, 'ai_engine', None)
+        return await ai_service.get_ai_team_selection(leader.name, leader.role, game_context, available_players, team_size, engine_name)
 
     async def _ai_decide_team_vote_with_llm(self, player) -> Optional[str]:
         """使用LLM API决定队伍投票"""
         game_context = self.game.get_game_state()
-        return await ai_service.get_ai_vote_decision(player.name, player.role, game_context, "team")
+        engine_name = getattr(player, 'ai_engine', None)
+        return await ai_service.get_ai_vote_decision(player.name, player.role, game_context, "team", engine_name)
 
     async def _ai_decide_mission_vote_with_llm(self, player) -> Optional[str]:
         """使用LLM API决定任务投票"""
         game_context = self.game.get_game_state()
-        return await ai_service.get_ai_vote_decision(player.name, player.role, game_context, "mission")
+        engine_name = getattr(player, 'ai_engine', None)
+        return await ai_service.get_ai_vote_decision(player.name, player.role, game_context, "mission", engine_name)
 
     async def _ai_select_assassination_target_with_llm(self, assassin, good_players: List[str]) -> Optional[str]:
         """使用LLM API选择刺杀目标"""
-        return await ai_service.get_ai_assassination_target(assassin.name, assassin.role, good_players)
+        engine_name = getattr(assassin, 'ai_engine', None)
+        return await ai_service.get_ai_assassination_target(assassin.name, assassin.role, good_players, engine_name)
 
     async def _get_ai_team_vote_speech(self, player) -> Optional[str]:
         """获取AI队伍投票时的发言"""
         game_context = self.game.get_game_state()
         game_context['vote_context'] = "team_vote"
-        return await ai_service.get_ai_speech(player.name, player.role, game_context)
+        engine_name = getattr(player, 'ai_engine', None)
+        return await ai_service.get_ai_speech(player.name, player.role, game_context, engine_name)
 
     async def _get_ai_mission_vote_speech(self, player) -> Optional[str]:
         """获取AI任务投票时的发言"""
         game_context = self.game.get_game_state()
         game_context['vote_context'] = "mission_vote"
-        return await ai_service.get_ai_speech(player.name, player.role, game_context)
+        engine_name = getattr(player, 'ai_engine', None)
+        return await ai_service.get_ai_speech(player.name, player.role, game_context, engine_name)
 
     async def ai_speak(self, player, message: str):
         """AI玩家发言"""

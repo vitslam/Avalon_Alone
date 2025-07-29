@@ -28,18 +28,41 @@ AI_CONFIG = {
     'gpt-3.5': {
         'name': 'GPT-3.5',
         'description': 'OpenAI GPT-3.5 模型',
-        'api_key_env': 'OPENAI_API_KEY'
+        'api_key_env': 'OPENAI_API_KEY',
+        'model': 'gpt-3.5-turbo',
+        'provider': 'openai'
     },
     'gpt-4': {
         'name': 'GPT-4',
         'description': 'OpenAI GPT-4 模型',
-        'api_key_env': 'OPENAI_API_KEY'
+        'api_key_env': 'OPENAI_API_KEY',
+        'model': 'gpt-4',
+        'provider': 'openai'
     },
     'claude': {
         'name': 'Claude',
         'description': 'Anthropic Claude 模型',
-        'api_key_env': 'ANTHROPIC_API_KEY'
+        'api_key_env': 'ANTHROPIC_API_KEY',
+        'model': 'claude-3-sonnet-20240229',
+        'provider': 'anthropic'
+    },
+    'glm-4.5-flash': {
+        'name': 'GLM-4.5-Flash',
+        'description': '智谱AI GLM-4.5-Flash 模型',
+        'api_key_env': 'ZHIPU_API_KEY',
+        'model': 'glm-4.5-flash',
+        'provider': 'zhipu'
     }
+}
+
+# AI日志配置
+AI_LOGGING_CONFIG = {
+    'enabled': os.getenv('AVALON_AI_LOG_ENABLED', 'true').lower() == 'true',
+    'log_file': os.getenv('AVALON_AI_LOG_FILE', 'ai_requests.jsonl'),
+    'include_system_prompt': True,
+    'include_user_prompt': True,
+    'include_response': True,
+    'include_timing': True
 }
 
 # 前端配置
@@ -71,6 +94,7 @@ def get_config() -> Dict[str, Any]:
         'server': SERVER_CONFIG,
         'game': GAME_CONFIG,
         'ai': AI_CONFIG,
+        'ai_logging': AI_LOGGING_CONFIG,
         'frontend': FRONTEND_CONFIG,
         'logging': LOGGING_CONFIG,
         'security': SECURITY_CONFIG
