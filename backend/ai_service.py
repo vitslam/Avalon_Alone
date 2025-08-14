@@ -5,15 +5,17 @@ from typing import Optional, Dict, Any, List
 from dotenv import load_dotenv
 from .model_client import ModelClientFactory, BaseModelClient
 from .common_constants import ROLES, VOTE_RULES, GAME_RULES
+from .log_manager import LogManager
 
 # 加载环境变量
 load_dotenv()
 
 class AIService:
-    def __init__(self):
+    def __init__(self, log_manager: LogManager = None):
         self.ai_provider = os.getenv("AI_PROVIDER", "zhipu").lower()
         self.timeout = int(os.getenv("AI_RESPONSE_TIMEOUT", "30"))
         self.fallback_enabled = os.getenv("AI_FALLBACK_ENABLED", "true").lower() == "true"
+        self.log_manager = log_manager if log_manager else LogManager()
         
         # 使用工厂创建模型客户端
         try:
@@ -36,7 +38,23 @@ class AIService:
                 {"role": "user", "content": prompt}
             ]
             
+            request_log = {
+                "player_name": player_name,
+                "role": role,
+                "game_context": game_context,
+                "messages": messages
+            }
+            
             speech = await self.model_client.chat_completion(messages)
+            
+            response_log = {
+                "speech": speech
+            }
+            
+            # 记录日志
+            if self.log_manager:
+                self.log_manager.log_player_interaction(player_name, request_log, response_log)
+            
             if speech:
                 print(f"AI {player_name} 获得发言: {speech}")
                 return speech
@@ -59,25 +77,44 @@ class AIService:
                 {"role": "user", "content": prompt}
             ]
             
+            request_log = {
+                "player_name": player_name,
+                "role": role,
+                "game_context": game_context,
+                "available_players": available_players,
+                "team_size": team_size,
+                "messages": messages
+            }
+            
             content = await self.model_client.chat_completion(messages)
+            
+            response_log = {
+                "content": content
+            }
+            
+            team = None
             if content:
                 # 尝试解析JSON
                 try:
                     team = json.loads(content)
                     if isinstance(team, list) and len(team) == team_size:
                         print(f"AI {player_name} 选择队伍: {team}")
-                        return team
+                        response_log["team"] = team
                 except json.JSONDecodeError:
                     # 如果不是JSON，尝试提取玩家名称
                     team = self._extract_player_names(content, available_players, team_size)
                     if team:
                         print(f"AI {player_name} 选择队伍(提取): {team}")
-                        return team
-                    
+                        response_log["team"] = team
+            
+            # 记录日志
+            if self.log_manager:
+                self.log_manager.log_player_interaction(player_name, request_log, response_log)
+            
+            return team
         except Exception as e:
             print(f"AI {player_name} 队伍选择失败: {e}")
-            
-        return None
+            return None
 
     async def get_ai_vote_decision(self, player_name: str, role: str, game_context: Dict[str, Any], 
                                  vote_type: str) -> Optional[str]:
@@ -93,27 +130,46 @@ class AIService:
                 {"role": "user", "content": prompt}
             ]
             
+            request_log = {
+                "player_name": player_name,
+                "role": role,
+                "game_context": game_context,
+                "vote_type": vote_type,
+                "messages": messages
+            }
+            
             content = await self.model_client.chat_completion(messages)
+            
+            vote = None
             if content:
                 content = content.strip().lower()
                 
                 if vote_type == "team":
                     if "approve" in content or "赞成" in content:
-                        return "approve"
+                        vote = "approve"
                     elif "reject" in content or "反对" in content:
-                        return "reject"
+                        vote = "reject"
                 elif vote_type == "mission":
                     if "success" in content or "成功" in content:
-                        return "success"
+                        vote = "success"
                     elif "fail" in content or "失败" in content:
-                        return "fail"
+                        vote = "fail"
                     
                 print(f"AI {player_name} 投票决策: {content}")
             
+            response_log = {
+                "content": content,
+                "vote": vote
+            }
+            
+            # 记录日志
+            if self.log_manager:
+                self.log_manager.log_player_interaction(player_name, request_log, response_log)
+            
+            return vote
         except Exception as e:
             print(f"AI {player_name} 投票决策失败: {e}")
-            
-        return None
+            return None
 
     # 以下是辅助方法
     def _build_speech_prompt(self, player_name: str, role: str, game_context: Dict[str, Any]) -> str:
@@ -266,9 +322,29 @@ class AIService:
                 {"role": "user", "content": prompt}
             ]
             
+            request_log = {
+                "player_name": assassin_name,
+                "role": role,
+                "good_players": good_players,
+                "messages": messages
+            }
+            
             target = await self.model_client.chat_completion(messages)
+            
+            response_log = {
+                "content": target
+            }
+            
             if target and target.strip() in good_players:
+                response_log["target"] = target.strip()
+                # 记录日志
+                if self.log_manager:
+                    self.log_manager.log_player_interaction(assassin_name, request_log, response_log)
                 return target.strip()
+            
+            # 记录日志
+            if self.log_manager:
+                self.log_manager.log_player_interaction(assassin_name, request_log, response_log)
                 
         except Exception as e:
             print(f"AI {assassin_name} 刺杀目标选择失败: {e}")
@@ -277,3 +353,6 @@ class AIService:
 
 # 全局AI服务实例
 ai_service = AIService()
+
+# 设置默认日志管理器
+# 实际使用时，应在游戏开始时创建新的LogManager实例并传递给AIService

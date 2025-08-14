@@ -7,6 +7,7 @@ import random
 from typing import Dict, List, Optional, Callable, Any
 from .common_constants import GAME_PHASES, GAME_STATES
 from .ai_service import ai_service
+from .log_manager import LogManager
 
 class AIController:
     def __init__(self, game, websocket_notifier: Optional[Callable] = None):
@@ -16,6 +17,10 @@ class AIController:
         self.is_running = False
         self.auto_delay = 2.0  # 增加延迟以便观察AI发言
         self.current_speaker = None  # 当前正在发言的玩家
+        self.log_manager = LogManager()  # 创建日志管理器实例
+        # 更新AI服务的日志管理器
+        global ai_service
+        ai_service = ai_service.__class__(self.log_manager)
 
     async def start_auto_play(self):
         """开始AI自动游戏"""
@@ -26,6 +31,15 @@ class AIController:
         self.is_running = True
         print(f"AI控制器启动，管理 {len(self.ai_players)} 个AI玩家")
         
+        # 记录游戏开始事件
+        game_start_data = {
+            "players": [p.name for p in self.game.players],
+            "ai_players": [p.name for p in self.ai_players],
+            "game_id": self.log_manager.get_game_id()
+        }
+        self.log_manager.log_global_event("game_start", game_start_data)
+        print(f"游戏日志将保存到: {self.log_manager.get_game_log_dir()}")
+        
         loop_count = 0
         # 持续处理游戏直到结束
         while self.is_running and self.game.state == GAME_STATES['playing']:
@@ -33,6 +47,15 @@ class AIController:
             print(f"\n=== AI循环 {loop_count} ===")
             print(f"游戏状态: {self.game.state}")
             print(f"游戏阶段: {self.game.phase}")
+            
+            # 记录游戏状态事件
+            game_state_data = {
+                "state": self.game.state,
+                "phase": self.game.phase,
+                "round": self.game.current_round,
+                "mission": self.game.current_mission
+            }
+            self.log_manager.log_global_event("game_state", game_state_data)
             
             await self.process_current_phase()
             
@@ -48,7 +71,14 @@ class AIController:
             
             await asyncio.sleep(self.auto_delay)
         
+        # 记录游戏结束事件
+        game_end_data = {
+            "loop_count": loop_count,
+            "state": self.game.state
+        }
+        self.log_manager.log_global_event("game_end", game_end_data)
         print(f"AI控制器结束，总共执行了 {loop_count} 次循环")
+        print(f"游戏日志已保存到: {self.log_manager.get_game_log_dir()}")
 
     async def stop_auto_play(self):
         """停止AI自动游戏"""
@@ -76,6 +106,13 @@ class AIController:
         """处理队伍选择阶段"""
         current_leader = self.game.players[self.game.current_leader_index]
         
+        # 记录队伍选择开始事件
+        team_selection_data = {
+            "leader": current_leader.name,
+            "mission_number": self.game.current_mission
+        }
+        self.log_manager.log_global_event("team_selection_start", team_selection_data)
+        
         if current_leader.is_ai:
             print(f"AI队长 {current_leader.name} 开始选择队伍")
             
@@ -102,6 +139,13 @@ class AIController:
             if selected_team:
                 print(f"队长 {current_leader.name} 选择队伍: {selected_team}")
                 
+                # 记录队伍选择事件
+                team_selected_data = {
+                    "leader": current_leader.name,
+                    "team": selected_team
+                }
+                self.log_manager.log_global_event("team_selected", team_selected_data)
+                
                 # AI宣布队伍选择
                 team_announcement = f"我选择的队伍成员是：{', '.join(selected_team)}"
                 await self.ai_speak(current_leader, team_announcement)
@@ -116,6 +160,13 @@ class AIController:
     async def handle_team_vote(self):
         """处理队伍投票阶段"""
         print("处理队伍投票阶段")
+        
+        # 记录队伍投票开始事件
+        team_vote_data = {
+            "team": self.game.current_team,
+            "mission_number": self.game.current_mission
+        }
+        self.log_manager.log_global_event("team_vote_start", team_vote_data)
         
         # 检查是否所有玩家都已投票
         total_players = len(self.game.players)
@@ -147,6 +198,14 @@ class AIController:
                 
                 if vote:
                     print(f"AI玩家 {player.name} 投票: {vote}")
+                        
+                    # 记录投票事件
+                    vote_data = {
+                        "player": player.name,
+                        "vote": vote,
+                        "team": self.game.current_team
+                    }
+                    self.log_manager.log_global_event("team_vote", vote_data)
                     
                     # AI宣布投票
                     vote_speech = "我赞成这个队伍" if vote == "approve" else "我反对这个队伍"
@@ -168,6 +227,13 @@ class AIController:
     async def handle_mission_vote(self):
         """处理任务投票阶段"""
         print("处理任务投票阶段")
+        
+        # 记录任务投票开始事件
+        mission_vote_data = {
+            "team": self.game.current_team,
+            "mission_number": self.game.current_mission
+        }
+        self.log_manager.log_global_event("mission_vote_start", mission_vote_data)
         
         # 只有队伍中的AI玩家参与任务投票
         team_ai_players = [p for p in self.ai_players if p.name in self.game.current_team]
@@ -201,6 +267,14 @@ class AIController:
                 
                 if vote:
                     print(f"AI队伍成员 {player.name} 任务投票: {vote}")
+                        
+                    # 记录任务投票事件
+                    mission_vote_data = {
+                        "player": player.name,
+                        "vote": vote,
+                        "mission_number": self.game.current_mission
+                    }
+                    self.log_manager.log_global_event("mission_vote", mission_vote_data)
                     result = self.game.vote_mission(player.name, vote)
                     if 'error' not in result:
                         await self.notify_frontend("mission_vote_recorded", result)
@@ -217,6 +291,12 @@ class AIController:
     async def handle_assassination(self):
         """处理刺杀阶段"""
         print("处理刺杀阶段")
+        
+        # 记录刺杀阶段开始事件
+        assassination_data = {
+            "mission_results": self.game.mission_results
+        }
+        self.log_manager.log_global_event("assassination_start", assassination_data)
         
         # 找到刺客
         assassin = None
