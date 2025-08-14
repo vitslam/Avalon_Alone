@@ -1,6 +1,6 @@
 import random
 from typing import List, Dict, Any, Optional
-from .constants import GAME_PHASES, MISSION_CONFIGS, GAME_STATES, ROLES
+from .common_constants import GAME_PHASES, MISSION_CONFIGS, GAME_STATES, ROLES
 from .player import Player, AIPlayer, God
 
 class AvalonGame:
@@ -284,4 +284,4 @@ class AvalonGame:
 
     def get_mission_players(self) -> List[str]:
         """获取当前任务中的玩家列表"""
-        return self.current_team 
+        return self.current_team

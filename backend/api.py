@@ -192,13 +192,13 @@ async def assassinate(assassination: Assassination):
 @app.get("/game/roles")
 async def get_roles():
     """获取角色信息"""
-    from .constants import ROLES
+    from .common_constants import ROLES
     return {"roles": ROLES}
 
 @app.get("/game/phases")
 async def get_phases():
     """获取游戏阶段信息"""
-    from .constants import GAME_PHASES
+    from .common_constants import GAME_PHASES
     return {"phases": GAME_PHASES}
 
 @app.post("/game/reset")
@@ -289,4 +289,4 @@ async def health_check():
         "status": "healthy", 
         "game_active": game_instance is not None,
         "ai_controller_active": ai_controller is not None and ai_controller.is_running
-    } 
+    }

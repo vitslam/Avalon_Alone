@@ -1,6 +1,6 @@
 import random
 from typing import List, Dict, Any, Optional
-from .constants import ROLES
+from .common_constants import ROLES
 
 class Player:
     def __init__(self, name: str, role: Optional[str] = None):
@@ -197,4 +197,4 @@ class God:
                           if role in ['morgana', 'assassin', 'mordred', 'minion'] and name != player.name]
             message += f"其他坏人：{', '.join(evil_players)}"
         
-        return message 
+        return message

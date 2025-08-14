@@ -5,7 +5,7 @@ AI控制器 - 负责AI玩家的自动决策和游戏流程控制
 import asyncio
 import random
 from typing import Dict, List, Optional, Callable, Any
-from .constants import GAME_PHASES, GAME_STATES
+from .common_constants import GAME_PHASES, GAME_STATES
 from .ai_service import ai_service
 
 class AIController:
@@ -370,4 +370,4 @@ class AIController:
             "ai_players_count": len(self.ai_players),
             "current_speaker": self.current_speaker,
             "ai_players": [{"name": p.name, "role": p.role} for p in self.ai_players]
-        } 
+        }
