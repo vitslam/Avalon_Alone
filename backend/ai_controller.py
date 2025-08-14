@@ -371,6 +371,9 @@ class AIController:
         # 设置当前发言者
         self.current_speaker = player.name
         
+        # 记录发言
+        self.game.record_message(player.name, message)
+
         # 通知前端有玩家正在发言
         if self.websocket_notifier:
             await self.websocket_notifier("player_speaking", {

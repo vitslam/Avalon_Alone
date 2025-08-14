@@ -177,11 +177,34 @@ class AIService:
         current_mission = game_context.get('current_mission', 1)
         current_team = game_context.get('current_team', [])
         vote_context = game_context.get('vote_context', '')
+        players = game_context.get('players', [])
+        messages_history = game_context.get('messages_history', [])
         
         # 从配置中获取角色信息
         role_info = ROLES.get(role, {'name': role, 'description': role, 'strategy_tips': []})
         role_display = role_info['name']
         strategy_tips = ','.join(role_info['strategy_tips'])
+        
+        # 根据角色添加视野信息
+        vision_info = ""
+        if role == 'merlin':
+            evil_players = [p['name'] for p in players if p['role'] in ['morgana', 'assassin', 'oberon', 'minion']]
+            vision_info = f"你能看到这些坏人: {', '.join(evil_players)}"
+        elif role == 'percival':
+            merlin_players = [p['name'] for p in players if p['role'] == 'merlin']
+            morgana_players = [p['name'] for p in players if p['role'] == 'morgana']
+            vision_info = f"你能看到梅林: {', '.join(merlin_players)} 和 莫甘娜: {', '.join(morgana_players)}"
+        elif role_info.get('team') == 'evil':
+            evil_players = [p['name'] for p in players if p['role'] in ['morgana', 'assassin', 'mordred', 'minion']]
+            vision_info = f"你能看到这些坏人同伴: {', '.join(evil_players)}"
+        
+        # 添加对话历史
+        history_info = ""
+        if messages_history:
+            history_lines = []
+            for msg in messages_history:  # 取所有消息
+                history_lines.append(f"{msg['player']}说: {msg['content']}")
+            history_info = "\n\n对话历史:\n" + '\n'.join(history_lines)
         
         context_info = ""
         if vote_context == "team_vote":
@@ -192,6 +215,7 @@ class AIService:
         prompt = f"""
 你是阿瓦隆游戏中的玩家 {player_name}，你的角色是 {role_display}。
 {role_info['description']}
+{vision_info}
 策略提示：{strategy_tips}
 
 当前游戏状态：
@@ -199,6 +223,7 @@ class AIService:
 - 当前任务：第{current_mission}个
 - 当前队伍：{current_team if current_team else '未选择'}
 {context_info}
+{history_info}
 
 请根据你的角色和当前情况发言，要简洁有趣（不超过100字）。体现你的角色特点和策略思考。
 """
@@ -206,9 +231,33 @@ class AIService:
 
     def _build_team_selection_prompt(self, player_name: str, role: str, game_context: Dict[str, Any], 
                                    available_players: List[str], team_size: int) -> str:
+        players = game_context.get('players', [])
+        messages_history = game_context.get('messages_history', [])
+        
         # 从配置中获取角色信息
         role_info = ROLES.get(role, {'name': role, 'description': role, 'team': 'unknown', 'strategy_tips': []})
         strategy_tips = ','.join(role_info['strategy_tips'])
+        
+        # 根据角色添加视野信息
+        vision_info = ""
+        if role == 'merlin':
+            evil_players = [p['name'] for p in players if p['role'] in ['morgana', 'assassin', 'oberon', 'minion'] and p['name'] in available_players]
+            vision_info = f"你能看到这些坏人: {', '.join(evil_players)}"
+        elif role == 'percival':
+            merlin_players = [p['name'] for p in players if p['role'] == 'merlin' and p['name'] in available_players]
+            morgana_players = [p['name'] for p in players if p['role'] == 'morgana' and p['name'] in available_players]
+            vision_info = f"你能看到梅林: {', '.join(merlin_players)} 和 莫甘娜: {', '.join(morgana_players)}"
+        elif role_info.get('team') == 'evil':
+            evil_players = [p['name'] for p in players if p['role'] in ['morgana', 'assassin', 'mordred', 'minion'] and p['name'] in available_players]
+            vision_info = f"你能看到这些坏人同伴: {', '.join(evil_players)}"
+        
+        # 添加对话历史
+        history_info = ""
+        if messages_history:
+            history_lines = []
+            for msg in messages_history[-5:]:  # 只取最近5条消息
+                history_lines.append(f"{msg['player']}说: {msg['content']}")
+            history_info = "\n\n对话历史:\n" + '\n'.join(history_lines)
         
         # 根据角色阵营生成策略建议
         if role_info['team'] == 'good':
@@ -221,6 +270,7 @@ class AIService:
         prompt = f"""
 你是阿瓦隆游戏中的玩家 {player_name}，你的角色是 {role_info['name']}。
 {role_info['description']}
+{vision_info}
 策略提示：{strategy_tips}
 
 可选玩家：{available_players}
@@ -228,6 +278,7 @@ class AIService:
 
 请根据你的角色特点和策略选择队伍成员：
 - {team_strategy}
+{history_info}
 
 返回JSON格式的玩家名称列表，例如：["玩家1", "玩家2"]
 """
@@ -235,10 +286,33 @@ class AIService:
 
     def _build_vote_prompt(self, player_name: str, role: str, game_context: Dict[str, Any], vote_type: str) -> str:
         current_team = game_context.get('current_team', [])
+        players = game_context.get('players', [])
+        messages_history = game_context.get('messages_history', [])
         
         # 从配置中获取角色信息
         role_info = ROLES.get(role, {'name': role, 'description': role, 'team': 'unknown', 'strategy_tips': []})
         strategy_tips = ','.join(role_info['strategy_tips'])
+        
+        # 根据角色添加视野信息
+        vision_info = ""
+        if role == 'merlin':
+            evil_players = [p['name'] for p in players if p['role'] in ['morgana', 'assassin', 'oberon', 'minion']]
+            vision_info = f"你能看到这些坏人: {', '.join(evil_players)}"
+        elif role == 'percival':
+            merlin_players = [p['name'] for p in players if p['role'] == 'merlin']
+            morgana_players = [p['name'] for p in players if p['role'] == 'morgana']
+            vision_info = f"你能看到梅林: {', '.join(merlin_players)} 和 莫甘娜: {', '.join(morgana_players)}"
+        elif role_info.get('team') == 'evil':
+            evil_players = [p['name'] for p in players if p['role'] in ['morgana', 'assassin', 'mordred', 'minion']]
+            vision_info = f"你能看到这些坏人同伴: {', '.join(evil_players)}"
+        
+        # 添加对话历史
+        history_info = ""
+        if messages_history:
+            history_lines = []
+            for msg in messages_history[-5:]:  # 只取最近5条消息
+                history_lines.append(f"{msg['player']}说: {msg['content']}")
+            history_info = "\n\n对话历史:\n" + '\n'.join(history_lines)
         
         # 获取投票规则信息
         vote_info = VOTE_RULES.get(vote_type, {})
@@ -255,12 +329,14 @@ class AIService:
             prompt = f"""
 你是阿瓦隆游戏中的玩家 {player_name}，你的角色是 {role_info['name']}。
 {role_info['description']}
+{vision_info}
 策略提示：{strategy_tips}
 
 当前提议的任务队伍：{current_team}
 
 请根据你的角色对这个队伍进行投票：
 - {vote_strategy}
+{history_info}
 
 如果赞成（{vote_info.get('approve', '赞成')}），回答 "approve"
 如果反对（{vote_info.get('reject', '反对')}），回答 "reject"
@@ -277,10 +353,12 @@ class AIService:
             prompt = f"""
 你是阿瓦隆游戏中的玩家 {player_name}，你的角色是 {role_info['name']}。
 {role_info['description']}
+{vision_info}
 策略提示：{strategy_tips}
 
 你在任务队伍中，需要对任务进行投票：
 - {vote_strategy}
+{history_info}
 
 如果希望任务成功（{vote_info.get('success', '成功')}），回答 "success"  
 如果希望任务失败（{vote_info.get('fail', '失败')}），回答 "fail"

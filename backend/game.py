@@ -18,6 +18,7 @@ class AvalonGame:
         self.mission_votes = []
         self.failed_team_votes = 0
         self.game_history = []
+        self.messages_history = []
         
         # 根据玩家数量设置任务配置
         player_count = len(players)
@@ -201,6 +202,14 @@ class AvalonGame:
         
         return {'status': 'vote_recorded', 'remaining_votes': len(self.current_team) - len(self.mission_votes)}
 
+    def record_message(self, player_name: str, content: str):
+        """记录玩家发言"""
+        self.messages_history.append({
+            'player': player_name,
+            'content': content,
+            'phase': self.phase
+        })
+
     def assassinate(self, target_name: str) -> Dict[str, Any]:
         """刺客刺杀"""
         if self.phase != GAME_PHASES['assassination']:
@@ -265,7 +274,8 @@ class AvalonGame:
             'mission_votes': self.mission_votes,
             'failed_team_votes': self.failed_team_votes,
             'players': [{'name': p.name, 'role': p.role, 'is_ai': p.is_ai} for p in self.players],
-            'winner': getattr(self, 'winner', None)
+            'winner': getattr(self, 'winner', None),
+            'messages_history': self.messages_history
         }
 
     def get_mission_config(self) -> Dict[str, Any]:
