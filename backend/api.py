@@ -4,12 +4,14 @@ from pydantic import BaseModel
 from typing import List, Dict, Any, Optional
 import json
 import asyncio
+import time
 from .game import AvalonGame
 from .player import Player, AIPlayer, God
 from .ai_controller import AIController
 import sys
 sys.path.append('..')
 from config import AI_CONFIG
+from .service_logger import service_logger
 
 app = FastAPI(title="Avalon Alone API", version="1.0.0")
 
@@ -49,15 +51,31 @@ class GameConfig(BaseModel):
 @app.get("/")
 async def root():
     """根路径"""
-    return {"message": "Avalon Alone API", "version": "1.0.0"}
+    start_time = time.time()
+    service_logger.log_request_start("/", "GET")
+    
+    result = {"message": "Avalon Alone API", "version": "1.0.0"}
+    
+    duration = time.time() - start_time
+    service_logger.log_request_end("/", 200, duration)
+    return result
 
 @app.post("/game/start")
 async def start_game(config: GameConfig):
     """开始新游戏"""
+    start_time = time.time()
+    service_logger.log_request_start("/game/start", "POST", players_count=len(config.players))
+    
     global game_instance, ai_controller
     
     if len(config.players) < 5 or len(config.players) > 10:
+        service_logger.log_request_end("/game/start", 400, time.time() - start_time, error="玩家数量必须在5-10人之间")
         raise HTTPException(status_code=400, detail="玩家数量必须在5-10人之间")
+    
+    # 开始新的AI日志记录
+    from .ai_logger import ai_logger
+    ai_logger.start_new_game()
+    service_logger.logger.info("开始新游戏，创建AI日志文件")
     
     # 创建玩家列表
     players = []
@@ -85,8 +103,11 @@ async def start_game(config: GameConfig):
     ai_players_count = sum(1 for p in players if p.is_ai)
     if ai_players_count == len(players):
         print("检测到全AI游戏，启动自动游戏模式")
+        service_logger.logger.info("检测到全AI游戏，启动自动游戏模式")
         asyncio.create_task(start_auto_game())
     
+    duration = time.time() - start_time
+    service_logger.log_request_end("/game/start", 200, duration)
     return result
 
 async def start_auto_game():
@@ -300,9 +321,29 @@ async def websocket_endpoint(websocket: WebSocket):
 # 健康检查
 @app.get("/health")
 async def health_check():
-    """健康检查端点"""
-    return {
-        "status": "healthy", 
-        "game_active": game_instance is not None,
-        "ai_controller_active": ai_controller is not None and ai_controller.is_running
-    } 
+    """健康检查"""
+    import psutil
+    import os
+    
+    start_time = time.time()
+    service_logger.log_request_start("/health", "GET")
+    
+    # 获取内存使用
+    process = psutil.Process(os.getpid())
+    memory_mb = process.memory_info().rss / 1024 / 1024
+    
+    # 记录内存使用
+    service_logger.log_memory_usage(memory_mb)
+    
+    health_info = {
+        "status": "healthy",
+        "memory_mb": round(memory_mb, 1),
+        "game_state": game_instance.state if game_instance else None,
+        "game_phase": game_instance.phase if game_instance else None,
+        "ai_controller_running": ai_controller.is_running if ai_controller else False,
+        "websocket_connections": len(websocket_connections)
+    }
+    
+    duration = time.time() - start_time
+    service_logger.log_request_end("/health", 200, duration)
+    return health_info 

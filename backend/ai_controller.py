@@ -7,6 +7,7 @@ import random
 from typing import Dict, List, Optional, Callable, Any
 from .constants import GAME_PHASES, GAME_STATES
 from .ai_service import ai_service
+from .service_logger import service_logger
 
 class AIController:
     def __init__(self, game, websocket_notifier: Optional[Callable] = None):
@@ -16,49 +17,59 @@ class AIController:
         self.is_running = False
         self.auto_delay = 2.0  # 增加延迟以便观察AI发言
         self.current_speaker = None  # 当前正在发言的玩家
+        self.loop_count = 0  # 循环计数器
 
     async def start_auto_play(self):
         """开始AI自动游戏"""
         if not self.ai_players:
             print("没有AI玩家，退出自动游戏")
+            service_logger.logger.info("没有AI玩家，退出自动游戏")
             return
         
         self.is_running = True
         print(f"AI控制器启动，管理 {len(self.ai_players)} 个AI玩家")
+        service_logger.logger.info(f"AI控制器启动，管理 {len(self.ai_players)} 个AI玩家")
         
-        loop_count = 0
+        self.loop_count = 0
         # 持续处理游戏直到结束
         while self.is_running and self.game.state == GAME_STATES['playing']:
-            loop_count += 1
-            print(f"\n=== AI循环 {loop_count} ===")
+            self.loop_count += 1
+            print(f"\n=== AI循环 {self.loop_count} ===")
             print(f"游戏状态: {self.game.state}")
             print(f"游戏阶段: {self.game.phase}")
+            
+            service_logger.log_ai_controller_loop(self.loop_count, self.game.phase, "开始处理")
             
             await self.process_current_phase()
             
             # 检查游戏是否结束
             if self.game.state == GAME_STATES['finished']:
                 print("游戏结束！")
+                service_logger.logger.info("游戏结束")
                 break
             
             # 防止无限循环
-            if loop_count > 50:
+            if self.loop_count > 50:
                 print("达到最大循环次数，停止AI控制器")
+                service_logger.logger.warning("达到最大循环次数，停止AI控制器")
                 break
             
             await asyncio.sleep(self.auto_delay)
         
-        print(f"AI控制器结束，总共执行了 {loop_count} 次循环")
+        print(f"AI控制器结束，总共执行了 {self.loop_count} 次循环")
+        service_logger.logger.info(f"AI控制器结束，总共执行了 {self.loop_count} 次循环")
 
     async def stop_auto_play(self):
         """停止AI自动游戏"""
         self.is_running = False
         print("AI控制器已停止")
+        service_logger.logger.info("AI控制器已停止")
 
     async def process_current_phase(self):
         """处理当前游戏阶段"""
         phase = self.game.phase
         print(f"处理阶段: {phase}")
+        service_logger.log_ai_controller_loop(self.loop_count, phase, f"处理{phase}阶段")
         
         if phase == GAME_PHASES['team_selection']:
             await self.handle_team_selection()
@@ -70,6 +81,7 @@ class AIController:
             await self.handle_assassination()
         else:
             print(f"未知阶段: {phase}，等待...")
+            service_logger.log_warning(f"未知阶段: {phase}")
             await asyncio.sleep(1)
 
     async def handle_team_selection(self):

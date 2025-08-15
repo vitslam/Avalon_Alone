@@ -9,6 +9,7 @@ import sys
 sys.path.append('..')
 from config import AI_CONFIG
 from .ai_logger import ai_logger
+from .service_logger import service_logger
 
 # 加载环境变量
 load_dotenv()
@@ -22,6 +23,8 @@ class AIService:
         
         # 初始化对应的AI客户端
         self.client = None
+        self.initialization_error = None
+        
         if self.ai_provider == "zhipu":
             self._init_zhipu_client()
         elif self.ai_provider == "openai":
@@ -29,31 +32,52 @@ class AIService:
         elif self.ai_provider == "anthropic":
             self._init_anthropic_client()
         else:
-            print(f"警告: 不支持的AI提供商: {self.ai_provider}")
+            error_msg = f"不支持的AI提供商: {self.ai_provider}"
+            print(f"警告: {error_msg}")
+            service_logger.logger.warning(error_msg)
+        
+        # 记录初始化结果
+        if self.client:
+            service_logger.logger.info(f"AI服务初始化成功 - 提供商: {self.ai_provider}, 模型: {self.default_model}")
+        else:
+            service_logger.logger.warning(f"AI服务初始化失败 - 提供商: {self.ai_provider}, 将使用备用逻辑")
 
     def _init_zhipu_client(self):
         """初始化智谱AI客户端"""
         api_key = os.getenv("ZHIPU_API_KEY")
-        if not api_key:
-            print("警告: 未找到 ZHIPU_API_KEY 环境变量")
+        if not api_key or api_key == "your_zhipu_api_key_here":
+            error_msg = "未找到有效的 ZHIPU_API_KEY 环境变量"
+            print(f"警告: {error_msg}")
+            service_logger.logger.warning(error_msg)
+            self.initialization_error = error_msg
             return
             
         try:
-            from zhipuai import ZhipuAI
-            self.client = ZhipuAI(api_key=api_key)
+            from zai import ZhipuAiClient
+            self.client = ZhipuAiClient(api_key=api_key)
             print("✅ 智谱AI客户端初始化成功")
+            service_logger.logger.info("智谱AI客户端初始化成功")
         except ImportError:
-            print("错误: zhipuai 包未安装，请运行: pip install zhipuai")
+            error_msg = "zai 包未安装，请运行: pip install zai"
+            print(f"错误: {error_msg}")
+            service_logger.logger.error(error_msg)
+            self.initialization_error = error_msg
         except Exception as e:
-            print(f"智谱AI客户端初始化失败: {e}")
+            error_msg = f"智谱AI客户端初始化失败: {e}"
+            print(f"错误: {error_msg}")
+            service_logger.logger.error(error_msg)
+            self.initialization_error = error_msg
 
     def _init_openai_client(self):
         """初始化OpenAI客户端"""
         api_key = os.getenv("OPENAI_API_KEY")
         base_url = os.getenv("OPENAI_BASE_URL", "https://api.openai.com/v1")
         
-        if not api_key:
-            print("警告: 未找到 OPENAI_API_KEY 环境变量")
+        if not api_key or api_key == "your_openai_api_key_here":
+            error_msg = "未找到有效的 OPENAI_API_KEY 环境变量"
+            print(f"警告: {error_msg}")
+            service_logger.logger.warning(error_msg)
+            self.initialization_error = error_msg
             return
             
         try:
@@ -65,27 +89,44 @@ class AIService:
                 timeout=httpx.Timeout(self.timeout)
             )
             print("✅ OpenAI客户端初始化成功")
+            service_logger.logger.info("OpenAI客户端初始化成功")
         except ImportError:
-            print("错误: openai 包未安装，请运行: pip install openai")
+            error_msg = "openai 包未安装，请运行: pip install openai"
+            print(f"错误: {error_msg}")
+            service_logger.logger.error(error_msg)
+            self.initialization_error = error_msg
         except Exception as e:
-            print(f"OpenAI客户端初始化失败: {e}")
+            error_msg = f"OpenAI客户端初始化失败: {e}"
+            print(f"错误: {error_msg}")
+            service_logger.logger.error(error_msg)
+            self.initialization_error = error_msg
 
     def _init_anthropic_client(self):
         """初始化Anthropic客户端"""
         api_key = os.getenv("ANTHROPIC_API_KEY")
         
-        if not api_key:
-            print("警告: 未找到 ANTHROPIC_API_KEY 环境变量")
+        if not api_key or api_key == "your_anthropic_api_key_here":
+            error_msg = "未找到有效的 ANTHROPIC_API_KEY 环境变量"
+            print(f"警告: {error_msg}")
+            service_logger.logger.warning(error_msg)
+            self.initialization_error = error_msg
             return
             
         try:
             from anthropic import AsyncAnthropic
             self.client = AsyncAnthropic(api_key=api_key)
             print("✅ Anthropic客户端初始化成功")
+            service_logger.logger.info("Anthropic客户端初始化成功")
         except ImportError:
-            print("错误: anthropic 包未安装，请运行: pip install anthropic")
+            error_msg = "anthropic 包未安装，请运行: pip install anthropic"
+            print(f"错误: {error_msg}")
+            service_logger.logger.error(error_msg)
+            self.initialization_error = error_msg
         except Exception as e:
-            print(f"Anthropic客户端初始化失败: {e}")
+            error_msg = f"Anthropic客户端初始化失败: {e}"
+            print(f"错误: {error_msg}")
+            service_logger.logger.error(error_msg)
+            self.initialization_error = error_msg
 
     def _get_model_config(self, engine_name: str) -> Optional[Dict[str, Any]]:
         """获取模型配置"""
@@ -103,8 +144,20 @@ class AIService:
     async def get_ai_speech(self, player_name: str, role: str, game_context: Dict[str, Any], engine_name: str = None) -> Optional[str]:
         """获取AI玩家的发言"""
         if not self.client:
-            print(f"AI服务未初始化，{player_name} 使用默认发言")
-            return None
+            error_msg = f"AI服务未初始化，{player_name} 使用默认发言"
+            print(f"警告: {error_msg}")
+            service_logger.log_warning(error_msg, f"AI服务初始化错误: {self.initialization_error}")
+            
+            # 提供简单的备用发言
+            backup_speeches = [
+                f"作为{player_name}，我认为我们应该谨慎行事。",
+                f"我是{player_name}，我相信团队合作的重要性。",
+                f"作为{player_name}，我会尽力为团队做出贡献。",
+                f"我是{player_name}，让我们共同努力完成任务。",
+                f"作为{player_name}，我支持当前的决定。"
+            ]
+            import random
+            return random.choice(backup_speeches)
         
         # 确定使用的模型
         if engine_name:
@@ -112,6 +165,9 @@ class AIService:
         else:
             actual_model = self.default_model
             
+        service_logger.log_ai_request_start(player_name, "speech", actual_model)
+        start_time = time.time()
+        
         try:
             prompt = self._build_speech_prompt(player_name, role, game_context)
             messages = [
@@ -119,35 +175,48 @@ class AIService:
                 {"role": "user", "content": prompt}
             ]
             
-            start_time = time.time()
-            
+            # 使用超时控制
             if self.ai_provider == "zhipu":
-                response = self.client.chat.completions.create(
-                    model=actual_model,
-                    messages=messages,
+                response = await asyncio.wait_for(
+                    asyncio.to_thread(
+                        self.client.chat.completions.create,
+                        model=actual_model,
+                        messages=messages,
+                    ),
+                    timeout=self.timeout
                 )
                 speech = response.choices[0].message.content.strip()
             elif self.ai_provider == "openai":
-                response = await self.client.chat.completions.create(
-                    model=actual_model,
-                    messages=messages,
-                    max_tokens=100,
-                    temperature=0.8
+                response = await asyncio.wait_for(
+                    self.client.chat.completions.create(
+                        model=actual_model,
+                        messages=messages,
+                        max_tokens=100,
+                        temperature=0.8
+                    ),
+                    timeout=self.timeout
                 )
                 speech = response.choices[0].message.content.strip()
             elif self.ai_provider == "anthropic":
-                response = await self.client.messages.create(
-                    model=actual_model,
-                    max_tokens=100,
-                    messages=messages
+                response = await asyncio.wait_for(
+                    self.client.messages.create(
+                        model=actual_model,
+                        max_tokens=100,
+                        messages=messages
+                    ),
+                    timeout=self.timeout
                 )
                 speech = response.content[0].text.strip()
             else:
                 return None
             
             end_time = time.time()
+            duration = end_time - start_time
             
-            # 记录日志
+            # 记录成功日志
+            service_logger.log_ai_request_end(player_name, "speech", True, duration)
+            
+            # 记录AI日志
             ai_logger.log_speech_request(
                 model_name=actual_model,
                 messages=messages,
@@ -160,12 +229,36 @@ class AIService:
             print(f"AI {player_name} 获得发言: {speech}")
             return speech
             
+        except asyncio.TimeoutError:
+            end_time = time.time()
+            duration = end_time - start_time
+            error_msg = f"AI请求超时 ({self.timeout}s)"
+            print(f"AI {player_name} 发言获取超时: {error_msg}")
+            
+            # 记录超时日志
+            service_logger.log_timeout(f"AI发言请求 - {player_name}", self.timeout)
+            service_logger.log_ai_request_end(player_name, "speech", False, duration, error_msg)
+            
+            # 记录错误日志
+            ai_logger.log_speech_request(
+                model_name=actual_model,
+                messages=messages,
+                player_id=player_name,
+                error=error_msg,
+                start_time=start_time,
+                end_time=end_time
+            )
+            
+            return None
+            
         except Exception as e:
             end_time = time.time()
+            duration = end_time - start_time
             error_msg = str(e)
             print(f"AI {player_name} 发言获取失败: {error_msg}")
             
             # 记录错误日志
+            service_logger.log_ai_request_end(player_name, "speech", False, duration, error_msg)
             ai_logger.log_speech_request(
                 model_name=actual_model,
                 messages=messages,

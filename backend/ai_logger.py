@@ -14,16 +14,24 @@ from config import AI_LOGGING_CONFIG
 class AILogger:
     def __init__(self):
         self.enabled = AI_LOGGING_CONFIG['enabled']
-        self.log_file = AI_LOGGING_CONFIG['log_file']
+        self.log_dir = AI_LOGGING_CONFIG.get('log_dir', 'ai_logs')
         self.include_system_prompt = AI_LOGGING_CONFIG['include_system_prompt']
         self.include_user_prompt = AI_LOGGING_CONFIG['include_user_prompt']
         self.include_response = AI_LOGGING_CONFIG['include_response']
         self.include_timing = AI_LOGGING_CONFIG['include_timing']
         
         # 确保日志目录存在
-        log_dir = os.path.dirname(self.log_file)
-        if log_dir and not os.path.exists(log_dir):
-            os.makedirs(log_dir)
+        if not os.path.exists(self.log_dir):
+            os.makedirs(self.log_dir)
+        
+        # 当前游戏的文件名
+        self.current_game_file = None
+    
+    def start_new_game(self):
+        """开始新游戏，创建新的日志文件"""
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        self.current_game_file = os.path.join(self.log_dir, f"game_{timestamp}.jsonl")
+        print(f"开始新游戏日志: {self.current_game_file}")
     
     def log_request(self, 
                    model_name: str,
@@ -50,6 +58,10 @@ class AILogger:
         if not self.enabled:
             return
         
+        # 如果没有当前游戏文件，创建一个
+        if not self.current_game_file:
+            self.start_new_game()
+        
         # 构建日志条目
         log_entry = {
             'timestamp': datetime.now().isoformat(),
@@ -71,7 +83,7 @@ class AILogger:
         
         # 写入JSONL文件
         try:
-            with open(self.log_file, 'a', encoding='utf-8') as f:
+            with open(self.current_game_file, 'a', encoding='utf-8') as f:
                 f.write(json.dumps(log_entry, ensure_ascii=False) + '\n')
         except Exception as e:
             print(f"AI日志记录失败: {e}")

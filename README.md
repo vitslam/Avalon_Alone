@@ -38,38 +38,128 @@
 - ✅ 完整的错误处理
 - ✅ API 文档自动生成
 - ✅ 详细的 AI 请求日志
+- ✅ 服务执行状态日志
+- ✅ 超时控制和错误恢复
+- ✅ 内存使用监控
 
 ## 配置说明
 
 ### 环境变量配置
 
-复制 `env.example` 文件为 `.env` 并配置以下变量：
+项目使用 `.env` 文件进行配置，请复制 `env.example` 为 `.env` 并根据需要修改：
 
 ```bash
 # AI提供商配置
-AI_PROVIDER=zhipu                    # AI提供商：zhipu/openai/anthropic
-AI_MODEL=glm-4.5-flash              # 默认AI模型
-AI_RESPONSE_TIMEOUT=30               # AI响应超时时间
-AI_FALLBACK_ENABLED=true             # 是否启用备用逻辑
+AI_PROVIDER=zhipu          # 可选: zhipu, openai, anthropic
+AI_MODEL=glm-4.5-flash     # 模型名称
+AI_RESPONSE_TIMEOUT=30     # 请求超时时间（秒）
+AI_FALLBACK_ENABLED=true   # 是否启用备用逻辑
 
-# API密钥配置
-ZHIPU_API_KEY=your_zhipu_api_key_here
-OPENAI_API_KEY=your_openai_api_key_here
-ANTHROPIC_API_KEY=your_anthropic_api_key_here
+# API密钥配置（至少配置一个）
+ZHIPU_API_KEY=your_zhipu_api_key_here      # 智谱AI API密钥
+OPENAI_API_KEY=your_openai_api_key_here     # OpenAI API密钥
+ANTHROPIC_API_KEY=your_anthropic_api_key_here # Anthropic API密钥
+
+# 服务器配置
+AVALON_HOST=0.0.0.0
+AVALON_PORT=8000
+AVALON_DEBUG=true
+AVALON_RELOAD=true
 
 # 日志配置
-AVALON_AI_LOG_FILE=ai_requests.jsonl # AI请求日志文件
-AVALON_AI_LOG_ENABLED=true          # 是否启用AI日志记录
+AVALON_LOG_LEVEL=INFO
+AVALON_LOG_FILE=avalon.log
+AVALON_AI_LOG_ENABLED=true
+AVALON_AI_LOG_DIR=ai_logs
 ```
 
-### 支持的 AI 引擎
+### 日志文件说明
 
-| 引擎ID | 名称 | 提供商 | 模型 |
-|--------|------|--------|------|
-| gpt-3.5 | GPT-3.5 | OpenAI | gpt-3.5-turbo |
-| gpt-4 | GPT-4 | OpenAI | gpt-4 |
-| claude | Claude | Anthropic | claude-3-sonnet-20240229 |
-| glm-4.5-flash | GLM-4.5-Flash | 智谱AI | glm-4.5-flash |
+#### AI请求日志 (`ai_logs/`)
+- 每场游戏一个文件：`game_YYYYMMDD_HHMMSS.jsonl`
+- 记录所有AI请求的详细信息
+- 包含模型名称、请求类型、玩家ID、响应内容、耗时等
+
+#### 服务执行日志 (`logs/`)
+- 每日一个文件：`service_YYYYMMDD.log`
+- 记录服务器执行状态和请求处理情况
+- 包含API请求、AI请求、游戏状态变化、错误信息等
+
+### 监控和调试
+
+#### 健康检查
+```bash
+curl http://localhost:8000/health
+```
+
+#### 服务监控
+```bash
+python monitor_service.py
+```
+
+#### 查看最新日志
+```bash
+# 查看最新服务日志
+tail -f logs/service_$(date +%Y%m%d).log
+
+# 查看最新AI日志
+ls -la ai_logs/ | tail -1
+tail -f ai_logs/game_$(ls ai_logs/ | tail -1)
+```
+
+#### 内存监控
+健康检查端点会返回内存使用情况，如果内存使用过高可能导致卡死。
+
+### 卡死问题排查
+
+如果游戏卡死，可以通过以下方式排查：
+
+1. **检查服务日志**：
+   ```bash
+   tail -f logs/service_$(date +%Y%m%d).log
+   ```
+
+2. **检查AI请求日志**：
+   ```bash
+   tail -f ai_logs/game_*.jsonl
+   ```
+
+3. **检查健康状态**：
+   ```bash
+   curl http://localhost:8000/health
+   ```
+
+4. **强制重启服务**：
+   ```bash
+   lsof -i :8000 | grep LISTEN | awk '{print $2}' | xargs kill -9
+   python start_server.py
+   ```
+
+### 常见问题
+
+#### 1. AI请求超时
+- 检查网络连接
+- 确认API密钥有效
+- 调整 `AI_RESPONSE_TIMEOUT` 参数
+
+#### 2. 内存使用过高
+- 检查是否有内存泄漏
+- 重启服务释放内存
+- 监控内存使用趋势
+
+#### 3. WebSocket连接断开
+- 检查前端连接状态
+- 查看服务日志中的WebSocket事件
+- 重新连接前端
+
+### 支持的AI引擎
+
+| 引擎ID | 名称 | 提供商 | 模型 | 描述 |
+|--------|------|--------|------|------|
+| `gpt-3.5` | GPT-3.5 | OpenAI | gpt-3.5-turbo | OpenAI GPT-3.5 模型 |
+| `gpt-4` | GPT-4 | OpenAI | gpt-4 | OpenAI GPT-4 模型 |
+| `claude` | Claude | Anthropic | claude-3-sonnet-20240229 | Anthropic Claude 模型 |
+| `glm-4.5-flash` | GLM-4.5-Flash | 智谱AI | glm-4.5-flash | 智谱AI GLM-4.5-Flash 模型 |
 
 ### AI 日志记录
 

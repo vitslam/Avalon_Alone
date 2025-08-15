@@ -58,7 +58,7 @@ AI_CONFIG = {
 # AI日志配置
 AI_LOGGING_CONFIG = {
     'enabled': os.getenv('AVALON_AI_LOG_ENABLED', 'true').lower() == 'true',
-    'log_file': os.getenv('AVALON_AI_LOG_FILE', 'ai_requests.jsonl'),
+    'log_dir': os.getenv('AVALON_AI_LOG_DIR', 'ai_logs'),
     'include_system_prompt': True,
     'include_user_prompt': True,
     'include_response': True,
