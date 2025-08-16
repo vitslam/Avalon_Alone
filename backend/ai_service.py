@@ -34,7 +34,7 @@ class AIService:
             prompt = self._build_speech_prompt(player_name, role, game_context)
             
             messages = [
-                {"role": "system", "content": "你是一个阿瓦隆游戏中的AI玩家。请根据你的角色和当前游戏情况，给出简短的发言（不超过50字）。"},
+                {"role": "system", "content": "你是一个阿瓦隆游戏中的AI玩家。请根据你的身份和当前游戏情况，给出有利于自己的发言。作为队长时最好优先选择自己，有发言机会尽量用推理证明自己为什么是好人，让别人带你做任务。可以多一些推理分析。也不要用括号表达情绪，不超过100字。"},
                 {"role": "user", "content": prompt}
             ]
             
