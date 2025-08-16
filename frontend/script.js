@@ -12,7 +12,27 @@ const API_BASE = 'http://localhost:8000';
 document.addEventListener('DOMContentLoaded', function() {
     initializeEventListeners();
     connectWebSocket();
+    initializeDefaultPlayers();
 });
+
+// 初始化默认AI玩家
+function initializeDefaultPlayers() {
+    const nameInput = document.getElementById('playerName');
+    const isAICheckbox = document.getElementById('isAI');
+    const aiEngineSelect = document.getElementById('aiEngine');
+    
+    // 默认添加5名AI玩家
+    for (let i = 1; i <= 5; i++) {
+        // 设置玩家信息
+        nameInput.value = i.toString();
+        isAICheckbox.checked = true;
+        aiEngineSelect.disabled = false;
+        aiEngineSelect.value = 'gpt-3.5';
+        
+        // 添加玩家
+        addPlayer();
+    }
+}
 
 // 初始化事件监听器
 function initializeEventListeners() {
@@ -1036,4 +1056,4 @@ window.voteMission = voteMission;
 window.confirmAssassination = confirmAssassination;
 window.resetGame = resetGame;
 window.sendMessage = sendMessage;
-window.setCurrentPlayer = setCurrentPlayer; 
+window.setCurrentPlayer = setCurrentPlayer;
