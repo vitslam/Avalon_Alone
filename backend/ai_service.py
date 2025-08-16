@@ -15,7 +15,7 @@ class AIService:
         self.ai_provider = os.getenv("AI_PROVIDER", "zhipu").lower()
         self.timeout = int(os.getenv("AI_RESPONSE_TIMEOUT", "30"))
         self.fallback_enabled = os.getenv("AI_FALLBACK_ENABLED", "true").lower() == "true"
-        self.log_manager = log_manager if log_manager else LogManager()
+        self.log_manager = log_manager  # 保持为None，不自动创建LogManager实例
         
         # 使用工厂创建模型客户端
         try:
@@ -429,8 +429,8 @@ class AIService:
             
         return None
 
-# 全局AI服务实例
-ai_service = AIService()
+# 全局AI服务实例（延迟初始化LogManager）
+ai_service = AIService(log_manager=None)
 
-# 设置默认日志管理器
-# 实际使用时，应在游戏开始时创建新的LogManager实例并传递给AIService
+# 注意：实际使用时，应在游戏开始时创建新的LogManager实例并传递给AIService
+# 这样可以避免在启动后端时就创建空的日志目录
