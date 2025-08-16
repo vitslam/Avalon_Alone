@@ -31,6 +31,19 @@ class AIController:
         self.is_running = True
         print(f"AI控制器启动，管理 {len(self.ai_players)} 个AI玩家")
         
+        # 检查游戏是否已经开始，如果没有则开始游戏
+        if self.game.state == GAME_STATES['waiting']:
+            print("开始新游戏")
+            game_start_result = self.game.start_game()
+            
+            # 记录游戏开始和角色分配信息到全局日志
+            if 'role_assignments' in game_start_result and 'secret_messages' in game_start_result:
+                self.log_manager.log_game_start_with_roles(
+                    role_assignments=game_start_result['role_assignments'],
+                    secret_messages=game_start_result['secret_messages']
+                )
+                print(f"游戏角色分配已记录到全局日志")
+        
         # 记录游戏开始事件
         game_start_data = {
             "players": [p.name for p in self.game.players],
@@ -373,6 +386,15 @@ class AIController:
         
         # 记录发言
         self.game.record_message(player.name, message)
+        
+        # 记录到全局日志
+        if self.log_manager:
+            self.log_manager.log_player_speech(
+                player_name=player.name,
+                message=message,
+                is_ai=player.is_ai,
+                role=player.role
+            )
 
         # 通知前端有玩家正在发言
         if self.websocket_notifier:

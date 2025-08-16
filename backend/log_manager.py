@@ -36,6 +36,49 @@ class LogManager:
         with open(self.global_log_path, 'a') as f:
             f.write(json.dumps(log_entry, ensure_ascii=False) + '\n')
 
+    def log_player_speech(self, player_name: str, message: str, is_ai: bool = False, role: str = None):
+        """记录玩家发言到全局日志"""
+        log_entry = {
+            'timestamp': datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+            'event_type': 'player_speech',
+            'data': {
+                'player_name': player_name,
+                'message': message,
+                'is_ai': is_ai,
+                'role': role
+            }
+        }
+
+        with open(self.global_log_path, 'a') as f:
+            f.write(json.dumps(log_entry, ensure_ascii=False) + '\n')
+
+    def log_game_start_with_roles(self, role_assignments: Dict[str, str], secret_messages: Dict[str, str] = None):
+        """记录游戏开始和身份信息到全局日志"""
+        # 记录公开的角色分配信息（不包含秘密信息）
+        log_entry = {
+            'timestamp': datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+            'event_type': 'game_start',
+            'data': {
+                'role_assignments': role_assignments
+            }
+        }
+
+        with open(self.global_log_path, 'a') as f:
+            f.write(json.dumps(log_entry, ensure_ascii=False) + '\n')
+
+        # 如果有秘密信息，也记录下来
+        if secret_messages:
+            for player_name, message in secret_messages.items():
+                secret_entry = {
+                    'timestamp': datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+                    'event_type': 'secret_message',
+                    'data': {
+                        'player_name': player_name,
+                        'message': message
+                    }
+                }
+                f.write(json.dumps(secret_entry, ensure_ascii=False) + '\n')
+
     def log_player_interaction(self, player_name: str, request: Dict[str, Any], response: Dict[str, Any]):
         """记录玩家与AI模型的交互"""
         # 如果玩家日志文件不存在，则创建
