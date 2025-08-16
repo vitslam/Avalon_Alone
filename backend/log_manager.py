@@ -28,7 +28,7 @@ class LogManager:
     def log_global_event(self, event_type: str, data: Dict[str, Any]):
         """记录全局游戏事件"""
         log_entry = {
-            'timestamp': time.time(),
+            'timestamp': datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
             'event_type': event_type,
             'data': data
         }
@@ -46,7 +46,7 @@ class LogManager:
             player_log_path = self.player_log_files[player_name]
 
         log_entry = {
-            'timestamp': time.time(),
+            'timestamp': datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
             'request': request,
             'response': response
         }
