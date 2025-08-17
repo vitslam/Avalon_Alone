@@ -330,7 +330,7 @@ body {
     border-radius: 20px;
     padding: 15px;
     position: relative;
-    overflow: hidden;
+    overflow: visible;
     backdrop-filter: blur(10px);
     border: 2px solid rgba(255,255,255,0.2);
     height: 100%;
@@ -359,13 +359,13 @@ body {
     justify-content: center;
     max-width: 100%;
     max-height: 100%;
-    overflow-y: auto;
+    overflow: visible;
 }
 
 .player-card {
     background: white;
     border-radius: 12px;
-    padding: 15px;
+    padding: 20px;
     text-align: center;
     min-width: 120px;
     max-width: 140px;
@@ -814,15 +814,23 @@ body {
     transform: translateX(-50%);
     background: #2196F3;
     color: white;
-    padding: 8px 12px;
-    border-radius: 15px;
-    font-size: 12px;
-    max-width: 200px;
+    padding: 10px 16px;
+    border-radius: 18px;
+    font-size: 13px;
+    min-width: 120px;
+    max-width: 300px;
+    width: max-content;
     word-wrap: break-word;
-    z-index: 10;
+    z-index: 1001;
     box-shadow: 0 4px 12px rgba(0,0,0,0.2);
     animation: speech-appear 0.3s ease-out;
     margin-bottom: 8px;
+    white-space: pre-wrap;
+    overflow: visible;
+    pointer-events: none;
+    opacity: 1 !important;
+    visibility: visible !important;
+    line-height: 1.4;
 }
 
 .speech-bubble::after {
