@@ -12,6 +12,9 @@ class TextToSpeech {
         this.voices = [];
         this.defaultVoice = null;
         this.voiceMap = {}; // 存储每个AI玩家对应的语音配置
+        this.utteranceQueue = []; // 语音队列
+        this.currentUtterance = null;
+        this.speaking = false;
         
         if (this.isSupported) {
             // 初始化语音列表
@@ -69,6 +72,26 @@ class TextToSpeech {
             return;
         }
         
+        // 将语音请求添加到队列
+        this.utteranceQueue.push({ text, playerName });
+        console.log(`添加语音到队列 (${playerName})，当前队列长度: ${this.utteranceQueue.length}`);
+        
+        // 如果当前没有正在播放的语音，开始处理队列
+        if (!this.speaking) {
+            this._processQueue();
+        }
+    }
+    
+    // 处理语音队列
+    _processQueue() {
+        if (this.utteranceQueue.length === 0) {
+            return;
+        }
+        
+        // 获取队列中的第一个语音请求
+        const request = this.utteranceQueue.shift();
+        const { text, playerName } = request;
+        
         // 获取该玩家的语音配置
         const config = this.voiceMap[playerName] || {
             voice: this.defaultVoice,
@@ -76,9 +99,6 @@ class TextToSpeech {
             rate: 1,
             volume: 1
         };
-        
-        // 取消当前可能正在播放的语音
-        this.speechSynthesis.cancel();
         
         // 创建语音实例
         const utterance = new SpeechSynthesisUtterance(text);
@@ -95,14 +115,35 @@ class TextToSpeech {
         // 添加事件监听
         utterance.onstart = () => {
             console.log(`开始播放语音 (${playerName}):`, text);
+            this.speaking = true;
+            this.currentUtterance = utterance;
         };
         
-        utterance.onend = () => {
-            console.log(`语音播放结束 (${playerName})`);
+        utterance.onend = (event) => {
+            console.log(`语音播放完成 (${playerName}):`, utterance.text);
+            this.speaking = false;
+            this.currentUtterance = null;
+            
+            // 通知前端语音播放结束
+            if (typeof window.onVoiceEnd === 'function') {
+                window.onVoiceEnd(playerName, utterance.text);
+            }
+            
+            // 处理下一个语音请求
+            if (this.utteranceQueue.length > 0) {
+                setTimeout(() => this._processQueue(), 300); // 短暂延迟，让玩家能区分不同发言
+            }
         };
         
         utterance.onerror = (event) => {
             console.error(`语音播放错误 (${playerName}):`, event.error);
+            this.speaking = false;
+            this.currentUtterance = null;
+            
+            // 处理下一个语音请求
+            if (this.utteranceQueue.length > 0) {
+                setTimeout(() => this._processQueue(), 300);
+            }
         };
         
         // 播放语音
@@ -113,12 +154,16 @@ class TextToSpeech {
     stop() {
         if (!this.isSupported) return;
         this.speechSynthesis.cancel();
+        this.speaking = false;
+        this.currentUtterance = null;
+        this.utteranceQueue = [];
+        console.log('语音已停止，队列已清空');
     }
 
     // 是否正在播放语音
     isSpeaking() {
         if (!this.isSupported) return false;
-        return this.speechSynthesis.speaking;
+        return this.speaking;
     }
 
     // 预配置多个AI玩家的语音
@@ -162,7 +207,6 @@ class TextToSpeech {
     }
 }
 
-// 创建全局实例
-export const tts = new TextToSpeech();
-
-export default TextToSpeech;
+// 创建TextToSpeech实例并导出
+const tts = new TextToSpeech();
+export { tts };

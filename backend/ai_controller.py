@@ -21,6 +21,10 @@ class AIController:
         # 更新AI服务的日志管理器
         global ai_service
         ai_service = ai_service.__class__(self.log_manager)
+        
+        # 新增：语音播放状态控制
+        self.waiting_for_voice = False  # 是否等待语音播放完成
+        self.voice_complete_event = asyncio.Event()  # 语音播放完成事件
 
     async def start_auto_play(self):
         """开始AI自动游戏"""
@@ -398,15 +402,21 @@ class AIController:
 
         # 通知前端有玩家正在发言
         if self.websocket_notifier:
+            # 设置等待语音播放完成的状态
+            self.waiting_for_voice = True
+            self.voice_complete_event.clear()  # 重置事件
+            
             await self.websocket_notifier("player_speaking", {
                 "speaker": player.name,
                 "message": message,
                 "role": player.role,
                 "is_ai": player.is_ai
             })
-        
-        # 模拟发言时间
-        await asyncio.sleep(1.5)
+            
+            # 等待语音播放完成
+            print(f"等待 {player.name} 的语音播放完成...")
+            await self.voice_complete_event.wait()
+            print(f"{player.name} 的语音播放已完成，继续游戏流程")
         
         # 清除当前发言者
         self.current_speaker = None
@@ -468,11 +478,30 @@ class AIController:
         if self.websocket_notifier:
             await self.websocket_notifier(event, data)
 
+    async def handle_voice_complete(self, data: Dict[str, Any]):
+        """处理前端发送的语音播放完成通知"""
+        player_name = data.get('player_name')
+        text = data.get('text')
+        print(f"接收到语音播放完成通知: 玩家 {player_name} 完成播放")
+        
+        # 记录到全局日志
+        if self.log_manager:
+            self.log_manager.log_global_event("voice_complete", {
+                "player_name": player_name,
+                "text": text
+            })
+        
+        # 标记语音播放已完成
+        if self.waiting_for_voice and self.current_speaker == player_name:
+            self.waiting_for_voice = False
+            self.voice_complete_event.set()  # 触发事件，继续游戏流程
+    
     def get_ai_status(self) -> Dict[str, Any]:
         """获取AI控制器状态"""
         return {
             "is_running": self.is_running,
             "ai_players_count": len(self.ai_players),
             "current_speaker": self.current_speaker,
+            "waiting_for_voice": self.waiting_for_voice,
             "ai_players": [{"name": p.name, "role": p.role} for p in self.ai_players]
         }

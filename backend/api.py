@@ -284,7 +284,19 @@ async def websocket_endpoint(websocket: WebSocket):
         
         # 保持连接直到客户端断开
         while True:
-            await websocket.receive_text()
+            # 接收来自客户端的消息
+            data = await websocket.receive_text()
+            try:
+                message = json.loads(data)
+                print(f"收到客户端消息: {message}")
+                
+                # 处理语音播放完成事件
+                if message.get('event') == 'voice_complete':
+                    print(f"收到语音播放完成通知: {message.get('data')}")
+                    if ai_controller:
+                        await ai_controller.handle_voice_complete(message.get('data'))
+            except json.JSONDecodeError:
+                print(f"无法解析客户端消息: {data}")
             
     except WebSocketDisconnect:
         websocket_connections.remove(websocket)

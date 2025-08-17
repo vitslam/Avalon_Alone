@@ -120,6 +120,20 @@ function initializeEventListeners() {
 function connectWebSocket() {
     websocket = new WebSocket(`ws://localhost:8000/ws`);
     
+    // 语音播放完成回调函数
+    window.onVoiceEnd = function(playerName, text) {
+        console.log(`语音播放完成，通知后端: ${playerName}`);
+        if (websocket && websocket.readyState === WebSocket.OPEN) {
+            websocket.send(JSON.stringify({
+                event: 'voice_complete',
+                data: {
+                    player_name: playerName,
+                    text: text
+                }
+            }));
+        }
+    };
+    
     websocket.onopen = function() {
         console.log('WebSocket连接已建立');
         addChatMessage('系统', '已连接到游戏服务器', 'system');
