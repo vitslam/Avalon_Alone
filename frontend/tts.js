@@ -174,11 +174,11 @@ class TextToSpeech {
         
         // 预定义一些语音参数组合，为不同AI玩家分配不同的声音特性
         const voiceConfigurations = [
-            {pitch: 1.2, rate: 0.9, volume: 1.0},  // 高音调，慢速
-            {pitch: 0.8, rate: 1.1, volume: 0.9},  // 低音调，快速
-            {pitch: 1.0, rate: 1.0, volume: 1.0},  // 正常音调，正常速度
-            {pitch: 0.9, rate: 0.8, volume: 0.95}, // 低音调，慢速
-            {pitch: 1.3, rate: 1.2, volume: 0.9}   // 高音调，快速
+            {pitch: 1.2, rate: 1.5, volume: 1.0},  // 高音调，快速
+            {pitch: 0.8, rate: 1.5, volume: 0.9},  // 低音调，快速
+            {pitch: 1.0, rate: 1.5, volume: 1.0},  // 正常音调，快速
+            {pitch: 0.9, rate: 1.5, volume: 0.95}, // 低音调，快速
+            {pitch: 1.3, rate: 1.5, volume: 0.9}   // 高音调，快速
         ];
         
         aiPlayers.forEach((player, index) => {
