@@ -302,11 +302,11 @@ function updateCurrentSpeaker(speaker) {
                 speakerCard.classList.add('speaking');
                 console.log(`玩家 ${speaker} 开始发言，卡片已高亮`);
                 
-                // 8秒后移除发言状态
+                // 3秒后移除发言状态
                 setTimeout(() => {
                     speakerCard.classList.remove('speaking');
                     console.log(`玩家 ${speaker} 发言结束，移除高亮`);
-                }, 8000);
+                }, 3000);
             } else {
                 console.log(`未找到玩家 ${speaker} 的卡片`);
             }
@@ -358,13 +358,13 @@ function showPlayerSpeaking(speaker, message) {
         speakerCard.style.position = 'relative';
         speakerCard.appendChild(speechBubble);
         
-        // 8秒后移除发言气泡
+        // 3秒后移除发言气泡
         setTimeout(() => {
             if (speechBubble.parentNode) {
                 speechBubble.remove();
                 console.log(`玩家 ${speaker} 的发言气泡已移除`);
             }
-        }, 8000);
+        }, 3000);
     } else {
         console.log(`未找到玩家 ${speaker} 的卡片，无法显示发言气泡`);
     }
@@ -1311,7 +1311,7 @@ function initializeVoiceControl() {
     controlPanel.appendChild(testButton);
     
     // 添加到文档中
-    document.body.appendChild(controlPanel);
+    // document.body.appendChild(controlPanel);
     
     // 添加事件监听器
     enableSwitch.addEventListener('change', function() {
