@@ -4,33 +4,89 @@ let players = [];
 let selectedPlayers = [];
 let websocket = null;
 let currentPlayer = null;
+// 语音合成实例
+let tts = null;
+
+// 动态加载语音合成模块
+async function loadTTSModule() {
+    try {
+        const module = await import('./tts.js');
+        tts = module.tts;
+        console.log('语音合成模块已加载');
+        
+        // 如果有AI玩家，预配置他们的语音
+        if (players.length > 0) {
+            setTimeout(() => {
+                preconfigureAIVoices();
+            }, 1000);
+        }
+    } catch (error) {
+        console.error('加载语音合成模块失败:', error);
+    }
+}
+
+// 预配置AI玩家的语音
+function preconfigureAIVoices() {
+    if (!tts || !players || players.length === 0) return;
+    
+    const aiPlayers = players.filter(p => p.is_ai);
+    if (aiPlayers.length > 0) {
+        tts.preconfigureAIVoices(aiPlayers);
+        console.log(`已预配置 ${aiPlayers.length} 个AI玩家的语音`);
+    }
+}
 
 // API基础URL
 const API_BASE = 'http://localhost:8000';
 
 // 初始化
-document.addEventListener('DOMContentLoaded', function() {
-    initializeEventListeners();
-    connectWebSocket();
-    initializeDefaultPlayers();
-});
+ document.addEventListener('DOMContentLoaded', function() {
+     initializeEventListeners();
+     connectWebSocket();
+     initializeDefaultPlayers();
+     
+     // 加载语音合成模块
+     loadTTSModule();
+ });
+ 
+ // 将主要交互函数绑定到全局window对象，以便在HTML中使用
+ window.addPlayer = addPlayer;
+ window.removePlayer = removePlayer;
+ window.startGame = startGame;
+ window.confirmTeam = confirmTeam;
+ window.vote = vote;
+ window.voteMission = voteMission;
+ window.confirmAssassination = confirmAssassination;
+ window.sendMessage = sendMessage;
+ window.resetGame = resetGame;
 
 // 初始化默认AI玩家
 function initializeDefaultPlayers() {
-    const nameInput = document.getElementById('playerName');
-    const isAICheckbox = document.getElementById('isAI');
-    const aiEngineSelect = document.getElementById('aiEngine');
-    
-    // 默认添加5名AI玩家
-    for (let i = 1; i <= 5; i++) {
-        // 设置玩家信息
-        nameInput.value = i.toString();
-        isAICheckbox.checked = true;
-        aiEngineSelect.disabled = false;
-        aiEngineSelect.value = 'gpt-3.5';
+    try {
+        const nameInput = document.getElementById('playerName');
+        const isAICheckbox = document.getElementById('isAI');
+        const aiEngineSelect = document.getElementById('aiEngine');
         
-        // 添加玩家
-        addPlayer();
+        console.log('开始初始化默认AI玩家');
+        console.log('检查DOM元素:', { nameInput, isAICheckbox, aiEngineSelect });
+        
+        // 默认添加5名AI玩家
+        for (let i = 1; i <= 5; i++) {
+            // 设置玩家信息
+            if (nameInput) nameInput.value = i.toString();
+            if (isAICheckbox) isAICheckbox.checked = true;
+            if (aiEngineSelect) {
+                aiEngineSelect.disabled = false;
+                aiEngineSelect.value = 'gpt-3.5';
+            }
+            
+            // 添加玩家
+            addPlayer();
+        }
+        
+        console.log('默认AI玩家初始化完成，当前玩家数量:', players.length);
+    } catch (error) {
+        console.error('初始化默认AI玩家时出错:', error);
     }
 }
 
@@ -48,6 +104,9 @@ function initializeEventListeners() {
             addPlayer();
         }
     });
+
+    // 初始化语音控制功能
+    initializeVoiceControl();
 
     // 聊天输入框回车发送
     document.getElementById('chatInput').addEventListener('keypress', function(e) {
@@ -161,6 +220,30 @@ function handlePlayerSpeaking(speakingData) {
     
     // 在玩家卡片上显示发言状态
     showPlayerSpeaking(speaker, message);
+    
+    // 调试语音合成状态
+    console.log('检查语音合成状态:');
+    console.log('- is_ai:', is_ai);
+    console.log('- tts 对象存在:', !!tts);
+    
+    if (tts) {
+        const status = tts.getStatus();
+        console.log('- 语音合成状态:', status);
+        console.log('- 语音配置玩家数:', Object.keys(tts.voiceMap).length);
+        
+        // 如果是AI玩家且语音合成启用，播放语音
+        if (is_ai && status.enabled) {
+            // 延迟一点时间播放，让UI更新先完成
+            setTimeout(() => {
+                console.log('准备播放AI语音:', { speaker, message });
+                tts.speak(message, speaker);
+            }, 300);
+        } else if (!status.enabled) {
+            console.log('未播放语音：语音合成未启用');
+        }
+    } else {
+        console.log('未播放语音：tts 对象不存在');
+    }
 }
 
 // 显示当前发言者指示器
@@ -306,6 +389,22 @@ function addPlayer() {
     
     players.push(player);
     console.log('当前玩家数组:', players);
+    
+    // 如果是AI玩家且语音合成可用，配置其语音
+    if (player.is_ai && tts) {
+        // 为新添加的AI玩家单独配置语音
+        // 使用一些简单的规则来为不同的AI玩家分配不同的语音特性
+        const aiPlayers = players.filter(p => p.is_ai);
+        const aiIndex = aiPlayers.findIndex(p => p.name === player.name);
+        
+        // 为不同的AI玩家分配不同的语音特性
+        const pitch = 0.8 + (aiIndex % 3) * 0.2; // 0.8, 1.0, 1.2
+        const rate = 0.8 + (aiIndex % 5) * 0.1; // 0.8, 0.9, 1.0, 1.1, 1.2
+        const volume = 0.9 + (aiIndex % 2) * 0.1; // 0.9, 1.0
+        
+        tts.configureVoice(player.name, null, pitch, rate, volume);
+        console.log(`已为AI玩家 ${player.name} 配置语音: pitch=${pitch}, rate=${rate}, volume=${volume}`);
+    }
     
     updatePlayerList();
     
@@ -1046,6 +1145,228 @@ function setCurrentPlayer(playerName) {
     addChatMessage('系统', `当前玩家设置为: ${playerName}`, 'system');
 }
 
+// 初始化语音控制
+function initializeVoiceControl() {
+    // 检查是否支持语音合成
+    if (!('speechSynthesis' in window)) {
+        console.warn('浏览器不支持语音合成，无法使用语音功能');
+        return;
+    }
+    
+    // 创建语音控制面板
+    const controlPanel = document.createElement('div');
+    controlPanel.id = 'voiceControlPanel';
+    controlPanel.className = 'voice-control-panel';
+    controlPanel.style.cssText = `
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        background: rgba(0, 0, 0, 0.7);
+        color: white;
+        padding: 15px;
+        border-radius: 10px;
+        z-index: 1000;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        max-width: 300px;
+    `;
+    
+    // 添加标题
+    const title = document.createElement('h3');
+    title.textContent = '语音设置';
+    title.style.margin = '0 0 10px 0';
+    title.style.fontSize = '16px';
+    controlPanel.appendChild(title);
+    
+    // 添加启用/禁用开关
+    const enableContainer = document.createElement('div');
+    enableContainer.style.display = 'flex';
+    enableContainer.style.alignItems = 'center';
+    enableContainer.style.justifyContent = 'space-between';
+    
+    const enableLabel = document.createElement('label');
+    enableLabel.textContent = '启用AI语音';
+    enableContainer.appendChild(enableLabel);
+    
+    const enableSwitch = document.createElement('input');
+    enableSwitch.type = 'checkbox';
+    enableSwitch.id = 'voiceEnableSwitch';
+    enableSwitch.checked = true; // 默认启用
+    enableContainer.appendChild(enableSwitch);
+    
+    controlPanel.appendChild(enableContainer);
+    
+    // 添加全局语音参数控制
+    const globalParamsContainer = document.createElement('div');
+    globalParamsContainer.className = 'global-params';
+    
+    // 语速控制
+    const rateContainer = document.createElement('div');
+    rateContainer.style.display = 'flex';
+    rateContainer.style.alignItems = 'center';
+    rateContainer.style.justifyContent = 'space-between';
+    
+    const rateLabel = document.createElement('label');
+    rateLabel.textContent = '语速';
+    rateLabel.htmlFor = 'voiceRateControl';
+    rateContainer.appendChild(rateLabel);
+    
+    const rateControl = document.createElement('input');
+    rateControl.type = 'range';
+    rateControl.id = 'voiceRateControl';
+    rateControl.min = '0.5';
+    rateControl.max = '2';
+    rateControl.step = '0.1';
+    rateControl.value = '1';
+    rateControl.style.width = '100px';
+    rateContainer.appendChild(rateControl);
+    
+    const rateValue = document.createElement('span');
+    rateValue.id = 'voiceRateValue';
+    rateValue.textContent = '1.0';
+    rateValue.style.minWidth = '30px';
+    rateContainer.appendChild(rateValue);
+    
+    globalParamsContainer.appendChild(rateContainer);
+    
+    // 音调控制
+    const pitchContainer = document.createElement('div');
+    pitchContainer.style.display = 'flex';
+    pitchContainer.style.alignItems = 'center';
+    pitchContainer.style.justifyContent = 'space-between';
+    
+    const pitchLabel = document.createElement('label');
+    pitchLabel.textContent = '音调';
+    pitchLabel.htmlFor = 'voicePitchControl';
+    pitchContainer.appendChild(pitchLabel);
+    
+    const pitchControl = document.createElement('input');
+    pitchControl.type = 'range';
+    pitchControl.id = 'voicePitchControl';
+    pitchControl.min = '0.5';
+    pitchControl.max = '2';
+    pitchControl.step = '0.1';
+    pitchControl.value = '1';
+    pitchControl.style.width = '100px';
+    pitchContainer.appendChild(pitchControl);
+    
+    const pitchValue = document.createElement('span');
+    pitchValue.id = 'voicePitchValue';
+    pitchValue.textContent = '1.0';
+    pitchValue.style.minWidth = '30px';
+    pitchContainer.appendChild(pitchValue);
+    
+    globalParamsContainer.appendChild(pitchContainer);
+    
+    // 音量控制
+    const volumeContainer = document.createElement('div');
+    volumeContainer.style.display = 'flex';
+    volumeContainer.style.alignItems = 'center';
+    volumeContainer.style.justifyContent = 'space-between';
+    
+    const volumeLabel = document.createElement('label');
+    volumeLabel.textContent = '音量';
+    volumeLabel.htmlFor = 'voiceVolumeControl';
+    volumeContainer.appendChild(volumeLabel);
+    
+    const volumeControl = document.createElement('input');
+    volumeControl.type = 'range';
+    volumeControl.id = 'voiceVolumeControl';
+    volumeControl.min = '0';
+    volumeControl.max = '1';
+    volumeControl.step = '0.1';
+    volumeControl.value = '1';
+    volumeControl.style.width = '100px';
+    volumeContainer.appendChild(volumeControl);
+    
+    const volumeValue = document.createElement('span');
+    volumeValue.id = 'voiceVolumeValue';
+    volumeValue.textContent = '1.0';
+    volumeValue.style.minWidth = '30px';
+    volumeContainer.appendChild(volumeValue);
+    
+    globalParamsContainer.appendChild(volumeContainer);
+    
+    controlPanel.appendChild(globalParamsContainer);
+    
+    // 测试按钮
+    const testButton = document.createElement('button');
+    testButton.textContent = '测试语音';
+    testButton.onclick = testVoice;
+    controlPanel.appendChild(testButton);
+    
+    // 添加到文档中
+    document.body.appendChild(controlPanel);
+    
+    // 添加事件监听器
+    enableSwitch.addEventListener('change', function() {
+        if (tts) {
+            tts.enable(this.checked);
+            console.log(`语音合成已${this.checked ? '启用' : '禁用'}`);
+        }
+    });
+    
+    rateControl.addEventListener('input', function() {
+        rateValue.textContent = this.value;
+    });
+    
+    pitchControl.addEventListener('input', function() {
+        pitchValue.textContent = this.value;
+    });
+    
+    volumeControl.addEventListener('input', function() {
+        volumeValue.textContent = this.value;
+    });
+}
+
+// 测试语音功能
+function testVoice() {
+    // 添加更详细的调试信息
+    console.log('测试语音功能调用');
+    console.log('tts 对象:', tts);
+    
+    // 直接检查window.speechSynthesis
+    if (!('speechSynthesis' in window)) {
+        console.error('window.speechSynthesis 不存在');
+        alert('您的浏览器不支持Web Speech API，无法使用语音合成功能');
+        return;
+    }
+    
+    console.log('window.speechSynthesis 存在:', window.speechSynthesis);
+    
+    if (!tts) {
+        console.error('tts 实例未加载');
+        alert('语音合成模块未加载成功，请刷新页面重试');
+        return;
+    }
+    
+    const status = tts.getStatus();
+    console.log('语音合成状态:', status);
+    
+    if (!status.supported) {
+        console.error('tts.getStatus().supported 返回 false');
+        alert('语音合成功能不被支持，请刷新页面重试或使用其他浏览器');
+        return;
+    }
+    
+    const rate = parseFloat(document.getElementById('voiceRateControl')?.value || '1');
+    const pitch = parseFloat(document.getElementById('voicePitchControl')?.value || '1');
+    const volume = parseFloat(document.getElementById('voiceVolumeControl')?.value || '1');
+    
+    // 保存当前语音配置
+    const currentVoiceSettings = tts.getStatus();
+    
+    // 临时配置测试语音
+    tts.configureVoice('测试语音', null, pitch, rate, volume);
+    
+    // 播放测试文本
+    tts.speak('这是一段测试语音，您可以通过上方的滑块调整语速、音调和音量。', '测试语音');
+    
+    // 添加测试消息到聊天区域
+    addChatMessage('测试语音', '这是一段测试语音，您可以通过上方的滑块调整语速、音调和音量。', 'system');
+}
+
 // 导出函数供HTML调用
 window.addPlayer = addPlayer;
 window.removePlayer = removePlayer;
@@ -1057,3 +1378,4 @@ window.confirmAssassination = confirmAssassination;
 window.resetGame = resetGame;
 window.sendMessage = sendMessage;
 window.setCurrentPlayer = setCurrentPlayer;
+window.testVoice = testVoice;

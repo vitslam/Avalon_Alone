@@ -1,9 +1,12 @@
 from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 from pydantic import BaseModel
 from typing import List, Dict, Any, Optional
 import json
 import asyncio
+import os
 from .game import AvalonGame
 from .player import Player, AIPlayer, God
 from .ai_controller import AIController
@@ -43,10 +46,19 @@ class Assassination(BaseModel):
 class GameConfig(BaseModel):
     players: List[PlayerConfig]
 
+# 挂载静态文件目录
+frontend_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "frontend")
+app.mount("/static", StaticFiles(directory=frontend_dir), name="static")
+
 @app.get("/")
 async def root():
-    """根路径"""
-    return {"message": "Avalon Alone API", "version": "1.0.0"}
+    """根路径，重定向到前端界面"""
+    return FileResponse(os.path.join(frontend_dir, "index.html"))
+
+@app.get("/index.html")
+async def serve_index():
+    """提供前端首页"""
+    return FileResponse(os.path.join(frontend_dir, "index.html"))
 
 @app.post("/game/start")
 async def start_game(config: GameConfig):
