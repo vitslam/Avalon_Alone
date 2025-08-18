@@ -82,7 +82,7 @@ class AIController:
                 break
             
             # 防止无限循环
-            if loop_count > 50:
+            if loop_count > 300:
                 print("达到最大循环次数，停止AI控制器")
                 break
             
@@ -107,6 +107,7 @@ class AIController:
         phase = self.game.phase
         print(f"处理阶段: {phase}")
         
+        # 使用GAME_PHASES字典值进行比较
         if phase == GAME_PHASES['team_selection']:
             await self.handle_team_selection()
         elif phase == GAME_PHASES['team_vote']:
@@ -178,24 +179,70 @@ class AIController:
         """处理队伍投票阶段"""
         print("处理队伍投票阶段")
         
-        # 记录队伍投票开始事件
-        team_vote_data = {
-            "team": self.game.current_team,
-            "mission_number": self.game.current_mission
-        }
-        self.log_manager.log_global_event("team_vote_start", team_vote_data)
+        # 初始化或检查队伍投票开始标志
+        if not hasattr(self, 'team_vote_started'):
+            self.team_vote_started = False
+        
+        # 只记录一次队伍投票开始事件
+        if not self.team_vote_started:
+            # 记录队伍投票开始事件
+            team_vote_data = {
+                "team": self.game.current_team,
+                "mission_number": self.game.current_mission
+            }
+            self.log_manager.log_global_event("team_vote_start", team_vote_data)
+            self.team_vote_started = True
         
         # 检查是否所有玩家都已投票
         total_players = len(self.game.players)
         voted_players = len(self.game.team_votes)
-        
+
+        # 防止投票计数异常（分子大于分母）
+        if voted_players > total_players:
+            print(f"警告: 投票计数异常 ({voted_players}/{total_players})，重置投票状态")
+            # 重置投票开始标志
+            self.team_vote_started = False
+            # 强制更新游戏阶段
+            if self.game.phase == GAME_PHASES['team_vote']:
+                self.game.phase = GAME_PHASES['team_selection']
+            return
+
         print(f"投票进度: {voted_players}/{total_players}")
-        
+
         if voted_players >= total_players:
-            print("所有玩家已完成投票，等待游戏状态更新...")
+            print("所有玩家已完成投票，处理投票结果...")
+            # 重置队伍投票开始标志
+            self.team_vote_started = False
+            
+            # 直接调用game.vote_team来处理所有投票结果
+            # 我们不需要重新处理最后一位玩家的投票，因为游戏应该已经记录了所有投票
+            # 这里我们模拟一个统一的结果处理
+            result = {}
+            try:
+                # 获取赞成和反对的票数
+                approve_count = sum(1 for v in self.game.team_votes if v['vote'] == 'approve')
+                reject_count = sum(1 for v in self.game.team_votes if v['vote'] == 'reject')
+                
+                # 判断投票结果
+                if approve_count > reject_count:
+                    result = {'status': 'team_approved', 'next_phase': GAME_PHASES['mission_vote']}
+                else:
+                    result = {'status': 'team_rejected', 'next_phase': GAME_PHASES['team_selection']}
+                
+                # 通知前端投票结果
+                await self.notify_frontend("team_vote_result", result)
+                
+                # 强制更新游戏阶段
+                if result.get('next_phase'):
+                    self.game.phase = result.get('next_phase')
+                    print(f"游戏阶段已更新为: {self.game.phase}")
+                
+            except Exception as e:
+                print(f"处理投票结果时出错: {e}")
+            
             return
         
-        # 让尚未投票的AI玩家进行投票
+        # 让尚未投票的AI玩家进行投票，每次只处理一个玩家
         for player in self.ai_players:
             if player.name not in [v['player'] for v in self.game.team_votes]:
                 print(f"AI玩家 {player.name} 准备对队伍投票")
@@ -215,7 +262,7 @@ class AIController:
                 
                 if vote:
                     print(f"AI玩家 {player.name} 投票: {vote}")
-                        
+                          
                     # 记录投票事件
                     vote_data = {
                         "player": player.name,
@@ -235,11 +282,26 @@ class AIController:
                         # 检查是否投票完成并进入下一阶段
                         if result.get('status') in ['team_approved', 'team_rejected', 'evil_win']:
                             print(f"队伍投票完成，结果: {result.get('status')}")
+                            # 重置队伍投票开始标志
+                            self.team_vote_started = False
+                            # 强制更新游戏阶段
+                            if result.get('next_phase'):
+                                # 确保设置的是GAME_PHASES字典值
+                                next_phase_key = result.get('next_phase')
+                                if next_phase_key == 'mission_vote':
+                                    self.game.phase = GAME_PHASES['mission_vote']
+                                elif next_phase_key == 'team_selection':
+                                    self.game.phase = GAME_PHASES['team_selection']
+                                else:
+                                    self.game.phase = next_phase_key
                             return
                     else:
                         print(f"投票失败: {result['error']}")
                     
                     await asyncio.sleep(0.5)  # 投票间隔
+                    
+                    # 处理完一个玩家后立即返回，避免一次处理多个玩家
+                    return
 
     async def handle_mission_vote(self):
         """处理任务投票阶段"""

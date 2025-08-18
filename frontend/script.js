@@ -272,7 +272,7 @@ function showCurrentSpeakerIndicator(speaker) {
         // 3秒后隐藏指示器
         setTimeout(() => {
             indicator.classList.remove('visible');
-        }, 3000);
+        }, 8000);
     }
 }
 
@@ -306,7 +306,7 @@ function updateCurrentSpeaker(speaker) {
                 setTimeout(() => {
                     speakerCard.classList.remove('speaking');
                     console.log(`玩家 ${speaker} 发言结束，移除高亮`);
-                }, 3000);
+                }, 8000);
             } else {
                 console.log(`未找到玩家 ${speaker} 的卡片`);
             }
@@ -364,7 +364,7 @@ function showPlayerSpeaking(speaker, message) {
                 speechBubble.remove();
                 console.log(`玩家 ${speaker} 的发言气泡已移除`);
             }
-        }, 3000);
+        }, 8000);
     } else {
         console.log(`未找到玩家 ${speaker} 的卡片，无法显示发言气泡`);
     }
