@@ -4,18 +4,19 @@ import os
 from typing import Optional, Dict, Any, List
 from dotenv import load_dotenv
 from .model_client import ModelClientFactory, BaseModelClient
-from .common_constants import ROLES, VOTE_RULES, GAME_RULES
+from .common_constants import ROLES, VOTE_RULES, GAME_RULES, get_game_description
 from .log_manager import LogManager
 
 # 加载环境变量
 load_dotenv()
 
 class AIService:
-    def __init__(self, log_manager: LogManager = None):
+    def __init__(self, log_manager: LogManager = None, player_count: int = 5):
         self.ai_provider = os.getenv("AI_PROVIDER", "zhipu").lower()
         self.timeout = int(os.getenv("AI_RESPONSE_TIMEOUT", "30"))
         self.fallback_enabled = os.getenv("AI_FALLBACK_ENABLED", "true").lower() == "true"
         self.log_manager = log_manager  # 保持为None，不自动创建LogManager实例
+        self.player_count = player_count  # 存储玩家数量，用于生成游戏说明
         
         # 使用工厂创建模型客户端
         try:
@@ -33,8 +34,19 @@ class AIService:
         try:
             prompt = self._build_speech_prompt(player_name, role, game_context)
             
+            # 获取角色的中文名称和策略提示
+            role_info = ROLES.get(role, {})
+            role_name = role_info.get('name', role)
+            strategy_tips = '\n'.join([f'- {tip}' for tip in role_info.get('strategy_tips', [])])
+            
+            # 根据当前玩家数量生成游戏说明
+            game_description = get_game_description(self.player_count)
+            
+            # 构建详细的system prompt
+            system_content = f"""{game_description}\n\n你现在正在扮演阿瓦隆游戏中的角色：{role_name}。\n\n你的角色信息：\n名称：{role_name}\n阵营：{role_info.get('team', '未知')}\n描述：{role_info.get('description', '')}\n能力：{', '.join(role_info.get('abilities', []))}\n\n策略建议：\n{strategy_tips}\n\n请严格遵循以下发言要求：\n1. 根据你的身份和当前游戏情况，给出有利于自己阵营的发言\n2. 作为队长时最好优先选择自己\n3. 有发言机会尽量用推理证明自己为什么是好人，让别人带你做任务\n4. 可以多一些推理分析\n5. 不要用括号表达情绪\n6. 发言不要超过100字\n7. 发言要符合你的角色身份和策略建议"""
+            
             messages = [
-                {"role": "system", "content": "你是一个阿瓦隆游戏中的AI玩家。请根据你的身份和当前游戏情况，给出有利于自己的发言。作为队长时最好优先选择自己，有发言机会尽量用推理证明自己为什么是好人，让别人带你做任务。可以多一些推理分析。也不要用括号表达情绪，不超过100字。"},
+                {"role": "system", "content": system_content},
                 {"role": "user", "content": prompt}
             ]
             
@@ -310,7 +322,7 @@ class AIService:
         history_info = ""
         if messages_history:
             history_lines = []
-            for msg in messages_history[-5:]:  # 只取最近5条消息
+            for msg in messages_history[-20:]:  # 只取最近5条消息
                 history_lines.append(f"{msg['player']}说: {msg['content']}")
             history_info = "\n\n对话历史:\n" + '\n'.join(history_lines)
         

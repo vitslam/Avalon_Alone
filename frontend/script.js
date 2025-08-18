@@ -71,7 +71,7 @@ function initializeDefaultPlayers() {
         console.log('检查DOM元素:', { nameInput, isAICheckbox, aiEngineSelect });
         
         // 默认添加5名AI玩家
-        for (let i = 1; i <= 5; i++) {
+        for (let i = 1; i <= 8; i++) {
             // 设置玩家信息
             if (nameInput) nameInput.value = i.toString();
             if (isAICheckbox) isAICheckbox.checked = true;
