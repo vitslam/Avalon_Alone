@@ -103,7 +103,7 @@ class OpenAIModelClient(BaseModelClient):
 
 
 class ZhipuAIModelClient(BaseModelClient):
-    def __init__(self, api_key: str = None, model: str = "glm-4-flash"):
+    def __init__(self, api_key: str = None, model: str = "glm-4.5"):
         self.api_key = api_key or os.getenv("ZHIPU_API_KEY")
         self.model = model
         self.client = None

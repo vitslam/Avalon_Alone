@@ -193,7 +193,7 @@ class AIService:
         elif role == 'percival':
             merlin_players = [p['name'] for p in players if p['role'] == 'merlin']
             morgana_players = [p['name'] for p in players if p['role'] == 'morgana']
-            vision_info = f"你能看到梅林: {', '.join(merlin_players)} 和 莫甘娜: {', '.join(morgana_players)}"
+            vision_info = f"你能看到梅林和莫甘娜: {', '.join(set(merlin_players + morgana_players))}，但无法区分谁是梅林，谁是莫甘娜。"
         elif role_info.get('team') == 'evil':
             evil_players = [p['name'] for p in players if p['role'] in ['morgana', 'assassin', 'mordred', 'minion']]
             vision_info = f"你能看到这些坏人同伴: {', '.join(evil_players)}"
@@ -246,7 +246,7 @@ class AIService:
         elif role == 'percival':
             merlin_players = [p['name'] for p in players if p['role'] == 'merlin' and p['name'] in available_players]
             morgana_players = [p['name'] for p in players if p['role'] == 'morgana' and p['name'] in available_players]
-            vision_info = f"你能看到梅林: {', '.join(merlin_players)} 和 莫甘娜: {', '.join(morgana_players)}"
+            vision_info = f"你能看到梅林和莫甘娜: {', '.join(set(merlin_players + morgana_players))}，但无法区分谁是梅林，谁是莫甘娜。"
         elif role_info.get('team') == 'evil':
             evil_players = [p['name'] for p in players if p['role'] in ['morgana', 'assassin', 'mordred', 'minion'] and p['name'] in available_players]
             vision_info = f"你能看到这些坏人同伴: {', '.join(evil_players)}"
@@ -301,7 +301,7 @@ class AIService:
         elif role == 'percival':
             merlin_players = [p['name'] for p in players if p['role'] == 'merlin']
             morgana_players = [p['name'] for p in players if p['role'] == 'morgana']
-            vision_info = f"你能看到梅林: {', '.join(merlin_players)} 和 莫甘娜: {', '.join(morgana_players)}"
+            vision_info = f"你能看到梅林和莫甘娜: {', '.join(set(merlin_players + morgana_players))}，但无法区分谁是梅林，谁是莫甘娜。"
         elif role_info.get('team') == 'evil':
             evil_players = [p['name'] for p in players if p['role'] in ['morgana', 'assassin', 'mordred', 'minion']]
             vision_info = f"你能看到这些坏人同伴: {', '.join(evil_players)}"
