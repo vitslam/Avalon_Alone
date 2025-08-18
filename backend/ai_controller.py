@@ -82,7 +82,7 @@ class AIController:
                 break
             
             # 防止无限循环
-            if loop_count > 300:
+            if loop_count > 200:
                 print("达到最大循环次数，停止AI控制器")
                 break
             
@@ -205,42 +205,16 @@ class AIController:
             # 强制更新游戏阶段
             if self.game.phase == GAME_PHASES['team_vote']:
                 self.game.phase = GAME_PHASES['team_selection']
+                # 正确轮换队长，与game.py中的逻辑保持一致
+                self.game.current_leader_index = (self.game.current_leader_index + 1) % len(self.game.players)
+                print(f"队长已轮换为: {self.game.players[self.game.current_leader_index].name}")
             return
 
         print(f"投票进度: {voted_players}/{total_players}")
 
-        if voted_players >= total_players:
-            print("所有玩家已完成投票，处理投票结果...")
-            # 重置队伍投票开始标志
-            self.team_vote_started = False
-            
-            # 直接调用game.vote_team来处理所有投票结果
-            # 我们不需要重新处理最后一位玩家的投票，因为游戏应该已经记录了所有投票
-            # 这里我们模拟一个统一的结果处理
-            result = {}
-            try:
-                # 获取赞成和反对的票数
-                approve_count = sum(1 for v in self.game.team_votes if v['vote'] == 'approve')
-                reject_count = sum(1 for v in self.game.team_votes if v['vote'] == 'reject')
-                
-                # 判断投票结果
-                if approve_count > reject_count:
-                    result = {'status': 'team_approved', 'next_phase': GAME_PHASES['mission_vote']}
-                else:
-                    result = {'status': 'team_rejected', 'next_phase': GAME_PHASES['team_selection']}
-                
-                # 通知前端投票结果
-                await self.notify_frontend("team_vote_result", result)
-                
-                # 强制更新游戏阶段
-                if result.get('next_phase'):
-                    self.game.phase = result.get('next_phase')
-                    print(f"游戏阶段已更新为: {self.game.phase}")
-                
-            except Exception as e:
-                print(f"处理投票结果时出错: {e}")
-            
-            return
+        # 注意：我们不再在这里手动处理投票结果，而是通过game.vote_team来处理
+        # 这样可以确保与game.py中的逻辑完全一致
+        # 当所有玩家投票完成后，game.vote_team会自动返回最终结果
         
         # 让尚未投票的AI玩家进行投票，每次只处理一个玩家
         for player in self.ai_players:
@@ -280,28 +254,23 @@ class AIController:
                         await self.notify_frontend("team_vote_recorded", result)
                         
                         # 检查是否投票完成并进入下一阶段
-                        if result.get('status') in ['team_approved', 'team_rejected', 'evil_win']:
-                            print(f"队伍投票完成，结果: {result.get('status')}")
-                            # 重置队伍投票开始标志
-                            self.team_vote_started = False
-                            # 强制更新游戏阶段
-                            if result.get('next_phase'):
-                                # 确保设置的是GAME_PHASES字典值
-                                next_phase_key = result.get('next_phase')
-                                if next_phase_key == 'mission_vote':
-                                    self.game.phase = GAME_PHASES['mission_vote']
-                                elif next_phase_key == 'team_selection':
-                                    self.game.phase = GAME_PHASES['team_selection']
-                                else:
-                                    self.game.phase = next_phase_key
-                            return
-                    else:
+                    # 注意：game.vote_team只有在所有玩家都投票后才会返回'team_approved'或'team_rejected'或'evil_win'
+                    if result.get('status') in ['team_approved', 'team_rejected', 'evil_win']:
+                        print(f"队伍投票完成，结果: {result.get('status')}")
+                        # 重置队伍投票开始标志
+                        self.team_vote_started = False
+                        # 游戏阶段已在game.py中更新，无需再次强制更新
+                        return
+                    elif 'error' in result:
                         print(f"投票失败: {result['error']}")
+                    else:
+                        print(f"投票结果处理: {result.get('status', 'unknown')}")
                     
                     await asyncio.sleep(0.5)  # 投票间隔
                     
-                    # 处理完一个玩家后立即返回，避免一次处理多个玩家
-                    return
+                    # 继续处理下一个玩家，而不是立即返回
+                    # 让所有AI玩家都有机会投票
+                    
 
     async def handle_mission_vote(self):
         """处理任务投票阶段"""
