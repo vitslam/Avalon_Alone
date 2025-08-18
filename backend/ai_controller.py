@@ -540,6 +540,26 @@ class AIController:
         if self.websocket_notifier:
             await self.websocket_notifier(event, data)
 
+    async def handle_voice_start(self, data: Dict[str, Any]):
+        """处理前端发送的语音开始播放通知"""
+        player_name = data.get('player_name')
+        text = data.get('text')
+        print(f"接收到语音开始播放通知: 玩家 {player_name} 开始播放")
+        
+        # 记录到全局日志
+        if self.log_manager:
+            self.log_manager.log_global_event("voice_start", {
+                "player_name": player_name,
+                "text": text
+            })
+        
+        # 提前为下一个玩家准备发言内容
+        # 注意：这里我们不做具体的准备工作，而是保持原有的流程逻辑
+        # 语音播放完成的逻辑仍然由handle_voice_complete处理
+        
+        # 由于我们已经修改了前端，让它在当前玩家开始发言时就通知后端
+        # 后端可以利用这个时间差来准备下一个玩家的发言内容，提高响应速度
+
     async def handle_voice_complete(self, data: Dict[str, Any]):
         """处理前端发送的语音播放完成通知"""
         player_name = data.get('player_name')

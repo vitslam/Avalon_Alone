@@ -295,6 +295,11 @@ async def websocket_endpoint(websocket: WebSocket):
                     print(f"收到语音播放完成通知: {message.get('data')}")
                     if ai_controller:
                         await ai_controller.handle_voice_complete(message.get('data'))
+                # 处理语音开始播放事件
+                elif message.get('event') == 'voice_start':
+                    print(f"收到语音开始播放通知: {message.get('data')}")
+                    if ai_controller:
+                        await ai_controller.handle_voice_start(message.get('data'))
             except json.JSONDecodeError:
                 print(f"无法解析客户端消息: {data}")
             

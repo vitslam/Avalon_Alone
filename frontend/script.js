@@ -120,6 +120,20 @@ function initializeEventListeners() {
 function connectWebSocket() {
     websocket = new WebSocket(`ws://localhost:8000/ws`);
     
+    // 语音播放开始回调函数
+    window.onVoiceStart = function(playerName, text) {
+        console.log(`语音开始播放，通知后端准备下一个发言: ${playerName}`);
+        if (websocket && websocket.readyState === WebSocket.OPEN) {
+            websocket.send(JSON.stringify({
+                event: 'voice_start',
+                data: {
+                    player_name: playerName,
+                    text: text
+                }
+            }));
+        }
+    };
+    
     // 语音播放完成回调函数
     window.onVoiceEnd = function(playerName, text) {
         console.log(`语音播放完成，通知后端: ${playerName}`);
@@ -203,6 +217,11 @@ function handleWebSocketMessage(data) {
         case 'player_speaking':
             console.log('玩家发言事件:', data.data);
             handlePlayerSpeaking(data.data);
+            break;
+        case 'voice_complete':
+            console.log('语音完成事件:', data.data);
+            // 语音完成后，立即获取最新游戏状态，确保流程继续
+            setTimeout(fetchCurrentGameState, 100);
             break;
         case 'assassination_result':
             console.log('刺杀结果事件:', data.data);

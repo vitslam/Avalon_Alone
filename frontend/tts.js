@@ -117,6 +117,13 @@ class TextToSpeech {
             console.log(`开始播放语音 (${playerName}):`, text);
             this.speaking = true;
             this.currentUtterance = utterance;
+            
+            // 当语音开始播放时，立即通知后端准备下一个玩家的发言
+            // 只有当前队列中还有下一个发言者时才通知
+            if (this.utteranceQueue.length === 0 && typeof window.onVoiceStart === 'function') {
+                console.log(`通知后端准备下一个玩家发言: ${playerName}`);
+                window.onVoiceStart(playerName, utterance.text);
+            }
         };
         
         utterance.onend = (event) => {
@@ -124,16 +131,15 @@ class TextToSpeech {
             this.speaking = false;
             this.currentUtterance = null;
             
+            // 通知后端语音播放完成
+            if (typeof window.onVoiceEnd === 'function') {
+                console.log(`通知后端语音播放完成: ${playerName}`);
+                window.onVoiceEnd(playerName, utterance.text);
+            }
+            
             // 处理下一个语音请求
             if (this.utteranceQueue.length > 0) {
                 setTimeout(() => this._processQueue(), 300); // 短暂延迟，让玩家能区分不同发言
-            } else {
-                // 只有当队列中没有更多语音时，才通知后端语音播放完成
-                // 这样可以确保一个玩家的完整发言不会被下一个玩家打断
-                if (typeof window.onVoiceEnd === 'function') {
-                    console.log(`通知后端语音播放完成: ${playerName}`);
-                    window.onVoiceEnd(playerName, utterance.text);
-                }
             }
         };
         
