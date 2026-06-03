@@ -20,15 +20,15 @@ def main():
     
     # 启动服务器
     print("启动阿瓦隆 Alone 服务器...")
-    print("访问地址: http://localhost:8000")
-    print("API文档: http://localhost:8000/docs")
+    print("访问地址: http://localhost:8234")
+    print("API文档: http://localhost:8234/docs")
     print("前端界面: 打开 frontend/index.html")
     print("按 Ctrl+C 停止服务器")
     
     uvicorn.run(
         "backend.api:app",
         host="0.0.0.0",
-        port=8000,
+        port=8234,
         reload=True,
         log_level="info"
     )

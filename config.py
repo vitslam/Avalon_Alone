@@ -8,7 +8,7 @@ from typing import Dict, Any
 # 服务器配置
 SERVER_CONFIG = {
     'host': os.getenv('AVALON_HOST', '0.0.0.0'),
-    'port': int(os.getenv('AVALON_PORT', 8000)),
+    'port': int(os.getenv('AVALON_PORT', 8234)),
     'debug': os.getenv('AVALON_DEBUG', 'true').lower() == 'true',
     'reload': os.getenv('AVALON_RELOAD', 'true').lower() == 'true'
 }
@@ -44,8 +44,8 @@ AI_CONFIG = {
 
 # 前端配置
 FRONTEND_CONFIG = {
-    'websocket_url': os.getenv('AVALON_WS_URL', 'ws://localhost:8000/ws'),
-    'api_base_url': os.getenv('AVALON_API_URL', 'http://localhost:8000'),
+    'websocket_url': os.getenv('AVALON_WS_URL', 'ws://localhost:8234/ws'),
+    'api_base_url': os.getenv('AVALON_API_URL', 'http://localhost:8234'),
     'auto_reconnect': True,
     'reconnect_interval': 5000  # 毫秒
 }

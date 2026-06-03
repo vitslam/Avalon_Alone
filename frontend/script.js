@@ -37,7 +37,7 @@ function preconfigureAIVoices() {
 }
 
 // API基础URL
-const API_BASE = 'http://localhost:8000';
+const API_BASE = 'http://localhost:8234';
 
 // 初始化
  document.addEventListener('DOMContentLoaded', function() {
@@ -118,7 +118,7 @@ function initializeEventListeners() {
 
 // 连接WebSocket
 function connectWebSocket() {
-    websocket = new WebSocket(`ws://localhost:8000/ws`);
+    websocket = new WebSocket(`ws://localhost:8234/ws`);
     
     // 语音播放开始回调函数
     window.onVoiceStart = function(playerName, text) {
@@ -291,7 +291,7 @@ function showCurrentSpeakerIndicator(speaker) {
         // 3秒后隐藏指示器
         setTimeout(() => {
             indicator.classList.remove('visible');
-        }, 8000);
+        }, 8234);
     }
 }
 
@@ -325,7 +325,7 @@ function updateCurrentSpeaker(speaker) {
                 setTimeout(() => {
                     speakerCard.classList.remove('speaking');
                     console.log(`玩家 ${speaker} 发言结束，移除高亮`);
-                }, 8000);
+                }, 8234);
             } else {
                 console.log(`未找到玩家 ${speaker} 的卡片`);
             }
@@ -383,7 +383,7 @@ function showPlayerSpeaking(speaker, message) {
                 speechBubble.remove();
                 console.log(`玩家 ${speaker} 的发言气泡已移除`);
             }
-        }, 8000);
+        }, 8234);
     } else {
         console.log(`未找到玩家 ${speaker} 的卡片，无法显示发言气泡`);
     }
