@@ -118,6 +118,7 @@ class AvalonGame:
                     return {'status': 'evil_win', 'reason': '队伍被拒绝5次'}
                 
                 # 重新选择队伍
+                self.team_votes = []
                 self.phase = GAME_PHASES['team_selection']
                 return {
                     'status': 'team_rejected',
