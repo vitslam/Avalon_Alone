@@ -4,7 +4,7 @@ import os
 from typing import Optional, Dict, Any, List
 from dotenv import load_dotenv
 from .model_client import ModelClientFactory, BaseModelClient
-from .common_constants import ROLES, VOTE_RULES, GAME_RULES, get_game_description
+from .common_constants import ROLES, VOTE_RULES, GAME_RULES, get_game_description, TEAM_GUIDANCE
 from .log_manager import LogManager
 
 # 加载环境变量
@@ -45,7 +45,9 @@ class AIService:
             game_description = get_game_description(self.player_count)
             
             # 构建详细的system prompt
-            system_content = f"""{game_description}\n\n你现在正在扮演阿瓦隆游戏中的角色：{role_name}。\n\n你的角色信息：\n名称：{role_name}\n阵营：{role_info.get('team', '未知')}\n描述：{role_info.get('description', '')}\n能力：{', '.join(role_info.get('abilities', []))}\n\n策略建议：\n{strategy_tips}\n\n请严格遵循以下发言要求：\n1. 根据你的身份和当前游戏情况，给出有利于自己阵营的发言\n2. 作为队长时最好优先选择自己\n3. 有发言机会尽量用推理证明自己为什么是好人，让别人带你做任务\n4. 可以多一些推理分析\n5. 不要用括号表达情绪\n6. 发言不要超过100字\n7. 发言要符合你的角色身份和策略建议"""
+            team = role_info.get('team', '')
+            team_guidance = TEAM_GUIDANCE.get(team, "")
+            system_content = f"""{game_description}\n\n你现在正在扮演阿瓦隆游戏中的角色：{role_name}。\n\n你的角色信息：\n名称：{role_name}\n阵营：{team}\n描述：{role_info.get('description', '')}\n能力：{', '.join(role_info.get('abilities', []))}\n\n策略建议：\n{strategy_tips}\n\n阵营说明：\n{team_guidance}\n\n请严格遵循以下发言要求：\n1. 可以多一些推理分析\n2. 作为队长时最好优先选择自己\n3. 不要用括号表达情绪\n4. 发言不要超过100字\n"""
             
             messages = [
                 {"role": "system", "content": system_content},
