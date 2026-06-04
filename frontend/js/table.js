@@ -55,9 +55,12 @@ export function updatePlayersDisplay() {
     for (let i = 0; i < rightCount && playerIndex < totalPlayers; i++, playerIndex++) {
         rightCol.appendChild(createPlayerCard(state.gameState.players[playerIndex]));
     }
+    const bottomPlayers = [];
     for (let i = 0; i < bottomCount && playerIndex < totalPlayers; i++, playerIndex++) {
-        bottomRow.appendChild(createPlayerCard(state.gameState.players[playerIndex]));
+        bottomPlayers.push(state.gameState.players[playerIndex]);
     }
+    // 下侧逆序排列（顺时针绕桌）
+    bottomPlayers.reverse().forEach(p => bottomRow.appendChild(createPlayerCard(p)));
     for (let i = 0; i < leftCount && playerIndex < totalPlayers; i++, playerIndex++) {
         leftCol.appendChild(createPlayerCard(state.gameState.players[playerIndex]));
     }
