@@ -21,6 +21,8 @@ class AIService:
         # 使用工厂创建模型客户端
         try:
             self.model_client = ModelClientFactory.create_client(self.ai_provider)
+            if self.log_manager and self.model_client:
+                self.log_manager.set_model(self.model_client.model)
         except Exception as e:
             print(f"初始化AI服务失败: {e}")
             self.model_client = None

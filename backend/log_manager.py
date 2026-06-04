@@ -5,9 +5,10 @@ from typing import Dict, Any, List
 import datetime
 
 class LogManager:
-    def __init__(self, game_id: str = None):
+    def __init__(self, game_id: str = None, model: str = None):
         self.root_log_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'logs')
-        
+        self.model = model
+
         # 如果没有提供game_id，则创建一个包含时间戳的新game_id
         if game_id is None:
             timestamp = datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
@@ -21,25 +22,38 @@ class LogManager:
 
         # 全局日志文件路径
         self.global_log_path = os.path.join(self.game_log_dir, 'global.log')
-        
+
         # 记录已创建的玩家日志文件
         self.player_log_files = {}
 
+    def set_model(self, model: str):
+        """设置当前使用的模型名称"""
+        self.model = model
+
+    def _base_entry(self) -> Dict[str, Any]:
+        """构建日志条目基础字段"""
+        entry = {
+            'timestamp': datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+        }
+        if self.model:
+            entry['model'] = self.model
+        return entry
+
     def log_global_event(self, event_type: str, data: Dict[str, Any]):
         """记录全局游戏事件"""
-        log_entry = {
-            'timestamp': datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+        log_entry = self._base_entry()
+        log_entry.update({
             'event_type': event_type,
             'data': data
-        }
+        })
 
         with open(self.global_log_path, 'a') as f:
             f.write(json.dumps(log_entry, ensure_ascii=False) + '\n')
 
     def log_player_speech(self, player_name: str, message: str, is_ai: bool = False, role: str = None):
         """记录玩家发言到全局日志"""
-        log_entry = {
-            'timestamp': datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+        log_entry = self._base_entry()
+        log_entry.update({
             'event_type': 'player_speech',
             'data': {
                 'player_name': player_name,
@@ -47,7 +61,7 @@ class LogManager:
                 'is_ai': is_ai,
                 'role': role
             }
-        }
+        })
 
         with open(self.global_log_path, 'a') as f:
             f.write(json.dumps(log_entry, ensure_ascii=False) + '\n')
@@ -55,13 +69,13 @@ class LogManager:
     def log_game_start_with_roles(self, role_assignments: Dict[str, str], secret_messages: Dict[str, str] = None):
         """记录游戏开始和身份信息到全局日志"""
         # 记录公开的角色分配信息（不包含秘密信息）
-        log_entry = {
-            'timestamp': datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+        log_entry = self._base_entry()
+        log_entry.update({
             'event_type': 'game_start',
             'data': {
                 'role_assignments': role_assignments
             }
-        }
+        })
 
         with open(self.global_log_path, 'a') as f:
             f.write(json.dumps(log_entry, ensure_ascii=False) + '\n')
@@ -69,14 +83,14 @@ class LogManager:
         # 如果有秘密信息，也记录下来
         if secret_messages:
             for player_name, message in secret_messages.items():
-                secret_entry = {
-                    'timestamp': datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+                secret_entry = self._base_entry()
+                secret_entry.update({
                     'event_type': 'secret_message',
                     'data': {
                         'player_name': player_name,
                         'message': message
                     }
-                }
+                })
                 f.write(json.dumps(secret_entry, ensure_ascii=False) + '\n')
 
     def log_player_interaction(self, player_name: str, request: Dict[str, Any], response: Dict[str, Any]):
@@ -88,11 +102,11 @@ class LogManager:
         else:
             player_log_path = self.player_log_files[player_name]
 
-        log_entry = {
-            'timestamp': datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+        log_entry = self._base_entry()
+        log_entry.update({
             'request': request,
             'response': response
-        }
+        })
 
         with open(player_log_path, 'a') as f:
             f.write(json.dumps(log_entry, ensure_ascii=False) + '\n')
