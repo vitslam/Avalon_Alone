@@ -205,6 +205,25 @@
     line-height: 1.2;
 }
 
+/* ===== 玩家发言状态 ===== */
+.player-card.speaking {
+    background: linear-gradient(135deg, #1a2a4c, #2a3a5c);
+    box-shadow: 0 0 20px rgba(74, 158, 255, 0.3);
+    transform: translateY(-4px);
+    border: 1px solid var(--good-blue);
+    animation: speaking-pulse 1.5s infinite;
+}
+
+.player-card.speaking::before {
+    background: var(--good-blue) !important;
+}
+
+@keyframes speaking-pulse {
+    0% { box-shadow: 0 0 20px rgba(74, 158, 255, 0.3); }
+    50% { box-shadow: 0 0 30px rgba(74, 158, 255, 0.5); }
+    100% { box-shadow: 0 0 20px rgba(74, 158, 255, 0.3); }
+}
+
 /* ===== 发言气泡 ===== */
 .speech-bubble {
     position: absolute;

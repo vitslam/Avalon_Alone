@@ -60,20 +60,23 @@
     position: fixed;
     top: 20px;
     right: 20px;
-    padding: 8px 16px;
-    background: rgba(224, 64, 64, 0.2);
+    background: transparent;
     color: var(--evil-red);
     border: 1px solid var(--evil-red);
+    padding: 8px 15px;
     border-radius: 4px;
     cursor: pointer;
     font-size: 13px;
+    z-index: 1000;
     font-family: inherit;
     transition: all 0.3s;
-    z-index: 100;
+    letter-spacing: 1px;
 }
 
 .reset-button:hover {
-    background: rgba(224, 64, 64, 0.4);
+    background: var(--evil-red);
+    color: white;
+    box-shadow: 0 0 12px rgba(224, 64, 64, 0.3);
 }
 
 /* ===== 发言者指示器 ===== */

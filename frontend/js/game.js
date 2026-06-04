@@ -33,16 +33,39 @@ function updateGameStatus() {
 
 function updateMissionProgress() {
     const missionProgress = document.getElementById('missionProgress');
-    if (!state.gameState || !state.gameState.mission_results) return;
+    if (!missionProgress) return;
 
     missionProgress.innerHTML = '';
 
-    state.gameState.mission_results.forEach((result, index) => {
+    if (!state.gameState) return;
+
+    // 任务总数固定为5（阿瓦隆标准）
+    const totalMissions = 5;
+    const currentMission = state.gameState.current_mission || 1;
+    const missionResults = state.gameState.mission_results || [];
+
+    for (let i = 1; i <= totalMissions; i++) {
         const missionItem = document.createElement('div');
-        missionItem.className = `mission-item ${result === null ? (state.gameState.current_mission === index + 1 ? 'current' : 'pending') : (result ? 'success' : 'fail')}`;
-        missionItem.setAttribute('data-mission-num', index + 1);
+        missionItem.className = 'mission-item';
+        missionItem.setAttribute('data-mission-num', i);
+
+        // 检查这个任务是否已经完成
+        const completedMissionResult = missionResults.find(result => result.mission === i);
+
+        if (completedMissionResult) {
+            if (completedMissionResult.success) {
+                missionItem.classList.add('success');
+            } else {
+                missionItem.classList.add('fail');
+            }
+        } else if (i === currentMission) {
+            missionItem.classList.add('current');
+        } else {
+            missionItem.classList.add('pending');
+        }
+
         missionProgress.appendChild(missionItem);
-    });
+    }
 }
 
 function updateCurrentPhase() {
