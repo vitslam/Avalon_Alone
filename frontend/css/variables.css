@@ -1,0 +1,48 @@
+/* ===== 全局变量与重置 ===== */
+@import url('https://fonts.googleapis.com/css2?family=MedievalSharp&family=Noto+Serif+SC:wght@400;700&display=swap');
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+:root {
+    --bg-dark: #0d1117;
+    --bg-panel: #1a1f2e;
+    --bg-card: #232a3b;
+    --bg-parchment: #2a3142;
+    --gold: #d4a843;
+    --gold-dim: #a07830;
+    --gold-bright: #f0c850;
+    --good-blue: #4a9eff;
+    --evil-red: #e04040;
+    --text-primary: #e8dcc8;
+    --text-secondary: #9a8e7a;
+    --text-dim: #6a6050;
+    --border-stone: #3a4050;
+    --border-gold: rgba(212, 168, 67, 0.3);
+    --shadow-dark: rgba(0, 0, 0, 0.5);
+    --shadow-gold: rgba(212, 168, 67, 0.15);
+}
+
+body {
+    font-family: 'Noto Serif SC', 'SimSun', serif;
+    background: var(--bg-dark);
+    background-image:
+        radial-gradient(ellipse at 20% 50%, rgba(212, 168, 67, 0.03) 0%, transparent 50%),
+        radial-gradient(ellipse at 80% 20%, rgba(74, 158, 255, 0.03) 0%, transparent 50%),
+        radial-gradient(ellipse at 50% 80%, rgba(224, 64, 64, 0.02) 0%, transparent 50%);
+    min-height: 100vh;
+    color: var(--text-primary);
+    overflow-x: hidden;
+}
+
+#app {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 10px;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+}

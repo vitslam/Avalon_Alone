@@ -1,0 +1,236 @@
+/* ===== 游戏设置面板 ===== */
+.game-setup {
+    background: var(--bg-panel);
+    border: 1px solid var(--border-gold);
+    border-radius: 8px;
+    padding: 24px;
+    margin-bottom: 12px;
+    box-shadow: 0 4px 20px var(--shadow-dark), inset 0 1px 0 rgba(255, 255, 255, 0.03);
+    flex-shrink: 0;
+    position: relative;
+}
+
+.game-setup::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 20px;
+    right: 20px;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--gold-dim), transparent);
+}
+
+.game-setup h2 {
+    margin-bottom: 18px;
+    color: var(--gold);
+    text-align: center;
+    font-size: 1.4rem;
+    font-family: 'MedievalSharp', 'Noto Serif SC', serif;
+    letter-spacing: 3px;
+}
+
+.player-config {
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+.player-input {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 15px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.player-input input[type="text"] {
+    flex: 1;
+    padding: 10px 14px;
+    border: 1px solid var(--border-stone);
+    border-radius: 4px;
+    font-size: 14px;
+    min-width: 120px;
+    background: var(--bg-card);
+    color: var(--text-primary);
+    font-family: inherit;
+    transition: border-color 0.3s;
+}
+
+.player-input input[type="text"]:focus {
+    outline: none;
+    border-color: var(--gold-dim);
+    box-shadow: 0 0 8px rgba(212, 168, 67, 0.15);
+}
+
+.player-input select {
+    padding: 10px;
+    border: 1px solid var(--border-stone);
+    border-radius: 4px;
+    font-size: 14px;
+    background: var(--bg-card);
+    color: var(--text-primary);
+    font-family: inherit;
+}
+
+.player-input label {
+    color: var(--text-secondary);
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.player-input label input[type="checkbox"] {
+    accent-color: var(--gold);
+}
+
+.player-input button {
+    padding: 10px 18px;
+    background: linear-gradient(180deg, var(--gold), var(--gold-dim));
+    color: var(--bg-dark);
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 700;
+    font-family: inherit;
+    transition: all 0.3s;
+    letter-spacing: 1px;
+}
+
+.player-input button:hover {
+    background: linear-gradient(180deg, var(--gold-bright), var(--gold));
+    box-shadow: 0 0 12px rgba(212, 168, 67, 0.3);
+}
+
+.player-list {
+    margin-bottom: 15px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.player-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 12px 8px 8px;
+    background: var(--bg-card);
+    border-radius: 20px;
+    border: 1px solid var(--border-stone);
+    transition: all 0.2s;
+    position: relative;
+}
+
+.player-item:hover {
+    border-color: var(--gold-dim);
+    background: var(--bg-parchment);
+}
+
+.player-item .player-avatar-small {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #2a5a3c, #1a3a2c);
+    color: #80d0a0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    font-weight: 700;
+    flex-shrink: 0;
+}
+
+.player-item.ai .player-avatar-small {
+    background: linear-gradient(135deg, #5a2a2a, #3a1a1a);
+    color: #d08080;
+}
+
+.player-item .player-name {
+    font-weight: 600;
+    color: var(--text-primary);
+    font-size: 13px;
+    white-space: nowrap;
+}
+
+.player-item .player-info {
+    color: var(--text-dim);
+    font-size: 11px;
+    white-space: nowrap;
+}
+
+.player-item .ai-engine {
+    color: var(--evil-red);
+    font-style: italic;
+    font-size: 11px;
+}
+
+.player-item .remove-btn {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: transparent;
+    color: var(--text-dim);
+    border: none;
+    cursor: pointer;
+    font-size: 14px;
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    padding: 0;
+    flex-shrink: 0;
+    margin-left: auto;
+}
+
+.player-item .remove-btn:hover {
+    background: var(--evil-red);
+    color: white;
+}
+
+.add-player-btn {
+    width: 100%;
+    padding: 12px;
+    background: transparent;
+    color: var(--gold);
+    border: 2px dashed var(--border-gold);
+    border-radius: 6px;
+    font-size: 24px;
+    cursor: pointer;
+    transition: all 0.3s;
+    font-family: inherit;
+    line-height: 1;
+}
+
+.add-player-btn:hover {
+    background: rgba(212, 168, 67, 0.08);
+    border-color: var(--gold);
+    box-shadow: 0 0 12px rgba(212, 168, 67, 0.15);
+}
+
+#startButton {
+    padding: 10px 18px;
+    background: linear-gradient(180deg, var(--gold), var(--gold-dim));
+    color: var(--bg-dark);
+    border: none;
+    border-radius: 4px;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.3s;
+    font-family: 'MedievalSharp', 'Noto Serif SC', serif;
+    letter-spacing: 2px;
+    white-space: nowrap;
+}
+
+#startButton:hover:not(:disabled) {
+    background: linear-gradient(180deg, var(--gold-bright), var(--gold));
+    box-shadow: 0 0 20px rgba(212, 168, 67, 0.3);
+}
+
+#startButton:disabled {
+    background: var(--bg-card);
+    color: var(--text-dim);
+    cursor: not-allowed;
+    border: 1px solid var(--border-stone);
+}

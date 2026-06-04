@@ -1,0 +1,98 @@
+/* ===== 聊天面板 ===== */
+.chat-panel {
+    background: var(--bg-panel);
+    border: 1px solid var(--border-gold);
+    border-radius: 8px;
+    padding: 15px;
+    box-shadow: 0 4px 20px var(--shadow-dark);
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-height: 0;
+}
+
+.chat-messages {
+    flex: 1;
+    border: 1px solid var(--border-stone);
+    border-radius: 6px;
+    padding: 10px;
+    overflow-y: auto;
+    margin-bottom: 10px;
+    font-size: 13px;
+    line-height: 1.5;
+    min-height: 200px;
+    max-height: 400px;
+    background: var(--bg-dark);
+}
+
+.chat-messages::-webkit-scrollbar {
+    width: 6px;
+}
+
+.chat-messages::-webkit-scrollbar-track {
+    background: var(--bg-dark);
+}
+
+.chat-messages::-webkit-scrollbar-thumb {
+    background: var(--border-stone);
+    border-radius: 3px;
+}
+
+.chat-input {
+    display: flex;
+    gap: 8px;
+}
+
+.chat-input input {
+    flex: 1;
+    padding: 8px 12px;
+    border: 1px solid var(--border-stone);
+    border-radius: 4px;
+    font-size: 14px;
+    background: var(--bg-card);
+    color: var(--text-primary);
+    font-family: inherit;
+}
+
+.chat-input input:focus {
+    outline: none;
+    border-color: var(--gold-dim);
+}
+
+.chat-input button {
+    padding: 8px 15px;
+    background: linear-gradient(180deg, var(--gold), var(--gold-dim));
+    color: var(--bg-dark);
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 700;
+    font-family: inherit;
+}
+
+.chat-message {
+    margin-bottom: 8px;
+    padding: 6px 10px;
+    border-radius: 4px;
+    font-size: 12px;
+    line-height: 1.5;
+}
+
+.chat-message.system {
+    background: rgba(74, 158, 255, 0.08);
+    color: var(--good-blue);
+    border-left: 3px solid var(--good-blue);
+}
+
+.chat-message.player {
+    background: rgba(61, 170, 110, 0.08);
+    color: #6ac080;
+    border-left: 3px solid #3daa6e;
+}
+
+.chat-message.ai {
+    background: rgba(224, 64, 64, 0.08);
+    color: #d08080;
+    border-left: 3px solid var(--evil-red);
+}

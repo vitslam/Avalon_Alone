@@ -1,0 +1,115 @@
+/* ===== 模态框 ===== */
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.8);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+.modal-content {
+    background: var(--bg-panel);
+    border: 2px solid var(--gold);
+    padding: 40px;
+    border-radius: 12px;
+    text-align: center;
+    max-width: 500px;
+    width: 90%;
+    box-shadow: 0 0 40px rgba(212, 168, 67, 0.2);
+}
+
+.modal-content h2 {
+    margin-bottom: 20px;
+    color: var(--gold);
+    font-family: 'MedievalSharp', 'Noto Serif SC', serif;
+    font-size: 2rem;
+    letter-spacing: 3px;
+}
+
+.modal-content p {
+    margin-bottom: 20px;
+    color: var(--text-secondary);
+    line-height: 1.8;
+}
+
+.modal-content button {
+    padding: 12px 30px;
+    background: linear-gradient(180deg, var(--gold), var(--gold-dim));
+    color: var(--bg-dark);
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 16px;
+    font-weight: 700;
+    font-family: 'MedievalSharp', 'Noto Serif SC', serif;
+    letter-spacing: 2px;
+    transition: all 0.3s;
+}
+
+.modal-content button:hover {
+    box-shadow: 0 0 20px rgba(212, 168, 67, 0.4);
+}
+
+/* ===== 重置按钮 ===== */
+.reset-button {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    padding: 8px 16px;
+    background: rgba(224, 64, 64, 0.2);
+    color: var(--evil-red);
+    border: 1px solid var(--evil-red);
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 13px;
+    font-family: inherit;
+    transition: all 0.3s;
+    z-index: 100;
+}
+
+.reset-button:hover {
+    background: rgba(224, 64, 64, 0.4);
+}
+
+/* ===== 发言者指示器 ===== */
+.current-speaker-indicator {
+    position: fixed;
+    top: 100px;
+    right: 20px;
+    background: rgba(26, 31, 46, 0.95);
+    color: var(--gold);
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 500;
+    z-index: 1000;
+    box-shadow: 0 4px 12px var(--shadow-dark);
+    border: 1px solid var(--border-gold);
+    opacity: 0;
+    transition: all 0.3s ease;
+    letter-spacing: 1px;
+}
+
+.current-speaker-indicator.visible {
+    opacity: 1;
+}
+
+.current-speaker-indicator::before {
+    content: '\2694';
+    margin-right: 8px;
+}
+
+/* ===== 游戏主界面布局 ===== */
+.game-interface {
+    display: grid;
+    grid-template-columns: 250px 1fr 250px;
+    gap: 12px;
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+}
