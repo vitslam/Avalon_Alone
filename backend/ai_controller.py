@@ -226,8 +226,12 @@ class AIController:
                 if thinking_speech:
                     await self.ai_speak(player, thinking_speech)
                 
-                # 获取AI投票决策
-                vote = await self._ai_decide_team_vote_with_llm(player)
+                # 先尝试从发言中解析投票决策，减少LLM调用
+                vote = self._parse_vote_from_speech(thinking_speech, "team")
+                
+                # 无法解析时调用LLM兜底
+                if not vote:
+                    vote = await self._ai_decide_team_vote_with_llm(player)
                 
                 # 如果AI API失败，使用备用逻辑
                 if not vote:
@@ -379,6 +383,30 @@ class AIController:
                     
                     result = self.game.assassinate(target)
                     await self.notify_frontend("assassination_result", result)
+
+    def _parse_vote_from_speech(self, speech: str, vote_type: str) -> Optional[str]:
+        """从发言中解析投票决策，减少LLM调用。无法确定时返回None，走LLM兜底。"""
+        if not speech:
+            return None
+        speech_lower = speech.lower()
+
+        if vote_type == "team":
+            approve_hit = any(kw in speech_lower for kw in ["赞同", "approve", "同意", "赞成", "支持"])
+            reject_hit = any(kw in speech_lower for kw in ["反对", "reject", "不同意", "否决"])
+            if approve_hit and not reject_hit:
+                return "approve"
+            if reject_hit and not approve_hit:
+                return "reject"
+
+        elif vote_type == "mission":
+            success_hit = any(kw in speech_lower for kw in ["成功", "success", "赞成"])
+            fail_hit = any(kw in speech_lower for kw in ["失败", "fail", "破坏"])
+            if success_hit and not fail_hit:
+                return "success"
+            if fail_hit and not success_hit:
+                return "fail"
+
+        return None
 
     # LLM API调用方法
     async def _ai_select_team_with_llm(self, leader, available_players: List[str], team_size: int) -> Optional[List[str]]:
