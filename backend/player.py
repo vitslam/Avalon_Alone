@@ -156,7 +156,7 @@ class God:
         return assignments
 
     def _get_role_config(self, player_count: int) -> List[str]:
-        """根据玩家数量获取角色配置"""
+        """根据玩家数量获取阿瓦隆标准角色配置（含刺客）"""
         if player_count == 5:
             return ['merlin', 'percival', 'loyal_servant', 'morgana', 'assassin']
         elif player_count == 6:
@@ -164,13 +164,13 @@ class God:
         elif player_count == 7:
             return ['merlin', 'percival', 'loyal_servant', 'loyal_servant', 'morgana', 'assassin', 'oberon']
         elif player_count == 8:
-            return ['merlin', 'percival', 'loyal_servant', 'loyal_servant', 'morgana', 'assassin', 'mordred', 'minion']
+            return ['merlin', 'percival', 'loyal_servant', 'loyal_servant', 'loyal_servant', 'morgana', 'assassin', 'minion']
         elif player_count == 9:
-            return ['merlin', 'percival', 'loyal_servant', 'loyal_servant', 'loyal_servant', 'morgana', 'assassin', 'mordred', 'minion']
+            return ['merlin', 'percival', 'loyal_servant', 'loyal_servant', 'loyal_servant', 'loyal_servant', 'morgana', 'assassin', 'mordred']
         elif player_count == 10:
-            return ['merlin', 'percival', 'loyal_servant', 'loyal_servant', 'loyal_servant', 'morgana', 'assassin', 'mordred', 'minion', 'minion']
-        
-        return []
+            return ['merlin', 'percival', 'loyal_servant', 'loyal_servant', 'loyal_servant', 'loyal_servant', 'morgana', 'assassin', 'mordred', 'oberon']
+        else:
+            return []
 
     def send_secret_info(self, player: Player) -> str:
         """给玩家发送秘密信息"""
