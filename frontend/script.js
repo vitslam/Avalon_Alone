@@ -472,24 +472,24 @@ function updatePlayerList() {
             const playerItem = document.createElement('div');
             playerItem.className = `player-item ${player.is_ai ? 'ai' : ''}`;
             
-            // 添加玩家名称和AI引擎信息
+            const avatar = document.createElement('span');
+            avatar.className = 'player-avatar-small';
+            avatar.textContent = index + 1;
+            
             const playerName = document.createElement('span');
             playerName.className = 'player-name';
             playerName.textContent = player.name || '未知玩家';
             
             const playerInfo = document.createElement('span');
-            playerInfo.className = 'player-info';
-            if (player.is_ai) {
-                playerInfo.textContent = `(AI - ${player.ai_engine || 'gpt-3.5'})`;
-                playerInfo.className = 'ai-engine';
-            } else {
-                playerInfo.textContent = '(玩家)';
-            }
+            playerInfo.className = player.is_ai ? 'ai-engine' : 'player-info';
+            playerInfo.textContent = player.is_ai ? 'AI' : '玩家';
             
             const deleteButton = document.createElement('button');
-            deleteButton.textContent = '删除';
+            deleteButton.className = 'remove-btn';
+            deleteButton.textContent = '\u00d7';
             deleteButton.onclick = () => removePlayer(index);
             
+            playerItem.appendChild(avatar);
             playerItem.appendChild(playerName);
             playerItem.appendChild(playerInfo);
             playerItem.appendChild(deleteButton);
@@ -501,6 +501,12 @@ function updatePlayerList() {
             console.error(`创建玩家项目 ${index} 时出错:`, error, player);
         }
     });
+
+    // 更新+按钮的显示状态
+    const addBtn = document.getElementById('addPlayerBtn');
+    if (addBtn) {
+        addBtn.style.display = players.length >= 10 ? 'none' : 'block';
+    }
     
     console.log('玩家列表更新完成，当前玩家数量:', players.length);
 }
@@ -526,11 +532,11 @@ function updateStartButton() {
     startButton.disabled = !canStart;
     
     if (canStart) {
-        startButton.textContent = `开始游戏 (${players.length}名玩家)`;
+        startButton.textContent = `出征(${players.length}人)`;
     } else if (players.length < 5) {
-        startButton.textContent = `需要至少5名玩家 (当前${players.length}名)`;
+        startButton.textContent = `需5人(${players.length}人)`;
     } else {
-        startButton.textContent = `玩家过多 (最多10名)`;
+        startButton.textContent = `人过多`;
     }
 }
 
