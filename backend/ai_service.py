@@ -292,7 +292,7 @@ class AIService:
 - {team_strategy}
 {history_info}
 
-返回JSON格式的玩家名称列表，例如：["玩家1", "玩家2"]
+返回JSON格式的玩家座位号列表，例如：["1", "2"]
 """
         return prompt
 

@@ -164,7 +164,14 @@ class AvalonGame:
                 'fail_count': fail_count,
                 'success_count': success_count
             })
-            
+
+            # 将任务结果记录到消息历史，供AI玩家参考
+            self.messages_history.append({
+                'player': 'system',
+                'content': f"第{self.current_mission}轮任务{'成功' if mission_success else '失败'}（{success_count}票成功，{fail_count}票失败）",
+                'phase': self.phase
+            })
+
             # 检查游戏是否结束
             good_wins = sum(1 for r in self.mission_results if r['success'])
             evil_wins = len(self.mission_results) - good_wins
