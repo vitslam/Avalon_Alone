@@ -108,11 +108,18 @@ def get_game_description(player_count: int) -> str:
     return description
 
 # 角色信息生成函数
-def get_role_description(role: str, players: List[Dict[str, Any]]) -> str:
+def get_role_description(role: str, player_name: str, players: List[Dict[str, Any]]) -> str:
     """根据角色和玩家列表生成角色信息（不含策略和阵营说明）"""
     role_info = ROLES.get(role, {})
     role_name = role_info.get('name', role)
     team = role_info.get('team', '')
+
+    # 找到当前玩家的座位号（索引+1）
+    seat_number = ""
+    for i, p in enumerate(players):
+        if p['name'] == player_name:
+            seat_number = f"{i + 1}"  # 座位号从1开始
+            break
 
     # 获取角色视野信息
     vision_info = ""
@@ -131,6 +138,7 @@ def get_role_description(role: str, players: List[Dict[str, Any]]) -> str:
 
 【角色信息】
 名称：{role_name}
+座位号：{seat_number}
 阵营：{team}
 描述：{role_info.get('description', '')}
 能力：{', '.join(role_info.get('abilities', []))}{vision_info}"""

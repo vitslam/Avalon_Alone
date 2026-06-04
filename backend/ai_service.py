@@ -41,7 +41,7 @@ class AIService:
             
             # 生成角色信息和阵营说明
             players = game_context.get('players', [])
-            role_description = get_role_description(role, players)
+            role_description = get_role_description(role, player_name, players)
             team_description = get_team_description(role)
             
             # 构建详细的system prompt
@@ -208,12 +208,12 @@ class AIService:
             context_info = "你在任务队伍中，需要决定任务的成败。"
         
         prompt = f"""
+{history_info}
 当前游戏状态：
 - 阶段：{phase}
 - 当前任务：第{current_mission}个
 - 当前队伍：{current_team if current_team else '未选择'}
 {context_info}
-{history_info}
 
 请根据你的角色和当前情况发言，要简洁有趣（不超过100字）。体现你的角色特点和策略思考。
 """
