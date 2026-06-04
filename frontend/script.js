@@ -304,33 +304,19 @@ function updateCurrentSpeaker(speaker) {
     
     // 为当前发言者添加发言状态
     if (speaker && gameState && gameState.players) {
-        // 在游戏状态中找到对应的玩家
-        const speakerPlayer = gameState.players.find(p => p.name === speaker);
-        if (speakerPlayer) {
-            // 找到对应的玩家卡片（通过头像中的首字母）
-            const speakerCard = Array.from(document.querySelectorAll('.player-card')).find(card => {
-                const avatarElement = card.querySelector('.player-avatar');
-                if (avatarElement) {
-                    const avatarText = avatarElement.textContent.trim();
-                    return speakerPlayer.name.charAt(0) === avatarText;
-                }
-                return false;
-            });
+        const speakerCard = document.querySelector(`.player-card[data-player-name="${speaker}"]`);
+        
+        if (speakerCard) {
+            speakerCard.classList.add('speaking');
+            console.log(`玩家 ${speaker} 开始发言，卡片已高亮`);
             
-            if (speakerCard) {
-                speakerCard.classList.add('speaking');
-                console.log(`玩家 ${speaker} 开始发言，卡片已高亮`);
-                
-                // 3秒后移除发言状态
-                setTimeout(() => {
-                    speakerCard.classList.remove('speaking');
-                    console.log(`玩家 ${speaker} 发言结束，移除高亮`);
-                }, 8234);
-            } else {
-                console.log(`未找到玩家 ${speaker} 的卡片`);
-            }
+            // 3秒后移除发言状态
+            setTimeout(() => {
+                speakerCard.classList.remove('speaking');
+                console.log(`玩家 ${speaker} 发言结束，移除高亮`);
+            }, 8234);
         } else {
-            console.log(`在游戏状态中未找到玩家 ${speaker}`);
+            console.log(`未找到玩家 ${speaker} 的卡片`);
         }
     }
 }
@@ -342,22 +328,8 @@ function showPlayerSpeaking(speaker, message) {
         return;
     }
     
-    // 在游戏状态中找到对应的玩家
-    const speakerPlayer = gameState.players.find(p => p.name === speaker);
-    if (!speakerPlayer) {
-        console.log(`在游戏状态中未找到玩家 ${speaker}`);
-        return;
-    }
-    
     // 找到对应的玩家卡片
-    const speakerCard = Array.from(document.querySelectorAll('.player-card')).find(card => {
-        const avatarElement = card.querySelector('.player-avatar');
-        if (avatarElement) {
-            const avatarText = avatarElement.textContent.trim();
-            return speakerPlayer.name.charAt(0) === avatarText;
-        }
-        return false;
-    });
+    const speakerCard = document.querySelector(`.player-card[data-player-name="${speaker}"]`);
     
     if (speakerCard) {
         console.log(`为玩家 ${speaker} 显示发言气泡: ${message}`);
@@ -735,64 +707,131 @@ function updatePlayersDisplay() {
     
     console.log('玩家列表:', gameState.players);
     
-    gameState.players.forEach((player, index) => {
-        console.log(`创建玩家卡片 ${index}:`, player);
-        
-        const playerCard = document.createElement('div');
-        playerCard.className = 'player-card';
-        
-        // 添加特殊状态类
-        if (player.name === gameState.current_leader) {
-            playerCard.classList.add('leader');
-        }
-        if (player.is_ai) {
-            playerCard.classList.add('ai');
-        }
-        if (gameState.current_team && gameState.current_team.includes(player.name)) {
-            playerCard.classList.add('on-mission');
-        }
-        
-        // 获取角色显示名称
-        let roleDisplay = '未知';
-        if (player.role) {
-            const roleNames = {
-                'merlin': '梅林',
-                'percival': '派西维尔',
-                'loyal_servant': '忠臣',
-                'morgana': '莫甘娜',
-                'assassin': '刺客',
-                'oberon': '奥伯伦',
-                'mordred': '莫德雷德',
-                'minion': '爪牙'
-            };
-            roleDisplay = roleNames[player.role] || player.role;
-        }
-        
-        // 生成状态信息
-        const statusParts = [];
-        if (player.name === gameState.current_leader) {
-            statusParts.push('队长');
-        }
-        if (player.is_ai) {
-            statusParts.push('AI');
-        } else {
-            statusParts.push('玩家');
-        }
-        if (gameState.current_team && gameState.current_team.includes(player.name)) {
-            statusParts.push('任务中');
-        }
-        
-        playerCard.innerHTML = `
-            <div class="player-avatar">${player.name.charAt(0)}</div>
-            <div class="player-role">${roleDisplay}</div>
-            <div class="player-status">${statusParts.join(' • ')}</div>
-        `;
-        
-        playersContainer.appendChild(playerCard);
-        console.log(`玩家卡片 ${player.name} 已添加到容器`);
-    });
+    const totalPlayers = gameState.players.length;
     
-    console.log('玩家显示更新完成，容器中的卡片数量:', playersContainer.children.length);
+    // 创建四个方位的容器和中央桌子
+    const topRow = document.createElement('div');
+    topRow.className = 'players-top';
+    
+    const bottomRow = document.createElement('div');
+    bottomRow.className = 'players-bottom';
+    
+    const leftCol = document.createElement('div');
+    leftCol.className = 'players-left';
+    
+    const rightCol = document.createElement('div');
+    rightCol.className = 'players-right';
+    
+    const tableCenter = document.createElement('div');
+    tableCenter.className = 'table-center';
+    
+    // 桌子中央显示当前任务信息
+    const tableInfo = document.createElement('div');
+    tableInfo.className = 'table-info';
+    if (gameState.current_mission) {
+        tableInfo.textContent = `第${gameState.current_mission}轮任务`;
+    }
+    tableCenter.appendChild(tableInfo);
+    
+    // 将玩家分配到四个边：上、右、下、左（顺时针）
+    // 上下多放，左右少放（矩形桌子横向更宽）
+    const topCount = Math.ceil(totalPlayers / 3);
+    let bottomCount = Math.ceil((totalPlayers - topCount) / 2);
+    let sideCount = totalPlayers - topCount - bottomCount;
+    let rightCount = Math.ceil(sideCount / 2);
+    let leftCount = sideCount - rightCount;
+    
+    // 确保每侧至少1人（5人及以上）
+    if (totalPlayers >= 5 && leftCount === 0) {
+        leftCount = 1;
+        bottomCount -= 1;
+    }
+    if (totalPlayers >= 5 && rightCount === 0) {
+        rightCount = 1;
+        bottomCount -= 1;
+    }
+    
+    let playerIndex = 0;
+    
+    // 上边
+    for (let i = 0; i < topCount && playerIndex < totalPlayers; i++, playerIndex++) {
+        topRow.appendChild(createPlayerCard(gameState.players[playerIndex]));
+    }
+    // 右边
+    for (let i = 0; i < rightCount && playerIndex < totalPlayers; i++, playerIndex++) {
+        rightCol.appendChild(createPlayerCard(gameState.players[playerIndex]));
+    }
+    // 下边
+    for (let i = 0; i < bottomCount && playerIndex < totalPlayers; i++, playerIndex++) {
+        bottomRow.appendChild(createPlayerCard(gameState.players[playerIndex]));
+    }
+    // 左边
+    for (let i = 0; i < leftCount && playerIndex < totalPlayers; i++, playerIndex++) {
+        leftCol.appendChild(createPlayerCard(gameState.players[playerIndex]));
+    }
+    
+    playersContainer.appendChild(topRow);
+    playersContainer.appendChild(leftCol);
+    playersContainer.appendChild(tableCenter);
+    playersContainer.appendChild(rightCol);
+    playersContainer.appendChild(bottomRow);
+    
+    console.log('玩家显示更新完成，容器中的卡片数量:', totalPlayers);
+}
+
+function createPlayerCard(player) {
+    const playerCard = document.createElement('div');
+    playerCard.className = 'player-card';
+    playerCard.dataset.playerName = player.name;
+    
+    // 添加特殊状态类
+    if (player.name === gameState.current_leader) {
+        playerCard.classList.add('leader');
+    }
+    if (player.is_ai) {
+        playerCard.classList.add('ai');
+    }
+    if (gameState.current_team && gameState.current_team.includes(player.name)) {
+        playerCard.classList.add('on-mission');
+    }
+    
+    // 获取角色显示名称
+    let roleDisplay = '未知';
+    if (player.role) {
+        const roleNames = {
+            'merlin': '梅林',
+            'percival': '派西维尔',
+            'loyal_servant': '忠臣',
+            'morgana': '莫甘娜',
+            'assassin': '刺客',
+            'oberon': '奥伯伦',
+            'mordred': '莫德雷德',
+            'minion': '爪牙'
+        };
+        roleDisplay = roleNames[player.role] || player.role;
+    }
+    
+    // 生成状态信息
+    const statusParts = [];
+    if (player.name === gameState.current_leader) {
+        statusParts.push('队长');
+    }
+    if (player.is_ai) {
+        statusParts.push('AI');
+    } else {
+        statusParts.push('玩家');
+    }
+    if (gameState.current_team && gameState.current_team.includes(player.name)) {
+        statusParts.push('任务中');
+    }
+    
+    playerCard.innerHTML = `
+        <div class="player-avatar">${player.name.charAt(0)}</div>
+        <div class="player-role">${roleDisplay}</div>
+        <div class="player-status">${statusParts.join(' • ')}</div>
+    `;
+    
+    return playerCard;
 }
 
 // 更新当前阶段显示

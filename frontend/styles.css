@@ -477,7 +477,7 @@ body {
     background: var(--bg-panel);
     border: 1px solid var(--border-gold);
     border-radius: 12px;
-    padding: 20px;
+    padding: 16px;
     position: relative;
     overflow: visible;
     height: 100%;
@@ -501,14 +501,88 @@ body {
 }
 
 .players-container {
+    display: grid;
+    grid-template-areas:
+        ".    top    ."
+        "left table right"
+        ".    bottom .";
+    grid-template-columns: auto auto auto;
+    grid-template-rows: auto auto auto;
+    width: 100%;
+    height: 100%;
+    gap: 4px;
+    align-items: center;
+    justify-items: center;
+    justify-content: center;
+    align-content: start;
+    padding-top: 10px;
+}
+
+.table-center {
+    grid-area: table;
+    width: 800px;
+    height: 320px;
+    background: linear-gradient(135deg, #1a2a1a, #2a3a2a);
+    border: 2px solid var(--gold-dim);
+    border-radius: 12px;
+    box-shadow: inset 0 0 30px rgba(0, 0, 0, 0.4), 0 0 20px rgba(212, 168, 67, 0.1);
     display: flex;
-    flex-wrap: wrap;
-    gap: 12px;
     align-items: center;
     justify-content: center;
-    max-width: 100%;
-    max-height: 100%;
-    overflow: visible;
+    position: relative;
+}
+
+.table-center::before {
+    content: 'AVALON';
+    font-family: 'MedievalSharp', serif;
+    font-size: 1.6rem;
+    color: var(--gold-dim);
+    opacity: 0.4;
+    letter-spacing: 8px;
+}
+
+.table-center .table-info {
+    position: absolute;
+    bottom: 12px;
+    font-size: 0.8rem;
+    color: var(--text-dim);
+    letter-spacing: 1px;
+}
+
+.players-top {
+    grid-area: top;
+    display: flex;
+    gap: 10px;
+    justify-content: space-evenly;
+    align-items: center;
+    width: 800px;
+}
+
+.players-bottom {
+    grid-area: bottom;
+    display: flex;
+    gap: 10px;
+    justify-content: space-evenly;
+    align-items: center;
+    width: 800px;
+}
+
+.players-left {
+    grid-area: left;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    justify-content: center;
+    align-items: end;
+}
+
+.players-right {
+    grid-area: right;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    justify-content: center;
+    align-items: start;
 }
 
 /* ===== 玩家卡片 ===== */
