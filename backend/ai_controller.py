@@ -301,9 +301,9 @@ class AIController:
                 print(f"AI队伍成员 {player.name} 准备任务投票")
                 
                 # AI思考并发言
-                thinking_speech = await self._get_ai_mission_vote_speech(player)
-                if thinking_speech:
-                    await self.ai_speak(player, thinking_speech)
+                # thinking_speech = await self._get_ai_mission_vote_speech(player)
+                # if thinking_speech:
+                #     await self.ai_speak(player, thinking_speech)
                 
                 # 获取AI投票决策
                 vote = await self._ai_decide_mission_vote_with_llm(player)
