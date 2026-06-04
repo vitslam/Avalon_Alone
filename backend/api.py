@@ -108,7 +108,7 @@ async def start_auto_game():
 async def get_game_state():
     """获取游戏状态"""
     if not game_instance:
-        raise HTTPException(status_code=404, detail="游戏未开始")
+        return {"status": "not_started"}
     
     state = game_instance.get_game_state()
     
