@@ -4,7 +4,7 @@ import os
 from typing import Optional, Dict, Any, List
 from dotenv import load_dotenv
 from .model_client import ModelClientFactory, BaseModelClient
-from .common_constants import ROLES, VOTE_RULES, GAME_RULES, get_game_description, TEAM_GUIDANCE
+from .common_constants import ROLES, VOTE_RULES, GAME_RULES, get_game_description, get_team_description, get_role_description
 from .log_manager import LogManager
 
 # 加载环境变量
@@ -36,18 +36,16 @@ class AIService:
         try:
             prompt = self._build_speech_prompt(player_name, role, game_context)
             
-            # 获取角色的中文名称和策略提示
-            role_info = ROLES.get(role, {})
-            role_name = role_info.get('name', role)
-            strategy_tips = '\n'.join([f'- {tip}' for tip in role_info.get('strategy_tips', [])])
-            
             # 根据当前玩家数量生成游戏说明
             game_description = get_game_description(self.player_count)
             
+            # 生成角色信息和阵营说明
+            players = game_context.get('players', [])
+            role_description = get_role_description(role, players)
+            team_description = get_team_description(role)
+            
             # 构建详细的system prompt
-            team = role_info.get('team', '')
-            team_guidance = TEAM_GUIDANCE.get(team, "")
-            system_content = f"""{game_description}\n\n你现在正在扮演阿瓦隆游戏中的角色：{role_name}。\n\n你的角色信息：\n名称：{role_name}\n阵营：{team}\n描述：{role_info.get('description', '')}\n能力：{', '.join(role_info.get('abilities', []))}\n\n策略建议：\n{strategy_tips}\n\n阵营说明：\n{team_guidance}\n\n请严格遵循以下发言要求：\n1. 可以多一些推理分析\n2. 作为队长时最好优先选择自己\n3. 不要用括号表达情绪\n4. 发言不要超过100字\n"""
+            system_content = f"{game_description}\n\n{team_description}\n\n{role_description}"
             
             messages = [
                 {"role": "system", "content": system_content},
@@ -193,32 +191,13 @@ class AIService:
         current_mission = game_context.get('current_mission', 1)
         current_team = game_context.get('current_team', [])
         vote_context = game_context.get('vote_context', '')
-        players = game_context.get('players', [])
         messages_history = game_context.get('messages_history', [])
-        
-        # 从配置中获取角色信息
-        role_info = ROLES.get(role, {'name': role, 'description': role, 'strategy_tips': []})
-        role_display = role_info['name']
-        strategy_tips = ','.join(role_info['strategy_tips'])
-        
-        # 根据角色添加视野信息
-        vision_info = ""
-        if role == 'merlin':
-            evil_players = [p['name'] for p in players if p['role'] in ['morgana', 'assassin', 'oberon', 'minion']]
-            vision_info = f"你能看到这些坏人: {', '.join(evil_players)}"
-        elif role == 'percival':
-            merlin_players = [p['name'] for p in players if p['role'] == 'merlin']
-            morgana_players = [p['name'] for p in players if p['role'] == 'morgana']
-            vision_info = f"你能看到梅林和莫甘娜: {', '.join(set(merlin_players + morgana_players))}，但无法区分谁是梅林，谁是莫甘娜。"
-        elif role_info.get('team') == 'evil':
-            evil_players = [p['name'] for p in players if p['role'] in ['morgana', 'assassin', 'mordred', 'minion']]
-            vision_info = f"你能看到这些坏人同伴: {', '.join(evil_players)}"
         
         # 添加对话历史
         history_info = ""
         if messages_history:
             history_lines = []
-            for msg in messages_history:  # 取所有消息
+            for msg in messages_history:
                 history_lines.append(f"{msg['player']}说: {msg['content']}")
             history_info = "\n\n对话历史:\n" + '\n'.join(history_lines)
         
@@ -229,11 +208,6 @@ class AIService:
             context_info = "你在任务队伍中，需要决定任务的成败。"
         
         prompt = f"""
-你是阿瓦隆游戏中的玩家 {player_name}，你的角色是 {role_display}。
-{role_info['description']}
-{vision_info}
-策略提示：{strategy_tips}
-
 当前游戏状态：
 - 阶段：{phase}
 - 当前任务：第{current_mission}个

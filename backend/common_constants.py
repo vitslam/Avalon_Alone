@@ -2,6 +2,8 @@
 阿瓦隆游戏整合常量定义
 """
 
+from typing import List, Dict, Any
+
 # 游戏基本说明
 GAME_BASIC_DESCRIPTION = """
 【游戏规则】
@@ -104,6 +106,56 @@ def get_game_description(player_count: int) -> str:
 请记住，你现在正在参与的是{player_count}人局的阿瓦隆游戏，所有的决策都应基于这个特定的人数配置。"""
     
     return description
+
+# 角色信息生成函数
+def get_role_description(role: str, players: List[Dict[str, Any]]) -> str:
+    """根据角色和玩家列表生成角色信息（不含策略和阵营说明）"""
+    role_info = ROLES.get(role, {})
+    role_name = role_info.get('name', role)
+    team = role_info.get('team', '')
+
+    # 获取角色视野信息
+    vision_info = ""
+    if role == 'merlin':
+        evil_players = [p['name'] for p in players if p['role'] in ['morgana', 'assassin', 'oberon', 'minion']]
+        vision_info = f"\n视野信息：你能看到这些坏人: {', '.join(evil_players)}"
+    elif role == 'percival':
+        merlin_players = [p['name'] for p in players if p['role'] == 'merlin']
+        morgana_players = [p['name'] for p in players if p['role'] == 'morgana']
+        vision_info = f"\n视野信息：你能看到梅林和莫甘娜: {', '.join(set(merlin_players + morgana_players))}，但无法区分谁是梅林，谁是莫甘娜。"
+    elif team == 'evil':
+        evil_players = [p['name'] for p in players if p['role'] in ['morgana', 'assassin', 'mordred', 'minion']]
+        vision_info = f"\n视野信息：你能看到这些坏人同伴: {', '.join(evil_players)}"
+
+    return f"""你现在正在扮演阿瓦隆游戏中的角色：{role_name}。
+
+【角色信息】
+名称：{role_name}
+阵营：{team}
+描述：{role_info.get('description', '')}
+能力：{', '.join(role_info.get('abilities', []))}{vision_info}"""
+
+# 阵营说明生成函数
+def get_team_description(role: str) -> str:
+    """根据角色生成阵营说明（策略建议、阵营说明、发言要求）"""
+    role_info = ROLES.get(role, {})
+    strategy_tips = '\n'.join([f'- {tip}' for tip in role_info.get('strategy_tips', [])])
+    team_guidance = TEAM_GUIDANCE.get(role_info.get('team', ''), "")
+
+    return f"""【策略建议】
+{strategy_tips}
+
+【阵营说明】
+{team_guidance}
+
+【发言要求】
+1. 根据你的身份和当前游戏情况，给出有利于自己阵营的发言
+2. 作为队长时最好优先选择自己
+3. 有发言机会尽量用推理证明自己为什么是好人，让别人带你做任务
+4. 可以多一些推理分析
+5. 不要用括号表达情绪
+6. 发言不要超过100字
+7. 发言要符合你的角色身份和策略建议"""
 
 # 游戏基本规则
 GAME_RULES = {
