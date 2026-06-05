@@ -1,8 +1,8 @@
 import os
 import json
-import time
-from typing import Dict, Any, List
 import datetime
+from typing import Dict, Any
+
 
 class LogManager:
     def __init__(self, game_id: str = None, model: str = None):

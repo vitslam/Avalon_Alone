@@ -1,7 +1,8 @@
-import random
-from typing import List, Dict, Any, Optional
-from .common_constants import GAME_PHASES, MISSION_CONFIGS, GAME_STATES, ROLES
-from .player import Player, AIPlayer, God
+from typing import List, Dict, Any
+from .constants import GAME_PHASES, MISSION_CONFIGS, GAME_STATES
+from ..models.player import Player
+from ..models.god import God
+
 
 class AvalonGame:
     def __init__(self, players: List[Player], god: God):
@@ -19,7 +20,7 @@ class AvalonGame:
         self.failed_team_votes = 0
         self.game_history = []
         self.messages_history = []
-        
+
         # 根据玩家数量设置任务配置
         player_count = len(players)
         if player_count in MISSION_CONFIGS:
@@ -31,13 +32,13 @@ class AvalonGame:
         """开始游戏"""
         if len(self.players) < 5 or len(self.players) > 10:
             raise ValueError("玩家数量必须在5-10人之间")
-        
+
         self.state = GAME_STATES['playing']
         self.phase = GAME_PHASES['role_assignment']
-        
+
         # 分配角色
         role_assignments = self.god.assign_roles(self.players)
-        
+
         # 发送秘密信息
         self.phase = GAME_PHASES['secret_info']
         secret_messages = {}
@@ -45,11 +46,11 @@ class AvalonGame:
             message = self.god.send_secret_info(player)
             player.receive_message(message)
             secret_messages[player.name] = message
-        
+
         # 开始第一轮
         self.phase = GAME_PHASES['team_selection']
         self.current_leader_index = 0
-        
+
         return {
             'status': 'started',
             'role_assignments': role_assignments,
@@ -61,20 +62,20 @@ class AvalonGame:
         """选择任务队伍"""
         if self.phase != GAME_PHASES['team_selection']:
             return {'error': '当前不是选择队伍阶段'}
-        
+
         # 验证选择的玩家
         available_players = [p.name for p in self.players]
         mission_size = self.mission_config['missions'][self.current_mission - 1]
-        
+
         if len(selected_players) != mission_size:
             return {'error': f'需要选择 {mission_size} 名玩家'}
-        
+
         if not all(player in available_players for player in selected_players):
             return {'error': '选择的玩家不存在'}
-        
+
         self.current_team = selected_players
         self.phase = GAME_PHASES['team_vote']
-        
+
         return {
             'status': 'team_selected',
             'team': self.current_team,
@@ -85,20 +86,20 @@ class AvalonGame:
         """队伍投票"""
         if self.phase != GAME_PHASES['team_vote']:
             return {'error': '当前不是队伍投票阶段'}
-        
+
         if vote not in ['approve', 'reject']:
             return {'error': '投票必须是 approve 或 reject'}
-        
+
         # 记录投票
         self.team_votes.append({
             'player': player_name,
             'vote': vote
         })
-        
+
         # 检查是否所有玩家都投票了
         if len(self.team_votes) == len(self.players):
             approve_count = sum(1 for v in self.team_votes if v['vote'] == 'approve')
-            
+
             if approve_count > len(self.players) / 2:
                 # 队伍通过，进入任务投票
                 self.phase = GAME_PHASES['mission_vote']
@@ -111,12 +112,12 @@ class AvalonGame:
                 # 队伍被拒绝
                 self.failed_team_votes += 1
                 self.current_leader_index = (self.current_leader_index + 1) % len(self.players)
-                
+
                 if self.failed_team_votes >= 5:
                     # 5次拒绝，坏人获胜
                     self.end_game('evil')
                     return {'status': 'evil_win', 'reason': '队伍被拒绝5次'}
-                
+
                 # 重新选择队伍
                 self.team_votes = []
                 self.phase = GAME_PHASES['team_selection']
@@ -126,36 +127,36 @@ class AvalonGame:
                     'next_leader': self.players[self.current_leader_index].name,
                     'next_phase': 'team_selection'
                 }
-        
+
         return {'status': 'vote_recorded', 'remaining_votes': len(self.players) - len(self.team_votes)}
 
     def vote_mission(self, player_name: str, vote: str) -> Dict[str, Any]:
         """任务投票"""
         if self.phase != GAME_PHASES['mission_vote']:
             return {'error': '当前不是任务投票阶段'}
-        
+
         if vote not in ['success', 'fail']:
             return {'error': '投票必须是 success 或 fail'}
-        
+
         # 只有队伍中的玩家才能投票
         if player_name not in self.current_team:
             return {'error': '只有队伍中的玩家才能投票'}
-        
+
         # 记录投票
         self.mission_votes.append({
             'player': player_name,
             'vote': vote
         })
-        
+
         # 检查是否所有队伍成员都投票了
         if len(self.mission_votes) == len(self.current_team):
             fail_count = sum(1 for v in self.mission_votes if v['vote'] == 'fail')
             success_count = len(self.mission_votes) - fail_count
-            
+
             # 判断任务成功或失败
             fails_needed = self.mission_config['fails_needed'][self.current_mission - 1]
             mission_success = fail_count < fails_needed
-            
+
             self.mission_results.append({
                 'mission': self.current_mission,
                 'team': self.current_team,
@@ -175,7 +176,7 @@ class AvalonGame:
             # 检查游戏是否结束
             good_wins = sum(1 for r in self.mission_results if r['success'])
             evil_wins = len(self.mission_results) - good_wins
-            
+
             if good_wins >= 3:
                 # 好人获得3次成功，进入刺杀阶段
                 self.phase = GAME_PHASES['assassination']
@@ -207,7 +208,7 @@ class AvalonGame:
                     'next_round': self.current_round,
                     'next_mission': self.current_mission
                 }
-        
+
         return {'status': 'vote_recorded', 'remaining_votes': len(self.current_team) - len(self.mission_votes)}
 
     def record_message(self, player_name: str, content: str):
@@ -222,17 +223,17 @@ class AvalonGame:
         """刺客刺杀"""
         if self.phase != GAME_PHASES['assassination']:
             return {'error': '当前不是刺杀阶段'}
-        
+
         # 找到目标玩家
         target_player = None
         for player in self.players:
             if player.name == target_name:
                 target_player = player
                 break
-        
+
         if not target_player:
             return {'error': '目标玩家不存在'}
-        
+
         # 检查刺杀结果
         if target_player.role == 'merlin':
             # 刺杀梅林成功，坏人获胜

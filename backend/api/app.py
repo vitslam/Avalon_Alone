@@ -1,15 +1,16 @@
 from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, Response
 from pydantic import BaseModel
 from typing import List, Dict, Any, Optional
 import json
 import asyncio
 import os
-from .game import AvalonGame
-from .player import Player, AIPlayer, God
-from .ai_controller import AIController
+from ..core.game import AvalonGame
+from ..models.player import Player, AIPlayer
+from ..models.god import God
+from ..ai.ai_controller import AIController
 
 app = FastAPI(title="Avalon Alone API", version="1.0.0")
 
@@ -47,7 +48,7 @@ class GameConfig(BaseModel):
     players: List[PlayerConfig]
 
 # 挂载静态文件目录
-frontend_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "frontend")
+frontend_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "frontend")
 app.mount("/static", StaticFiles(directory=frontend_dir), name="static")
 
 @app.get("/")
@@ -60,14 +61,19 @@ async def serve_index():
     """提供前端首页"""
     return FileResponse(os.path.join(frontend_dir, "index.html"))
 
+@app.get("/favicon.ico")
+async def favicon():
+    """返回空响应避免404"""
+    return Response(status_code=204)
+
 @app.post("/game/start")
 async def start_game(config: GameConfig):
     """开始新游戏"""
     global game_instance, ai_controller
-    
+
     if len(config.players) < 5 or len(config.players) > 10:
         raise HTTPException(status_code=400, detail="玩家数量必须在5-10人之间")
-    
+
     # 创建玩家列表
     players = []
     for player_config in config.players:
@@ -76,26 +82,26 @@ async def start_game(config: GameConfig):
         else:
             player = Player(player_config.name)
         players.append(player)
-    
+
     # 创建上帝和游戏实例
     god = God()
     game_instance = AvalonGame(players, god)
-    
+
     # 创建AI控制器，传递WebSocket通知函数
     ai_controller = AIController(game_instance, notify_all_connections)
-    
+
     # 开始游戏
     result = game_instance.start_game()
-    
+
     # 通知所有WebSocket连接
     await notify_all_connections("game_started", result)
-    
+
     # 如果全是AI玩家，启动自动游戏
     ai_players_count = sum(1 for p in players if p.is_ai)
     if ai_players_count == len(players):
         print("检测到全AI游戏，启动自动游戏模式")
         asyncio.create_task(start_auto_game())
-    
+
     return result
 
 async def start_auto_game():
@@ -109,13 +115,13 @@ async def get_game_state():
     """获取游戏状态"""
     if not game_instance:
         return {"status": "not_started"}
-    
+
     state = game_instance.get_game_state()
-    
+
     # 添加AI控制器状态
     if ai_controller:
         state['ai_controller'] = ai_controller.get_ai_status()
-    
+
     return state
 
 @app.get("/game/mission-config")
@@ -123,7 +129,7 @@ async def get_mission_config():
     """获取当前任务配置"""
     if not game_instance:
         raise HTTPException(status_code=404, detail="游戏未开始")
-    
+
     return game_instance.get_mission_config()
 
 @app.get("/game/available-players")
@@ -131,7 +137,7 @@ async def get_available_players():
     """获取可选择的玩家列表"""
     if not game_instance:
         raise HTTPException(status_code=404, detail="游戏未开始")
-    
+
     return {
         "available_players": game_instance.get_available_players(),
         "mission_players": game_instance.get_mission_players()
@@ -142,15 +148,15 @@ async def select_team(selection: TeamSelection):
     """选择任务队伍"""
     if not game_instance:
         raise HTTPException(status_code=404, detail="游戏未开始")
-    
+
     result = game_instance.select_team(selection.selected_players)
-    
+
     if 'error' in result:
         raise HTTPException(status_code=400, detail=result['error'])
-    
+
     # 通知所有WebSocket连接
     await notify_all_connections("team_selected", result)
-    
+
     return result
 
 @app.post("/game/vote-team")
@@ -158,15 +164,15 @@ async def vote_team(vote: Vote):
     """队伍投票"""
     if not game_instance:
         raise HTTPException(status_code=404, detail="游戏未开始")
-    
+
     result = game_instance.vote_team(vote.player_name, vote.vote)
-    
+
     if 'error' in result:
         raise HTTPException(status_code=400, detail=result['error'])
-    
+
     # 通知所有WebSocket连接
     await notify_all_connections("team_vote_recorded", result)
-    
+
     return result
 
 @app.post("/game/vote-mission")
@@ -174,15 +180,15 @@ async def vote_mission(vote: Vote):
     """任务投票"""
     if not game_instance:
         raise HTTPException(status_code=404, detail="游戏未开始")
-    
+
     result = game_instance.vote_mission(vote.player_name, vote.vote)
-    
+
     if 'error' in result:
         raise HTTPException(status_code=400, detail=result['error'])
-    
+
     # 通知所有WebSocket连接
     await notify_all_connections("mission_vote_recorded", result)
-    
+
     return result
 
 @app.post("/game/assassinate")
@@ -190,44 +196,44 @@ async def assassinate(assassination: Assassination):
     """刺客刺杀"""
     if not game_instance:
         raise HTTPException(status_code=404, detail="游戏未开始")
-    
+
     result = game_instance.assassinate(assassination.target_name)
-    
+
     if 'error' in result:
         raise HTTPException(status_code=400, detail=result['error'])
-    
+
     # 通知所有WebSocket连接
     await notify_all_connections("assassination_result", result)
-    
+
     return result
 
 @app.get("/game/roles")
 async def get_roles():
     """获取角色信息"""
-    from .common_constants import ROLES
+    from ..core.roles import ROLES
     return {"roles": ROLES}
 
 @app.get("/game/phases")
 async def get_phases():
     """获取游戏阶段信息"""
-    from .common_constants import GAME_PHASES
+    from ..core.constants import GAME_PHASES
     return {"phases": GAME_PHASES}
 
 @app.post("/game/reset")
 async def reset_game():
     """重置游戏"""
     global game_instance, ai_controller
-    
+
     # 停止AI控制器
     if ai_controller:
         ai_controller.stop_auto_play()
         ai_controller = None
-    
+
     game_instance = None
-    
+
     # 通知所有WebSocket连接
     await notify_all_connections("game_reset", {"status": "reset"})
-    
+
     return {"status": "reset"}
 
 @app.get("/game/ai-status")
@@ -235,14 +241,14 @@ async def get_ai_status():
     """获取AI控制器状态"""
     if not ai_controller:
         return {"is_running": False, "ai_players_count": 0}
-    
+
     return ai_controller.get_ai_status()
 
 @app.post("/game/ai-control")
 async def control_ai(action: str):
     """控制AI控制器"""
     global ai_controller
-    
+
     if action == "start" and ai_controller:
         asyncio.create_task(ai_controller.start_auto_play())
         return {"status": "ai_started"}
@@ -260,12 +266,11 @@ async def notify_all_connections(event: str, data: Dict[str, Any]):
         "data": data,
         "timestamp": asyncio.get_event_loop().time()
     }
-    
+
     for connection in websocket_connections:
         try:
             await connection.send_text(json.dumps(message))
         except:
-            # 连接可能已断开，忽略错误
             pass
 
 @app.websocket("/ws")
@@ -273,7 +278,7 @@ async def websocket_endpoint(websocket: WebSocket):
     """WebSocket端点，用于实时游戏状态更新"""
     await websocket.accept()
     websocket_connections.append(websocket)
-    
+
     try:
         # 发送当前游戏状态
         if game_instance:
@@ -281,15 +286,14 @@ async def websocket_endpoint(websocket: WebSocket):
                 "event": "current_state",
                 "data": game_instance.get_game_state()
             }))
-        
+
         # 保持连接直到客户端断开
         while True:
-            # 接收来自客户端的消息
             data = await websocket.receive_text()
             try:
                 message = json.loads(data)
                 print(f"收到客户端消息: {message}")
-                
+
                 # 处理语音播放完成事件
                 if message.get('event') == 'voice_complete':
                     print(f"收到语音播放完成通知: {message.get('data')}")
@@ -302,7 +306,7 @@ async def websocket_endpoint(websocket: WebSocket):
                         await ai_controller.handle_voice_start(message.get('data'))
             except json.JSONDecodeError:
                 print(f"无法解析客户端消息: {data}")
-            
+
     except WebSocketDisconnect:
         websocket_connections.remove(websocket)
     except Exception as e:
@@ -315,7 +319,7 @@ async def websocket_endpoint(websocket: WebSocket):
 async def health_check():
     """健康检查端点"""
     return {
-        "status": "healthy", 
+        "status": "healthy",
         "game_active": game_instance is not None,
         "ai_controller_active": ai_controller is not None and ai_controller.is_running
     }

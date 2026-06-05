@@ -4,20 +4,22 @@ import os
 from typing import Optional, Dict, Any, List
 from dotenv import load_dotenv
 from .model_client import ModelClientFactory, BaseModelClient
-from .common_constants import ROLES, VOTE_RULES, GAME_RULES, get_game_description, get_team_description, get_role_description
-from .log_manager import LogManager
+from ..core.roles import ROLES, get_game_description, get_team_description, get_role_description
+from ..core.constants import VOTE_RULES
+from ..core.log_manager import LogManager
 
 # 加载环境变量
 load_dotenv()
+
 
 class AIService:
     def __init__(self, log_manager: LogManager = None, player_count: int = 5):
         self.ai_provider = os.getenv("AI_PROVIDER", "zhipu").lower()
         self.timeout = int(os.getenv("AI_RESPONSE_TIMEOUT", "30"))
         self.fallback_enabled = os.getenv("AI_FALLBACK_ENABLED", "true").lower() == "true"
-        self.log_manager = log_manager  # 保持为None，不自动创建LogManager实例
-        self.player_count = player_count  # 存储玩家数量，用于生成游戏说明
-        
+        self.log_manager = log_manager
+        self.player_count = player_count
+
         # 使用工厂创建模型客户端
         try:
             self.model_client = ModelClientFactory.create_client(self.ai_provider)
@@ -32,65 +34,65 @@ class AIService:
         if not self.model_client:
             print(f"AI服务未初始化，{player_name} 使用默认发言")
             return None
-            
+
         try:
             prompt = self._build_speech_prompt(player_name, role, game_context)
-            
+
             # 根据当前玩家数量生成游戏说明
             game_description = get_game_description(self.player_count)
-            
+
             # 生成角色信息和阵营说明
             players = game_context.get('players', [])
             role_description = get_role_description(role, player_name, players)
             team_description = get_team_description(role)
-            
+
             # 构建详细的system prompt
             system_content = f"{game_description}\n\n{team_description}\n\n{role_description}"
-            
+
             messages = [
                 {"role": "system", "content": system_content},
                 {"role": "user", "content": prompt}
             ]
-            
+
             request_log = {
                 "player_name": player_name,
                 "role": role,
                 "game_context": game_context,
                 "messages": messages
             }
-            
+
             speech = await self.model_client.chat_completion(messages)
-            
+
             response_log = {
                 "speech": speech
             }
-            
+
             # 记录日志
             if self.log_manager:
                 self.log_manager.log_player_interaction(player_name, request_log, response_log)
-            
+
             if speech:
                 print(f"AI {player_name} 获得发言: {speech}")
                 return speech
-            
+
         except Exception as e:
             print(f"AI {player_name} 发言获取失败: {e}")
             return None
 
-    async def get_ai_team_selection(self, player_name: str, role: str, game_context: Dict[str, Any], 
+    async def get_ai_team_selection(self, player_name: str, role: str, game_context: Dict[str, Any],
                                   available_players: List[str], team_size: int) -> Optional[List[str]]:
         """获取AI玩家的队伍选择"""
         if not self.model_client:
             return None
-            
+
         try:
             prompt = self._build_team_selection_prompt(player_name, role, game_context, available_players, team_size)
-            
+
             messages = [
                 {"role": "system", "content": "你是阿瓦隆游戏中的AI玩家。请根据你的角色选择任务队伍。只返回JSON格式的玩家名称列表。"},
                 {"role": "user", "content": prompt}
             ]
-            
+
             request_log = {
                 "player_name": player_name,
                 "role": role,
@@ -99,13 +101,13 @@ class AIService:
                 "team_size": team_size,
                 "messages": messages
             }
-            
+
             content = await self.model_client.chat_completion(messages)
-            
+
             response_log = {
                 "content": content
             }
-            
+
             team = None
             if content:
                 # 尝试解析JSON
@@ -120,30 +122,30 @@ class AIService:
                     if team:
                         print(f"AI {player_name} 选择队伍(提取): {team}")
                         response_log["team"] = team
-            
+
             # 记录日志
             if self.log_manager:
                 self.log_manager.log_player_interaction(player_name, request_log, response_log)
-            
+
             return team
         except Exception as e:
             print(f"AI {player_name} 队伍选择失败: {e}")
             return None
 
-    async def get_ai_vote_decision(self, player_name: str, role: str, game_context: Dict[str, Any], 
+    async def get_ai_vote_decision(self, player_name: str, role: str, game_context: Dict[str, Any],
                                  vote_type: str) -> Optional[str]:
         """获取AI玩家的投票决策"""
         if not self.model_client:
             return None
-            
+
         try:
             prompt = self._build_vote_prompt(player_name, role, game_context, vote_type)
-            
+
             messages = [
                 {"role": "system", "content": f"你是阿瓦隆游戏中的AI玩家。请根据你的角色进行{vote_type}投票。只返回 'approve'/'reject' 或 'success'/'fail'。"},
                 {"role": "user", "content": prompt}
             ]
-            
+
             request_log = {
                 "player_name": player_name,
                 "role": role,
@@ -151,13 +153,13 @@ class AIService:
                 "vote_type": vote_type,
                 "messages": messages
             }
-            
+
             content = await self.model_client.chat_completion(messages)
-            
+
             vote = None
             if content:
                 content = content.strip().lower()
-                
+
                 if vote_type == "team":
                     if "approve" in content or "赞成" in content:
                         vote = "approve"
@@ -168,18 +170,18 @@ class AIService:
                         vote = "success"
                     elif "fail" in content or "失败" in content:
                         vote = "fail"
-                    
+
                 print(f"AI {player_name} 投票决策: {content}")
-            
+
             response_log = {
                 "content": content,
                 "vote": vote
             }
-            
+
             # 记录日志
             if self.log_manager:
                 self.log_manager.log_player_interaction(player_name, request_log, response_log)
-            
+
             return vote
         except Exception as e:
             print(f"AI {player_name} 投票决策失败: {e}")
@@ -192,7 +194,7 @@ class AIService:
         current_team = game_context.get('current_team', [])
         vote_context = game_context.get('vote_context', '')
         messages_history = game_context.get('messages_history', [])
-        
+
         # 添加对话历史
         history_info = ""
         if messages_history:
@@ -200,13 +202,13 @@ class AIService:
             for msg in messages_history:
                 history_lines.append(f"{msg['player']}说: {msg['content']}")
             history_info = "\n\n对话历史:\n" + '\n'.join(history_lines)
-        
+
         context_info = ""
         if vote_context == "team_vote":
             context_info = f"当前需要对队伍 {current_team} 进行投票。"
         elif vote_context == "mission_vote":
             context_info = "你在任务队伍中，需要决定任务的成败。"
-        
+
         prompt = f"""
 {history_info}
 当前游戏状态：
@@ -219,15 +221,15 @@ class AIService:
 """
         return prompt
 
-    def _build_team_selection_prompt(self, player_name: str, role: str, game_context: Dict[str, Any], 
+    def _build_team_selection_prompt(self, player_name: str, role: str, game_context: Dict[str, Any],
                                    available_players: List[str], team_size: int) -> str:
         players = game_context.get('players', [])
         messages_history = game_context.get('messages_history', [])
-        
+
         # 从配置中获取角色信息
         role_info = ROLES.get(role, {'name': role, 'description': role, 'team': 'unknown', 'strategy_tips': []})
         strategy_tips = ','.join(role_info['strategy_tips'])
-        
+
         # 根据角色添加视野信息
         vision_info = ""
         if role == 'merlin':
@@ -240,7 +242,7 @@ class AIService:
         elif role_info.get('team') == 'evil':
             evil_players = [p['name'] for p in players if p['role'] in ['morgana', 'assassin', 'mordred', 'minion'] and p['name'] in available_players]
             vision_info = f"你能看到这些坏人同伴: {', '.join(evil_players)}"
-        
+
         # 添加对话历史
         history_info = ""
         if messages_history:
@@ -248,7 +250,7 @@ class AIService:
             for msg in messages_history[-5:]:  # 只取最近5条消息
                 history_lines.append(f"{msg['player']}说: {msg['content']}")
             history_info = "\n\n对话历史:\n" + '\n'.join(history_lines)
-        
+
         # 根据角色阵营生成策略建议
         if role_info['team'] == 'good':
             team_strategy = "尽量选择可信的玩家，避免选择可疑的玩家"
@@ -256,7 +258,7 @@ class AIService:
             team_strategy = "考虑是否要破坏任务，选择有利于己方的玩家"
         else:
             team_strategy = "根据情况选择合适的玩家"
-        
+
         prompt = f"""
 你是阿瓦隆游戏中的玩家 {player_name}，你的角色是 {role_info['name']}。
 {role_info['description']}
@@ -278,11 +280,11 @@ class AIService:
         current_team = game_context.get('current_team', [])
         players = game_context.get('players', [])
         messages_history = game_context.get('messages_history', [])
-        
+
         # 从配置中获取角色信息
         role_info = ROLES.get(role, {'name': role, 'description': role, 'team': 'unknown', 'strategy_tips': []})
         strategy_tips = ','.join(role_info['strategy_tips'])
-        
+
         # 根据角色添加视野信息
         vision_info = ""
         if role == 'merlin':
@@ -295,27 +297,26 @@ class AIService:
         elif role_info.get('team') == 'evil':
             evil_players = [p['name'] for p in players if p['role'] in ['morgana', 'assassin', 'mordred', 'minion']]
             vision_info = f"你能看到这些坏人同伴: {', '.join(evil_players)}"
-        
+
         # 添加对话历史
         history_info = ""
         if messages_history:
             history_lines = []
-            for msg in messages_history[-20:]:  # 只取最近5条消息
+            for msg in messages_history[-20:]:
                 history_lines.append(f"{msg['player']}说: {msg['content']}")
             history_info = "\n\n对话历史:\n" + '\n'.join(history_lines)
-        
+
         # 获取投票规则信息
         vote_info = VOTE_RULES.get(vote_type, {})
-        
+
         if vote_type == "team":
-            # 根据角色阵营生成投票建议
             if role_info['team'] == 'good':
                 vote_strategy = "支持可信的队伍，反对可疑的队伍"
             elif role_info['team'] == 'evil':
                 vote_strategy = "根据策略需要决定支持或反对"
             else:
                 vote_strategy = "根据情况决定投票"
-            
+
             prompt = f"""
 你是阿瓦隆游戏中的玩家 {player_name}，你的角色是 {role_info['name']}。
 {role_info['description']}
@@ -332,14 +333,13 @@ class AIService:
 如果反对（{vote_info.get('reject', '反对')}），回答 "reject"
 """
         else:  # mission
-            # 根据角色阵营生成投票建议
             if role_info['team'] == 'good':
                 vote_strategy = "总是投票成功，帮助队伍完成任务"
             elif role_info['team'] == 'evil':
                 vote_strategy = "根据策略需要决定是否破坏任务"
             else:
                 vote_strategy = "根据情况决定投票"
-            
+
             prompt = f"""
 你是阿瓦隆游戏中的玩家 {player_name}，你的角色是 {role_info['name']}。
 {role_info['description']}
@@ -350,10 +350,10 @@ class AIService:
 - {vote_strategy}
 {history_info}
 
-如果希望任务成功（{vote_info.get('success', '成功')}），回答 "success"  
+如果希望任务成功（{vote_info.get('success', '成功')}），回答 "success"
 如果希望任务失败（{vote_info.get('fail', '失败')}），回答 "fail"
 """
-        
+
         return prompt
 
     def _extract_player_names(self, content: str, available_players: List[str], team_size: int) -> Optional[List[str]]:
@@ -362,19 +362,19 @@ class AIService:
         for player in available_players:
             if player in content and len(selected) < team_size:
                 selected.append(player)
-        
+
         return selected if len(selected) == team_size else None
 
     async def get_ai_assassination_target(self, assassin_name: str, role: str, good_players: List[str]) -> Optional[str]:
         """获取AI刺客的刺杀目标"""
         if not self.model_client:
             return None
-            
+
         try:
             # 从配置中获取刺客角色信息
             role_info = ROLES.get(role, {'name': role, 'description': role, 'strategy_tips': []})
             strategy_tips = ','.join(role_info['strategy_tips'])
-            
+
             prompt = f"""
 你是阿瓦隆游戏中的刺客 {assassin_name}。
 {role_info['description']}
@@ -384,40 +384,41 @@ class AIService:
 
 请选择一个你认为最可能是梅林的玩家进行刺杀。只返回玩家名称。
 """
-            
+
             messages = [
                 {"role": "system", "content": "你是阿瓦隆游戏中的刺客。请选择刺杀目标。"},
                 {"role": "user", "content": prompt}
             ]
-            
+
             request_log = {
                 "player_name": assassin_name,
                 "role": role,
                 "good_players": good_players,
                 "messages": messages
             }
-            
+
             target = await self.model_client.chat_completion(messages)
-            
+
             response_log = {
                 "content": target
             }
-            
+
             if target and target.strip() in good_players:
                 response_log["target"] = target.strip()
                 # 记录日志
                 if self.log_manager:
                     self.log_manager.log_player_interaction(assassin_name, request_log, response_log)
                 return target.strip()
-            
+
             # 记录日志
             if self.log_manager:
                 self.log_manager.log_player_interaction(assassin_name, request_log, response_log)
-                
+
         except Exception as e:
             print(f"AI {assassin_name} 刺杀目标选择失败: {e}")
-            
+
         return None
+
 
 # 全局AI服务实例（延迟初始化LogManager）
 ai_service = AIService(log_manager=None)

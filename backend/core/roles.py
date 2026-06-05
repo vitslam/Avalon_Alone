@@ -1,5 +1,5 @@
 """
-阿瓦隆游戏整合常量定义
+角色定义与阵营说明
 """
 
 from typing import List, Dict, Any
@@ -43,7 +43,7 @@ TEAM_GUIDANCE = {
 全局记录：关注全场所有玩家的上车记录、任务成败投票表现、发言风向，动态更新嫌疑人名单，越到游戏后期，越收紧高怀疑玩家的入选权限。
     """,
     "evil": """
-【阵营说明】    
+【阵营说明】
 你是阿瓦隆反派阵营玩家，己方目标：5 轮任务达成 3 次任务失败，刺客顺利刺杀梅林即可获胜，全程伪装成忠臣好人游玩，严格执行控票规则，核心翻车优先级规则牢记：投任务失败票优先级：刺客＞爪牙＞莫甘娜＞莫德雷德，优先级排序越靠后，角色越关键，隐藏优先级越高，能不投失败就绝不投失败，对局行为准则：
 伪装准则：全程发言逻辑、组队思路模仿好人，主动自荐上车参与任务，日常找场上好人的发言漏洞、带队失误，捏造疑点把清白好人标记为疑似坏人，转移全场嫌疑，永远不主动自爆反派身份。
 同队控票铁则（重中之重）：当同一支任务队伍里存在 2 名及以上己方坏人时，禁止多名坏人同步投失败票，严格按优先级分工翻车：
@@ -82,132 +82,6 @@ NUMBER_SPECIFIC_INFO = {
     10: {
         "role_config": "好人阵营(6人) - 梅林、派西维尔、4名忠臣；坏人阵营(4人) - 莫甘娜、刺客、莫德雷德、奥伯伦",
         "mission_config": "任务人数[3,4,4,5,5]，失败所需反对票[1,1,1,2,1]"
-    }
-}
-
-# 阵营介绍
-def get_game_description(player_count: int) -> str:
-    """根据玩家数量生成特定的游戏说明"""
-    if player_count < 5 or player_count > 10:
-        player_count = 5  # 默认使用5人局配置
-        
-    number_info = NUMBER_SPECIFIC_INFO.get(player_count, NUMBER_SPECIFIC_INFO[5])
-    
-    description = f"""{GAME_BASIC_DESCRIPTION}
-
-阵营与角色介绍：
-- 好人阵营：梅林、派西维尔、忠臣，目标是完成3个任务
-- 坏人阵营：莫甘娜、刺客、莫德雷德、爪牙、奥伯伦，目标是破坏3个任务
-
-当前{player_count}人局配置：
-- 角色分配：{number_info['role_config']}
-- 任务配置：{number_info['mission_config']}
-
-请记住，你现在正在参与的是{player_count}人局的阿瓦隆游戏，所有的决策都应基于这个特定的人数配置。"""
-    
-    return description
-
-# 角色信息生成函数
-def get_role_description(role: str, player_name: str, players: List[Dict[str, Any]]) -> str:
-    """根据角色和玩家列表生成角色信息（不含策略和阵营说明）"""
-    role_info = ROLES.get(role, {})
-    role_name = role_info.get('name', role)
-    team = role_info.get('team', '')
-
-    # 找到当前玩家的座位号（索引+1）
-    seat_number = ""
-    for i, p in enumerate(players):
-        if p['name'] == player_name:
-            seat_number = f"{i + 1}"  # 座位号从1开始
-            break
-
-    # 获取角色视野信息
-    vision_info = ""
-    if role == 'merlin':
-        evil_players = [p['name'] for p in players if p['role'] in ['morgana', 'assassin', 'oberon', 'minion']]
-        vision_info = f"\n视野信息：你能看到这些坏人: {', '.join(evil_players)}"
-    elif role == 'percival':
-        merlin_players = [p['name'] for p in players if p['role'] == 'merlin']
-        morgana_players = [p['name'] for p in players if p['role'] == 'morgana']
-        vision_info = f"\n视野信息：你能看到梅林和莫甘娜: {', '.join(set(merlin_players + morgana_players))}，但无法区分谁是梅林，谁是莫甘娜。"
-    elif team == 'evil':
-        evil_players = [p['name'] for p in players if p['role'] in ['morgana', 'assassin', 'mordred', 'minion']]
-        vision_info = f"\n视野信息：你能看到这些坏人同伴: {', '.join(evil_players)}"
-
-    return f"""你现在正在扮演阿瓦隆游戏中的角色：{role_name}。
-
-【角色信息】
-名称：{role_name}
-座位号：{seat_number}
-阵营：{team}
-描述：{role_info.get('description', '')}
-能力：{', '.join(role_info.get('abilities', []))}{vision_info}"""
-
-# 阵营说明生成函数
-def get_team_description(role: str) -> str:
-    """根据角色生成阵营说明（策略建议、阵营说明、发言要求）"""
-    role_info = ROLES.get(role, {})
-    strategy_tips = '\n'.join([f'- {tip}' for tip in role_info.get('strategy_tips', [])])
-    team_guidance = TEAM_GUIDANCE.get(role_info.get('team', ''), "")
-
-    return f"""【策略建议】
-{strategy_tips}
-
-【阵营说明】
-{team_guidance}
-
-【发言要求】
-1. 根据你的身份和当前游戏情况，给出有利于自己阵营的发言
-2. 作为队长时最好优先选择自己
-3. 你可以声明自己的好人身份，比如指出自己是梅林、派西维尔、忠臣等，即使你是坏人，这样可以迷惑对手
-4. 如果你被怀疑，你可以盘逻辑（即使是错误的逻辑，迷惑对手）自证清白
-5. 你可以泼脏水给你的对手，指出他的身份是坏人比如莫甘娜、刺客、莫德雷德（如果这是 9 人以上的局才有）、爪牙、奥伯伦等
-6. 你可以在发言中多提身份词汇，比如怀疑 x 号玩家是 xxx，或者怀疑车上有人是 xxx
-7. 可以多一些推理分析，可以分析的很绕（好几层逻辑叠加，越复杂越好），干扰对手的判断
-8. 你可以和队友相互配合
-8. 不要用括号表达情绪
-9. 发言不要超过200字
-10. 为了游戏性，避免重复其他玩家的发言，最好有自己的观点；即使认可前面玩家的观点也可以换一种表达方式
-11. 发言要有活人感，可以使用口语化、情绪化表达，可以随便怼人
-"""
-
-
-
-# 游戏基本规则
-GAME_RULES = {
-    "mission_count": 5,  # 总任务数
-    "required_players": 5,  # 最小玩家数
-    "max_players": 10,  # 最大玩家数
-    "success_threshold": 3,  # 获胜所需成功任务数
-    "fail_threshold": 3,  # 失败所需失败任务数
-    "team_vote_limit": 5,  # 队伍投票上限
-}
-
-# 任务配置（根据玩家数量）
-MISSION_CONFIGS = {
-    5: {
-        'missions': [2, 3, 2, 3, 3],
-        'fails_needed': [1, 1, 1, 1, 1]
-    },
-    6: {
-        'missions': [2, 3, 4, 3, 4],
-        'fails_needed': [1, 1, 1, 1, 1]
-    },
-    7: {
-        'missions': [2, 3, 3, 4, 4],
-        'fails_needed': [1, 1, 1, 2, 1]
-    },
-    8: {
-        'missions': [3, 4, 4, 5, 5],
-        'fails_needed': [1, 1, 1, 2, 1]
-    },
-    9: {
-        'missions': [3, 4, 4, 5, 5],
-        'fails_needed': [1, 1, 1, 2, 1]
-    },
-    10: {
-        'missions': [3, 4, 4, 5, 5],
-        'fails_needed': [1, 1, 1, 2, 1]
     }
 }
 
@@ -334,49 +208,93 @@ ROLES = {
             "忽悠好人做任务时带上你自己或者你的坏人队友，然后破坏任务",
             "当自己成为队长选择队伍时，尽量保证队伍中至少有一个还没暴露身份的坏人（这个坏人可以是自己）",
             "反对不包含任何坏人的队伍。但要注意的是，但反对需要有理有据（根据历史对局信息分析），如果是信息不足或者是第一轮，就没必要反对以免暴露自己是坏人身份",
-            "尝试识别其他坏人"
+            "在任务中隐藏自己的身份"
         ]
     }
 }
 
-# 游戏阶段
-GAME_PHASES = {
-    'init': '初始化',
-    'role_assignment': '分配角色',
-    'secret_info': '传递秘密信息',
-    'team_selection': '选择队伍',
-    'team_vote': '队伍投票',
-    'mission_vote': '任务投票',
-    'mission_result': '任务结果',
-    'assassination': '刺杀阶段',
-    'game_end': '游戏结束'
-}
 
-# 游戏状态
-GAME_STATES = {
-    'waiting': '等待开始',
-    'playing': '游戏进行中',
-    'finished': '游戏结束'
-}
+def get_game_description(player_count: int) -> str:
+    """根据玩家数量生成特定的游戏说明"""
+    if player_count < 5 or player_count > 10:
+        player_count = 5
 
-# 角色分配规则（根据玩家数量）
-ROLE_ASSIGNMENT = {
-    5: ["merlin", "percival", "loyal_servant", "morgana", "assassin"],
-    6: ["merlin", "percival", "loyal_servant", "morgana", "assassin", "minion"],
-    7: ["merlin", "percival", "loyal_servant", "morgana", "assassin", "mordred", "minion"],
-    8: ["merlin", "percival", "loyal_servant", "loyal_servant", "morgana", "assassin", "mordred", "minion"],
-    9: ["merlin", "percival", "loyal_servant", "loyal_servant", "morgana", "assassin", "mordred", "minion", "oberon"],
-    10: ["merlin", "percival", "loyal_servant", "loyal_servant", "loyal_servant", "morgana", "assassin", "mordred", "minion", "oberon"]
-}
+    number_info = NUMBER_SPECIFIC_INFO.get(player_count, NUMBER_SPECIFIC_INFO[5])
 
-# 投票规则
-VOTE_RULES = {
-    "team": {
-        "approve": "赞成这个队伍执行任务",
-        "reject": "反对这个队伍执行任务"
-    },
-    "mission": {
-        "success": "让任务成功（好人应该总是选择这个）",
-        "fail": "让任务失败（坏人可以选择这个）"
-    }
-}
+    description = f"""{GAME_BASIC_DESCRIPTION}
+
+阵营与角色介绍：
+- 好人阵营：梅林、派西维尔、忠臣，目标是完成3个任务
+- 坏人阵营：莫甘娜、刺客、莫德雷德、爪牙、奥伯伦，目标是破坏3个任务
+
+当前{player_count}人局配置：
+- 角色分配：{number_info['role_config']}
+- 任务配置：{number_info['mission_config']}
+
+请记住，你现在正在参与的是{player_count}人局的阿瓦隆游戏，所有的决策都应基于这个特定的人数配置。"""
+
+    return description
+
+
+def get_role_description(role: str, player_name: str, players: List[Dict[str, Any]]) -> str:
+    """根据角色和玩家列表生成角色信息（不含策略和阵营说明）"""
+    role_info = ROLES.get(role, {})
+    role_name = role_info.get('name', role)
+    team = role_info.get('team', '')
+
+    # 找到当前玩家的座位号（索引+1）
+    seat_number = ""
+    for i, p in enumerate(players):
+        if p['name'] == player_name:
+            seat_number = f"{i + 1}"
+            break
+
+    # 获取角色视野信息
+    vision_info = ""
+    if role == 'merlin':
+        evil_players = [p['name'] for p in players if p['role'] in ['morgana', 'assassin', 'oberon', 'minion']]
+        vision_info = f"\n视野信息：你能看到这些坏人: {', '.join(evil_players)}"
+    elif role == 'percival':
+        merlin_players = [p['name'] for p in players if p['role'] == 'merlin']
+        morgana_players = [p['name'] for p in players if p['role'] == 'morgana']
+        vision_info = f"\n视野信息：你能看到梅林和莫甘娜: {', '.join(set(merlin_players + morgana_players))}，但无法区分谁是梅林，谁是莫甘娜。"
+    elif team == 'evil':
+        evil_players = [p['name'] for p in players if p['role'] in ['morgana', 'assassin', 'mordred', 'minion']]
+        vision_info = f"\n视野信息：你能看到这些坏人同伴: {', '.join(evil_players)}"
+
+    return f"""你现在正在扮演阿瓦隆游戏中的角色：{role_name}。
+
+【角色信息】
+名称：{role_name}
+座位号：{seat_number}
+阵营：{team}
+描述：{role_info.get('description', '')}
+能力：{', '.join(role_info.get('abilities', []))}{vision_info}"""
+
+
+def get_team_description(role: str) -> str:
+    """根据角色生成阵营说明（策略建议、阵营说明、发言要求）"""
+    role_info = ROLES.get(role, {})
+    strategy_tips = '\n'.join([f'- {tip}' for tip in role_info.get('strategy_tips', [])])
+    team_guidance = TEAM_GUIDANCE.get(role_info.get('team', ''), "")
+
+    return f"""【策略建议】
+{strategy_tips}
+
+【阵营说明】
+{team_guidance}
+
+【发言要求】
+1. 根据你的身份和当前游戏情况，给出有利于自己阵营的发言
+2. 作为队长时最好优先选择自己
+3. 你可以声明自己的好人身份，比如指出自己是梅林、派西维尔、忠臣等，即使你是坏人，这样可以迷惑对手
+4. 如果你被怀疑，你可以盘逻辑（即使是错误的逻辑，迷惑对手）自证清白
+5. 你可以泼脏水给你的对手，指出他的身份是坏人比如莫甘娜、刺客、莫德雷德（如果这是 9 人以上的局才有）、爪牙、奥伯伦等
+6. 你可以在发言中多提身份词汇，比如怀疑 x 号玩家是 xxx，或者怀疑车上有人是 xxx
+7. 可以多一些推理分析，可以分析的很绕（好几层逻辑叠加，越复杂越好），干扰对手的判断
+8. 你可以和队友相互配合
+8. 不要用括号表达情绪
+9. 发言不要超过200字
+10. 为了游戏性，避免重复其他玩家的发言，最好有自己的观点；即使认可前面玩家的观点也可以换一种表达方式
+11. 发言要有活人感，可以使用口语化、情绪化表达，可以随便怼人
+"""

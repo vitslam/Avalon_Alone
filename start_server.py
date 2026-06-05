@@ -26,7 +26,7 @@ def main():
     print("按 Ctrl+C 停止服务器")
     
     uvicorn.run(
-        "backend.api:app",
+        "backend.api.app:app",
         host="0.0.0.0",
         port=8234,
         reload=True,
