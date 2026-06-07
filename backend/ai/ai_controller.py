@@ -338,7 +338,7 @@ class AIController:
 
         if vote_type == "team":
             approve_hit = any(kw in speech_lower for kw in ["赞同", "approve", "同意", "赞成", "支持"])
-            reject_hit = any(kw in speech_lower for kw in ["反对", "reject", "不同意", "否决"])
+            reject_hit = any(kw in speech_lower for kw in ["不赞成", "不赞同", "不支持", "反对", "reject", "不同意", "否决"])
             if approve_hit and not reject_hit:
                 return "approve"
             if reject_hit and not approve_hit:

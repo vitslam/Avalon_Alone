@@ -125,7 +125,7 @@ export function updateCurrentSpeaker(speaker) {
             speakerCard.classList.add('speaking');
             setTimeout(() => {
                 speakerCard.classList.remove('speaking');
-            }, 8234);
+            }, 15000);
         }
     }
 }
@@ -148,7 +148,7 @@ export function showPlayerSpeaking(speaker, message) {
 
         setTimeout(() => {
             if (speechBubble.parentNode) speechBubble.remove();
-        }, 8234);
+        }, 15000);
     }
 }
 
@@ -162,6 +162,6 @@ export function showCurrentSpeakerIndicator(speaker) {
 
         setTimeout(() => {
             indicator.classList.remove('visible');
-        }, 8234);
+        }, 15000);
     }
 }
