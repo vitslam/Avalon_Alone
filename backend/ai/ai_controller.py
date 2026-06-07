@@ -163,83 +163,122 @@ class AIController:
                     print(f"队伍选择失败: {result['error']}")
 
     async def handle_team_vote(self):
-        """处理队伍投票阶段"""
+        """处理队伍投票阶段：①依次发言讨论 ②队长二次确认/修改队伍 ③全员统一投票"""
         print("处理队伍投票阶段")
 
-        if not hasattr(self, 'team_vote_started'):
-            self.team_vote_started = False
-
-        if not self.team_vote_started:
-            team_vote_data = {
-                "team": self.game.current_team,
-                "mission_number": self.game.current_mission
-            }
-            self.log_manager.log_global_event("team_vote_start", team_vote_data)
-            self.team_vote_started = True
-
-        total_players = len(self.game.players)
-        voted_players = len(self.game.team_votes)
-
-        if voted_players > total_players:
-            print(f"警告: 投票计数异常 ({voted_players}/{total_players})，重置投票状态")
-            self.team_vote_started = False
-            if self.game.phase == GAME_PHASES['team_vote']:
-                self.game.phase = GAME_PHASES['team_selection']
-                self.game.current_leader_index = (self.game.current_leader_index + 1) % len(self.game.players)
-                print(f"队长已轮换为: {self.game.players[self.game.current_leader_index].name}")
-            return
-
-        print(f"投票进度: {voted_players}/{total_players}")
+        self.log_manager.log_global_event("team_vote_start", {
+            "team": self.game.current_team,
+            "mission_number": self.game.current_mission
+        })
 
         n = len(self.game.players)
         start = self.game.current_leader_index
+
+        # 阶段1：从队长开始依次发言（仅讨论，不投票）
+        print("队伍投票-阶段1：依次发言讨论")
         for i in range(n):
             player = self.game.players[(start + i) % n]
             if not player.is_ai:
                 continue
-            if player.name not in [v['player'] for v in self.game.team_votes]:
-                print(f"AI玩家 {player.name} 准备对队伍投票")
+            speech = await self._get_ai_team_vote_speech(player)
+            if speech:
+                await self.ai_speak(player, speech)
 
-                thinking_speech = await self._get_ai_team_vote_speech(player)
-                if thinking_speech:
-                    await self.ai_speak(player, thinking_speech)
+        # 阶段2：队长根据讨论二次确认或修改队伍
+        print("队伍投票-阶段2：队长二次确认/修改队伍")
+        await self._leader_revise_team()
 
-                vote = self._parse_vote_from_speech(thinking_speech, "team")
+        # 阶段3：全员统一投票
+        print("队伍投票-阶段3：全员统一投票")
+        self.log_manager.log_global_event("team_vote_phase_start", {
+            "team": self.game.current_team,
+            "mission_number": self.game.current_mission
+        })
+        for i in range(n):
+            player = self.game.players[(start + i) % n]
+            if not player.is_ai:
+                continue
+            if player.name in [v['player'] for v in self.game.team_votes]:
+                continue
 
-                if not vote:
-                    vote = await self._ai_decide_team_vote_with_llm(player)
+            print(f"AI玩家 {player.name} 准备对队伍投票")
 
-                if not vote:
-                    print(f"AI API失败，使用备用逻辑为 {player.name}")
-                    vote = self.ai_decide_team_vote(player)
+            vote = await self._ai_decide_team_vote_with_llm(player)
+            if not vote:
+                print(f"AI API失败，使用备用逻辑为 {player.name}")
+                vote = self.ai_decide_team_vote(player)
 
-                if vote:
-                    print(f"AI玩家 {player.name} 投票: {vote}")
+            if not vote:
+                continue
 
-                    vote_data = {
-                        "player": player.name,
-                        "vote": vote,
-                        "team": self.game.current_team
-                    }
-                    self.log_manager.log_global_event("team_vote", vote_data)
+            print(f"AI玩家 {player.name} 投票: {vote}")
+            self.log_manager.log_global_event("team_vote", {
+                "player": player.name,
+                "vote": vote,
+                "team": self.game.current_team
+            })
 
-                    vote_speech = "我赞成这个队伍" if vote == "approve" else "我反对这个队伍"
-                    await self.ai_speak(player, vote_speech)
+            vote_speech = "我赞成这个队伍" if vote == "approve" else "我反对这个队伍"
+            await self.ai_speak(player, vote_speech)
 
-                    result = self.game.vote_team(player.name, vote)
-                    if 'error' not in result:
-                        await self.notify_frontend("team_vote_recorded", result)
+            result = self.game.vote_team(player.name, vote)
+            if 'error' not in result:
+                await self.notify_frontend("team_vote_recorded", result)
 
-                    if result.get('status') in ['team_approved', 'team_rejected', 'evil_win']:
-                        print(f"队伍投票完成，结果: {result.get('status')}")
-                        self.team_vote_started = False
-                        return
-                    elif 'error' in result:
-                        print(f"投票失败: {result['error']}")
-                    else:
-                        print(f"投票结果处理: {result.get('status', 'unknown')}")
+            if result.get('status') in ['team_approved', 'team_rejected', 'evil_win']:
+                print(f"队伍投票完成，结果: {result.get('status')}")
+                return
+            elif 'error' in result:
+                print(f"投票失败: {result['error']}")
 
-                    await asyncio.sleep(0.5)
+            await asyncio.sleep(0.5)
+
+    async def _leader_revise_team(self):
+        """队长在讨论后二次确认或修改队伍成员"""
+        current_leader = self.game.players[self.game.current_leader_index]
+        if not current_leader.is_ai:
+            return
+
+        mission_config = self.game.get_mission_config()
+        if not mission_config:
+            return
+
+        team_size = mission_config['team_size']
+        available_players = self.game.get_available_players()
+        original_team = list(self.game.current_team)
+
+        revised_team = await self._ai_select_team_with_llm(current_leader, available_players, team_size)
+        if not revised_team:
+            revised_team = self.ai_select_team(current_leader, available_players, team_size)
+
+        # 维持原队伍
+        if not revised_team or set(revised_team) == set(original_team):
+            await self.ai_speak(
+                current_leader,
+                f"听完大家的发言，我决定维持原队伍不变：{', '.join(original_team)}，现在开始投票。"
+            )
+            return
+
+        # 修改队伍
+        result = self.game.revise_team(revised_team)
+        if 'error' in result:
+            print(f"队伍修改失败: {result['error']}，维持原队伍")
+            await self.ai_speak(
+                current_leader,
+                f"我维持原队伍：{', '.join(original_team)}，现在开始投票。"
+            )
+            return
+
+        self.log_manager.log_global_event("team_revised", {
+            "leader": current_leader.name,
+            "old_team": original_team,
+            "new_team": revised_team
+        })
+        await self.ai_speak(
+            current_leader,
+            f"听完大家的发言，我决定调整队伍为：{', '.join(revised_team)}，现在开始投票。"
+        )
+        await self.notify_frontend("team_selected", result)
 
     async def handle_mission_vote(self):
         """处理任务投票阶段"""

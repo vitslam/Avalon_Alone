@@ -82,6 +82,28 @@ class AvalonGame:
             'next_phase': 'team_vote'
         }
 
+    def revise_team(self, selected_players: List[str]) -> Dict[str, Any]:
+        """队伍投票前，队长二次修改队伍成员"""
+        if self.phase != GAME_PHASES['team_vote']:
+            return {'error': '当前不是队伍投票阶段'}
+
+        available_players = [p.name for p in self.players]
+        mission_size = self.mission_config['missions'][self.current_mission - 1]
+
+        if len(selected_players) != mission_size:
+            return {'error': f'需要选择 {mission_size} 名玩家'}
+
+        if not all(player in available_players for player in selected_players):
+            return {'error': '选择的玩家不存在'}
+
+        self.current_team = selected_players
+
+        return {
+            'status': 'team_selected',
+            'team': self.current_team,
+            'next_phase': 'team_vote'
+        }
+
     def vote_team(self, player_name: str, vote: str) -> Dict[str, Any]:
         """队伍投票"""
         if self.phase != GAME_PHASES['team_vote']:
