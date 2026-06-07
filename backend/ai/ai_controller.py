@@ -21,7 +21,7 @@ class AIController:
         self.log_manager = LogManager()
         # 更新AI服务的日志管理器
         global ai_service
-        ai_service = ai_service.__class__(self.log_manager)
+        ai_service = ai_service.__class__(self.log_manager, player_count=len(self.game.players))
 
         # 语音播放状态控制
         self.waiting_for_voice = False
