@@ -4,6 +4,7 @@ import { addChatMessage } from './chat.js';
 import { updatePlayersDisplay } from './table.js';
 import { showTeamSelection, showMissionVoting, showAssassinationPanel } from './controls.js';
 import { updatePlayerList, updateStartButton } from './players.js';
+import { playMissionVideo, stopMissionVideo } from './missionVideo.js';
 
 export function updateGameState(newState) {
     state.gameState = newState;
@@ -102,12 +103,31 @@ export function handleTeamVoteRecorded(data) {
     if (data.status === 'team_approved') {
         addChatMessage('系统', `队伍投票通过！进入任务阶段`, 'system');
         showMissionVoting();
+        triggerMissionVideo(data.team);
     } else if (data.status === 'team_rejected') {
         addChatMessage('系统', `队伍投票被拒绝，重新选择队伍`, 'system');
         showTeamSelection();
     } else if (data.status === 'evil_win') {
         showGameResult('坏人获胜', data.reason);
     }
+}
+
+async function triggerMissionVideo(teamFromEvent) {
+    const { fetchCurrentGameState } = await import('./websocket.js');
+    await fetchCurrentGameState();
+
+    const team = teamFromEvent?.length
+        ? teamFromEvent
+        : state.gameState?.current_team;
+    const players = state.gameState?.players;
+    const mission = state.gameState?.current_mission;
+
+    if (!team?.length || !players?.length) {
+        console.warn('无法播放任务视频：缺少车队或玩家信息', { team, players });
+        return;
+    }
+
+    playMissionVideo(team, players, mission);
 }
 
 export function handleMissionVoteRecorded(data) {
@@ -141,6 +161,7 @@ export async function resetGame() {
         const response = await fetch(`${state.API_BASE}/game/reset`, { method: 'POST' });
 
         if (response.ok) {
+            stopMissionVideo();
             document.getElementById('gameSetup').style.display = 'block';
             document.getElementById('gameInterface').style.display = 'none';
             document.getElementById('playerList').innerHTML = '';
@@ -157,6 +178,7 @@ export async function resetGame() {
 }
 
 export function handleGameReset(data) {
+    stopMissionVideo();
     document.getElementById('gameSetup').style.display = 'block';
     document.getElementById('gameInterface').style.display = 'none';
     document.getElementById('playerList').innerHTML = '';

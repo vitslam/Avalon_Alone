@@ -72,6 +72,9 @@ function handleWebSocketMessage(data) {
             break;
         case 'team_vote_recorded':
             handleTeamVoteRecorded(data.data);
+            if (data.data?.status === 'team_approved') {
+                setTimeout(fetchCurrentGameState, 200);
+            }
             break;
         case 'mission_vote_recorded':
             handleMissionVoteRecorded(data.data);

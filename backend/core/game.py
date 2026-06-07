@@ -106,7 +106,8 @@ class AvalonGame:
                 return {
                     'status': 'team_approved',
                     'approve_count': approve_count,
-                    'next_phase': 'mission_vote'
+                    'next_phase': 'mission_vote',
+                    'team': self.current_team,
                 }
             else:
                 # 队伍被拒绝
