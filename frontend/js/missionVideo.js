@@ -1,4 +1,4 @@
-import { MISSION_VIDEOS, DEFAULT_VIDEO, VIDEO_BASE_PATH } from './videoManifest.js';
+import { MISSION_VIDEOS, DEFAULT_VIDEO, SUCCESS_VIDEO, FAIL_VIDEO, VIDEO_BASE_PATH } from './videoManifest.js';
 
 const ROLE_TO_TOKEN = {
     merlin: 'Merlin',
@@ -18,6 +18,11 @@ const EVIL_TOKENS = new Set(['Morcana', 'Assassin', 'Minion', 'Mordred', 'Oberon
 const ALL_TOKENS = new Set([...GOOD_TOKENS, ...EVIL_TOKENS]);
 
 let lastPlayedMission = null;
+
+// 任务结果协调状态：执行视频 → (等待画面) → 结果视频
+let missionResult = undefined; // undefined=未知, true=成功, false=失败
+let executionEnded = false;    // 执行视频是否已播完
+let resultPlaying = false;     // 结果视频是否已开始播放
 
 function teamToTokens(teamNames, players) {
     const roles = teamNames
@@ -117,6 +122,22 @@ export function resolveMissionVideo(teamNames, players) {
     return { filename: DEFAULT_VIDEO, matchLevel: 'default' };
 }
 
+function showWaiting() {
+    const waiting = document.getElementById('missionVideoWaiting');
+    const video = document.getElementById('missionVideo');
+    const overlay = document.getElementById('missionVideoOverlay');
+    if (overlay) overlay.style.display = 'flex';
+    if (video) video.style.display = 'none';
+    if (waiting) waiting.style.display = 'flex';
+}
+
+function hideWaiting() {
+    const waiting = document.getElementById('missionVideoWaiting');
+    const video = document.getElementById('missionVideo');
+    if (waiting) waiting.style.display = 'none';
+    if (video) video.style.display = '';
+}
+
 function hideOverlay() {
     const overlay = document.getElementById('missionVideoOverlay');
     const video = document.getElementById('missionVideo');
@@ -125,12 +146,87 @@ function hideOverlay() {
     video.pause();
     video.removeAttribute('src');
     video.load();
+    video.style.display = '';
+    hideWaiting();
     overlay.style.display = 'none';
 }
 
 export function stopMissionVideo() {
     lastPlayedMission = null;
+    missionResult = undefined;
+    executionEnded = false;
+    resultPlaying = false;
     hideOverlay();
+}
+
+// 通用播放：在 overlay 内播放指定文件，结束时调用 onEnded
+function playFile(name, onEnded, allowFallback = false) {
+    const overlay = document.getElementById('missionVideoOverlay');
+    const video = document.getElementById('missionVideo');
+    if (!overlay || !video) return;
+
+    hideWaiting();
+    let usedFallback = false;
+
+    const tryPlay = (file, withSound = true) => {
+        video.src = `${VIDEO_BASE_PATH}/${file}`;
+        overlay.style.display = 'flex';
+        video.muted = !withSound;
+        video.volume = 1;
+
+        const playPromise = video.play();
+        if (!playPromise || typeof playPromise.catch !== 'function') return;
+
+        playPromise.catch(err => {
+            if (withSound) {
+                console.warn('有声自动播放被拦截，降级为静音:', err.message);
+                tryPlay(file, false);
+                return;
+            }
+            console.warn('视频播放失败:', err);
+            if (onEnded) onEnded();
+        });
+    };
+
+    video.onended = onEnded;
+    video.onerror = () => {
+        if (allowFallback && !usedFallback && name !== DEFAULT_VIDEO) {
+            usedFallback = true;
+            console.warn(`视频加载失败，使用默认: ${name}`);
+            tryPlay(DEFAULT_VIDEO);
+        } else if (onEnded) {
+            onEnded();
+        }
+    };
+
+    tryPlay(name);
+}
+
+function playResultVideo() {
+    if (resultPlaying || missionResult === undefined) return;
+    resultPlaying = true;
+    const file = missionResult ? SUCCESS_VIDEO : FAIL_VIDEO;
+    console.log(`任务结果视频: ${file}`);
+    playFile(file, hideOverlay);
+}
+
+function onExecutionEnded() {
+    executionEnded = true;
+    if (missionResult !== undefined) {
+        playResultVideo();
+    } else {
+        // 执行视频播完但结果未出，显示等待画面
+        showWaiting();
+    }
+}
+
+// 任务结果到达（由 handleMissionVoteRecorded 调用）
+export function setMissionResult(success) {
+    missionResult = success;
+    if (executionEnded) {
+        playResultVideo();
+    }
+    // 执行视频还在播放时，结果会在 onExecutionEnded 中衔接
 }
 
 export function playMissionVideo(teamNames, players, missionNumber) {
@@ -145,39 +241,9 @@ export function playMissionVideo(teamNames, players, missionNumber) {
     console.log(`任务过场视频 [${matchLevel}]: ${filename}`);
 
     lastPlayedMission = missionNumber;
+    missionResult = undefined;
+    executionEnded = false;
+    resultPlaying = false;
 
-    let usedFallback = false;
-
-    const tryPlay = (name, withSound = true) => {
-        video.src = `${VIDEO_BASE_PATH}/${name}`;
-        overlay.style.display = 'flex';
-        video.muted = !withSound;
-        video.volume = 1;
-
-        const playPromise = video.play();
-        if (!playPromise || typeof playPromise.catch !== 'function') return;
-
-        playPromise.catch(err => {
-            if (withSound) {
-                console.warn('有声自动播放被拦截，降级为静音:', err.message);
-                tryPlay(name, false);
-                return;
-            }
-            console.warn('视频播放失败:', err);
-            hideOverlay();
-        });
-    };
-
-    video.onended = hideOverlay;
-    video.onerror = () => {
-        if (!usedFallback && filename !== DEFAULT_VIDEO) {
-            usedFallback = true;
-            console.warn(`视频加载失败，使用默认: ${filename}`);
-            tryPlay(DEFAULT_VIDEO);
-        } else {
-            hideOverlay();
-        }
-    };
-
-    tryPlay(filename);
+    playFile(filename, onExecutionEnded, true);
 }

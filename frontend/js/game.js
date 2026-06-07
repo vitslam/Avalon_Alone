@@ -4,7 +4,7 @@ import { addChatMessage } from './chat.js';
 import { updatePlayersDisplay } from './table.js';
 import { showTeamSelection, showMissionVoting, showAssassinationPanel } from './controls.js';
 import { updatePlayerList, updateStartButton } from './players.js';
-import { playMissionVideo, stopMissionVideo } from './missionVideo.js';
+import { playMissionVideo, stopMissionVideo, setMissionResult } from './missionVideo.js';
 
 export function updateGameState(newState) {
     state.gameState = newState;
@@ -131,6 +131,11 @@ async function triggerMissionVideo(teamFromEvent) {
 }
 
 export function handleMissionVoteRecorded(data) {
+    // 任务结果出炉时，衔接播放成功/失败视频（执行视频结束后或等待画面后）
+    if (typeof data.mission_result === 'boolean') {
+        setMissionResult(data.mission_result);
+    }
+
     if (data.status === 'good_mission_win') {
         addChatMessage('系统', '好人获得3次任务成功！进入刺杀阶段', 'system');
         showAssassinationPanel();

@@ -13,4 +13,8 @@ export const MISSION_VIDEOS = [
 
 export const DEFAULT_VIDEO = 'Mission_Default.mp4';
 
+// 任务结果视频
+export const SUCCESS_VIDEO = 'mission_success.mp4';
+export const FAIL_VIDEO = 'mission_fail.mp4';
+
 export const VIDEO_BASE_PATH = '/static/assets/videos';

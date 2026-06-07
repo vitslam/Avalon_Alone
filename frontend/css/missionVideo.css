@@ -14,3 +14,29 @@
     border-radius: 8px;
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
 }
+
+.mission-video-waiting {
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 24px;
+    color: #f5f5f5;
+}
+
+.mission-video-spinner {
+    width: 64px;
+    height: 64px;
+    border: 5px solid rgba(255, 255, 255, 0.2);
+    border-top-color: #c8a44d;
+    border-radius: 50%;
+    animation: mission-video-spin 0.9s linear infinite;
+}
+
+.mission-video-waiting-text {
+    font-size: 20px;
+    letter-spacing: 2px;
+}
+
+@keyframes mission-video-spin {
+    to { transform: rotate(360deg); }
+}
