@@ -191,7 +191,12 @@ class AIController:
 
         print(f"投票进度: {voted_players}/{total_players}")
 
-        for player in self.ai_players:
+        n = len(self.game.players)
+        start = self.game.current_leader_index
+        for i in range(n):
+            player = self.game.players[(start + i) % n]
+            if not player.is_ai:
+                continue
             if player.name not in [v['player'] for v in self.game.team_votes]:
                 print(f"AI玩家 {player.name} 准备对队伍投票")
 
