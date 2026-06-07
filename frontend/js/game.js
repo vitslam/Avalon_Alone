@@ -25,9 +25,12 @@ function updateGameStatus() {
         const statusMap = {
             'waiting': '等待开始游戏',
             'playing': '游戏进行中',
-            'finished': '游戏结束'
+            'finished': '游戏结束',
+            '等待开始': '等待开始游戏',
+            '游戏进行中': '游戏进行中',
+            '游戏结束': '游戏结束'
         };
-        gameStatus.textContent = statusMap[state.gameState.state] || '未知状态';
+        gameStatus.textContent = statusMap[state.gameState.state] || state.gameState.state || '未知状态';
     }
 }
 
@@ -88,7 +91,7 @@ export function handleGameStarted(data) {
 export function handleTeamSelected(data) {
     addChatMessage('系统', `队伍已选择: ${data.team.join(', ')}`, 'system');
 
-    if (state.gameState && state.gameState.phase === 'team_selection') {
+    if (state.gameState && (state.gameState.phase === 'team_selection' || state.gameState.phase === '选择队伍')) {
         showTeamSelection();
     }
 }
