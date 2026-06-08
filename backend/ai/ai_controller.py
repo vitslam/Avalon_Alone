@@ -23,9 +23,12 @@ class AIController:
         global ai_service
         ai_service = ai_service.__class__(self.log_manager, player_count=len(self.game.players))
 
-        # 语音播放状态控制
-        self.waiting_for_voice = False
-        self.voice_complete_event = asyncio.Event()
+        # 发言节奏控制：后端按估算的朗读时长自行推进，不再阻塞等待前端语音回调
+        # 这样多个观众可以各自用本地 TTS 播放，互不影响，刷新/关闭页面也不会卡死后端
+        self.base_speech_seconds = 0.8
+        self.per_char_seconds = 0.18
+        self.min_speech_seconds = 2.0
+        self.max_speech_seconds = 14.0
 
     async def start_auto_play(self):
         """开始AI自动游戏"""
@@ -442,9 +445,6 @@ class AIController:
             )
 
         if self.websocket_notifier:
-            self.waiting_for_voice = True
-            self.voice_complete_event.clear()
-
             await self.websocket_notifier("player_speaking", {
                 "speaker": player.name,
                 "message": message,
@@ -452,11 +452,19 @@ class AIController:
                 "is_ai": player.is_ai
             })
 
-            print(f"等待 {player.name} 的语音播放完成...")
-            await self.voice_complete_event.wait()
-            print(f"{player.name} 的语音播放已完成，继续游戏流程")
+            # 按发言长度估算朗读时长进行节奏控制，不依赖任何前端的播放完成回调
+            delay = self._estimate_speech_duration(message)
+            print(f"{player.name} 发言已广播，按估算时长 {delay:.1f}s 后继续")
+            await asyncio.sleep(delay)
 
         self.current_speaker = None
+
+    def _estimate_speech_duration(self, message: str) -> float:
+        """根据发言长度估算朗读时长（秒），用于控制后端广播节奏"""
+        if not message:
+            return self.min_speech_seconds
+        seconds = self.base_speech_seconds + len(message) * self.per_char_seconds
+        return max(self.min_speech_seconds, min(seconds, self.max_speech_seconds))
 
     # 备用逻辑方法（原有的简单AI逻辑）
     def ai_select_team(self, leader, available_players: List[str], team_size: int) -> List[str]:
@@ -516,18 +524,16 @@ class AIController:
             await self.websocket_notifier(event, data)
 
     async def handle_voice_start(self, data: Dict[str, Any]):
-        """处理前端发送的语音开始播放通知"""
+        """处理前端发送的语音开始播放通知（仅记录，节奏已由后端自行控制）"""
         player_name = data.get('player_name')
         if player_name:
             print(f"语音开始播放: {player_name}")
 
     async def handle_voice_complete(self, data: Dict[str, Any]):
-        """处理前端发送的语音播放完成通知"""
+        """处理前端发送的语音播放完成通知（仅记录，后端不再依赖此回调推进）"""
         player_name = data.get('player_name')
         if player_name:
             print(f"语音播放完成: {player_name}")
-            self.waiting_for_voice = False
-            self.voice_complete_event.set()
 
     def get_ai_status(self) -> Dict[str, Any]:
         """获取AI控制器状态"""
