@@ -29,12 +29,7 @@ export function addPlayer() {
     state.players.push(player);
 
     if (player.is_ai && state.tts) {
-        const aiPlayers = state.players.filter(p => p.is_ai);
-        const aiIndex = aiPlayers.findIndex(p => p.name === player.name);
-        const pitch = 0.8 + (aiIndex % 3) * 0.2;
-        const rate = 0.8 + (aiIndex % 5) * 0.1;
-        const volume = 0.9 + (aiIndex % 2) * 0.1;
-        state.tts.configureVoice(player.name, null, pitch, rate, volume);
+        preconfigureAIVoices();
     }
 
     updatePlayerList();

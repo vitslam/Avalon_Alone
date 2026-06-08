@@ -15,6 +15,7 @@ class TextToSpeech {
         this.utteranceQueue = []; // 语音队列
         this.currentUtterance = null;
         this.speaking = false;
+        this._lastAiPlayers = null; // 语音列表异步加载后重新分配音色
         
         if (this.isSupported) {
             // 初始化语音列表
@@ -23,6 +24,9 @@ class TextToSpeech {
             // 监听语音加载事件
             window.speechSynthesis.onvoiceschanged = () => {
                 this.initVoices();
+                if (this._lastAiPlayers?.length) {
+                    this._applyAIVoiceAssignments(this._lastAiPlayers);
+                }
             };
         } else {
             console.warn('浏览器不支持Web Speech API，无法使用语音合成功能');
@@ -42,17 +46,62 @@ class TextToSpeech {
         console.log('默认语音:', this.defaultVoice ? {name: this.defaultVoice.name, lang: this.defaultVoice.lang} : '无');
     }
 
-    // 为特定AI玩家配置语音
+    _isMaleVoice(voice) {
+        const name = voice.name.toLowerCase();
+        return /kangkang|yunxi|yunyang|li-mu|male|男|david|george|daniel|yunjian|yunfeng/.test(name);
+    }
+
+    _isFemaleVoice(voice) {
+        const name = voice.name.toLowerCase();
+        return /huihui|yaoyao|ting-ting|sin-ji|xiaoxiao|xiaoyi|mei-jia|female|女|karen|samantha|tingting/.test(name);
+    }
+
+    // 构建可用音色池：优先中文，去重，男女声交替排列以增加差异感
+    _buildVoicePool() {
+        const seen = new Set();
+        const zhVoices = [];
+        for (const voice of this.voices) {
+            if (!/zh/i.test(voice.lang)) continue;
+            const key = voice.voiceURI || voice.name;
+            if (seen.has(key)) continue;
+            seen.add(key);
+            zhVoices.push(voice);
+        }
+
+        const male = zhVoices.filter(v => this._isMaleVoice(v));
+        const female = zhVoices.filter(v => this._isFemaleVoice(v));
+        const neutral = zhVoices.filter(v => !this._isMaleVoice(v) && !this._isFemaleVoice(v));
+
+        const pool = [];
+        let mi = 0;
+        let fi = 0;
+        let ni = 0;
+        const total = zhVoices.length;
+        while (pool.length < total) {
+            if (fi < female.length) pool.push(female[fi++]);
+            if (mi < male.length) pool.push(male[mi++]);
+            if (ni < neutral.length) pool.push(neutral[ni++]);
+            if (fi >= female.length && mi >= male.length && ni >= neutral.length) break;
+        }
+
+        if (pool.length === 0 && this.defaultVoice) {
+            pool.push(this.defaultVoice);
+        }
+
+        return pool;
+    }
+
+    // 为特定AI玩家配置语音（voiceName 可为名称字符串或 SpeechSynthesisVoice 对象）
     configureVoice(playerName, voiceName = null, pitch = 1, rate = 1, volume = 1) {
         if (!this.isSupported) return;
         
-        // 查找指定名称的语音
         let voice = null;
-        if (voiceName) {
+        if (voiceName && typeof voiceName === 'object' && voiceName.name) {
+            voice = voiceName;
+        } else if (voiceName) {
             voice = this.voices.find(v => v.name === voiceName || v.name.includes(voiceName));
         }
         
-        // 如果没有找到指定的语音或没有提供语音名称，则使用默认语音
         voice = voice || this.defaultVoice;
         
         this.voiceMap[playerName] = {
@@ -174,24 +223,39 @@ class TextToSpeech {
         return this.speaking;
     }
 
+    _applyAIVoiceAssignments(aiPlayers) {
+        const voicePool = this._buildVoicePool();
+        const pitchPresets = [
+            { pitch: 0.75, rate: 1.05, volume: 1.0 },
+            { pitch: 1.25, rate: 1.1, volume: 0.95 },
+            { pitch: 0.9, rate: 0.95, volume: 1.0 },
+            { pitch: 1.1, rate: 1.15, volume: 0.9 },
+            { pitch: 0.8, rate: 1.0, volume: 1.0 },
+            { pitch: 1.35, rate: 1.2, volume: 0.9 },
+            { pitch: 0.7, rate: 1.05, volume: 0.95 },
+            { pitch: 1.0, rate: 1.05, volume: 1.0 },
+        ];
+
+        const uniqueVoices = voicePool.length;
+        console.log(`音色池: ${uniqueVoices} 个`, voicePool.map(v => v.name));
+
+        aiPlayers.forEach((player, index) => {
+            const voice = voicePool[index % voicePool.length];
+            const preset = pitchPresets[index % pitchPresets.length];
+            // 音色足够时保持接近原生参数，不足时用音调/语速拉开差异
+            const useNativeParams = uniqueVoices >= aiPlayers.length;
+            const pitch = useNativeParams ? 1.0 : preset.pitch;
+            const rate = useNativeParams ? 1.05 : preset.rate;
+            const volume = useNativeParams ? 1.0 : preset.volume;
+            this.configureVoice(player.name, voice, pitch, rate, volume);
+        });
+    }
+
     // 预配置多个AI玩家的语音
     preconfigureAIVoices(aiPlayers) {
         if (!this.isSupported) return;
-        
-        // 预定义一些语音参数组合，为不同AI玩家分配不同的声音特性
-        const voiceConfigurations = [
-            {pitch: 1.2, rate: 1.2, volume: 1.0},  // 高音调，快速
-            {pitch: 0.8, rate: 1.2, volume: 0.9},  // 低音调，快速
-            {pitch: 1.0, rate: 1.2, volume: 1.0},  // 正常音调，快速
-            {pitch: 0.9, rate: 1.2, volume: 0.95}, // 低音调，快速
-            {pitch: 1.3, rate: 1.2, volume: 0.9}   // 高音调，快速
-        ];
-        
-        aiPlayers.forEach((player, index) => {
-            // 循环使用预定义的语音配置
-            const config = voiceConfigurations[index % voiceConfigurations.length];
-            this.configureVoice(player.name, null, config.pitch, config.rate, config.volume);
-        });
+        this._lastAiPlayers = aiPlayers;
+        this._applyAIVoiceAssignments(aiPlayers);
     }
 
     // 启用/禁用语音合成功能
