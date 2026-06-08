@@ -44,8 +44,8 @@ AI_CONFIG = {
 
 # 前端配置
 FRONTEND_CONFIG = {
-    'websocket_url': os.getenv('AVALON_WS_URL', 'ws://localhost:8234/ws'),
-    'api_base_url': os.getenv('AVALON_API_URL', 'http://localhost:8234'),
+    'websocket_url': os.getenv('AVALON_WS_URL', 'ws://182.92.157.51:8234/ws'),
+    'api_base_url': os.getenv('AVALON_API_URL', 'http://182.92.157.51:8234'),
     'auto_reconnect': True,
     'reconnect_interval': 5000  # 毫秒
 }

@@ -5,7 +5,8 @@ import { updateCurrentSpeaker, showPlayerSpeaking, showCurrentSpeakerIndicator }
 import { handleGameStarted, handleTeamSelected, handleTeamVoteRecorded, handleMissionVoteRecorded, handleAssassinationResult, handleGameReset } from './game.js';
 
 export function connectWebSocket() {
-    state.websocket = new WebSocket(`ws://localhost:8234/ws`);
+    const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    state.websocket = new WebSocket(`${wsProtocol}//${window.location.host}/ws`);
 
     window.onVoiceStart = function(playerName, text) {
         if (state.websocket && state.websocket.readyState === WebSocket.OPEN) {

@@ -6,7 +6,7 @@ const state = {
     websocket: null,
     currentPlayer: null,
     tts: null,
-    API_BASE: 'http://localhost:8234'
+    API_BASE: `${window.location.protocol}//${window.location.host}`
 };
 
 export default state;
