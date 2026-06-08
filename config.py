@@ -20,7 +20,9 @@ GAME_CONFIG = {
     'default_ai_engine': 'gpt-3.5',
     'available_ai_engines': ['gpt-3.5', 'gpt-4', 'claude'],
     'max_failed_team_votes': 5,
-    'missions_to_win': 3
+    'missions_to_win': 3,
+    # 讨论发言时提前并行拉取后续玩家 LLM 发言的队列深度，0=关闭预取，1=仅预取下一位
+    'speech_prefetch_size': int(os.getenv('AVALON_SPEECH_PREFETCH_SIZE', '1')),
 }
 
 # AI 配置

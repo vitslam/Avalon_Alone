@@ -3,11 +3,17 @@ AI控制器 - 负责AI玩家的自动决策和游戏流程控制
 """
 
 import asyncio
+import os
 import random
-from typing import Dict, List, Optional, Callable, Any
+from typing import Dict, List, Optional, Callable, Any, Awaitable
 from ..core.constants import GAME_PHASES, GAME_STATES
 from .ai_service import ai_service
 from ..core.log_manager import LogManager
+
+try:
+    from config import GAME_CONFIG
+except ImportError:
+    GAME_CONFIG = {}
 
 
 class AIController:
@@ -30,6 +36,13 @@ class AIController:
         self.min_speech_seconds = 2.0
         self.max_speech_seconds = 14.0
         self.team_vote_result_pause = 4.0
+        self.speech_prefetch_size = max(
+            0,
+            int(GAME_CONFIG.get(
+                'speech_prefetch_size',
+                os.getenv('AVALON_SPEECH_PREFETCH_SIZE', '1'),
+            )),
+        )
 
     async def start_auto_play(self):
         """开始AI自动游戏"""
@@ -38,7 +51,7 @@ class AIController:
             return
 
         self.is_running = True
-        print(f"AI控制器启动，管理 {len(self.ai_players)} 个AI玩家")
+        print(f"AI控制器启动，管理 {len(self.ai_players)} 个AI玩家，发言预取深度={self.speech_prefetch_size}")
 
         # 检查游戏是否已经开始，如果没有则开始游戏
         if self.game.state == GAME_STATES['waiting']:
@@ -178,15 +191,17 @@ class AIController:
         n = len(self.game.players)
         start = self.game.current_leader_index
 
-        # 阶段1：从队长开始依次发言（仅讨论，不投票）
+        # 阶段1：从队长开始依次发言（仅讨论，不投票），支持预取后续玩家发言
         print("队伍投票-阶段1：依次发言讨论")
-        for i in range(n):
-            player = self.game.players[(start + i) % n]
-            if not player.is_ai:
-                continue
-            speech = await self._get_ai_team_vote_speech(player)
-            if speech:
-                await self.ai_speak(player, speech)
+        discussion_players = [
+            self.game.players[(start + i) % n]
+            for i in range(n)
+            if self.game.players[(start + i) % n].is_ai
+        ]
+        await self._run_prefetched_speeches(
+            discussion_players,
+            self._get_ai_team_vote_speech,
+        )
 
         # 阶段2：队长根据讨论二次确认或修改队伍
         print("队伍投票-阶段2：队长二次确认/修改队伍")
@@ -449,6 +464,40 @@ class AIController:
         game_context['vote_context'] = "mission_vote"
         return await ai_service.get_ai_speech(player.name, player.role, game_context)
 
+    async def _run_prefetched_speeches(
+        self,
+        players: List[Any],
+        fetch_speech: Callable[[Any], Awaitable[Optional[str]]],
+    ) -> None:
+        """按顺序播报发言，同时预取队列中后续玩家的 LLM 发言。"""
+        if not players:
+            return
+
+        prefetch_size = self.speech_prefetch_size
+        if prefetch_size == 0:
+            for player in players:
+                speech = await fetch_speech(player)
+                if speech:
+                    await self.ai_speak(player, speech)
+            return
+
+        tasks: Dict[int, asyncio.Task] = {}
+
+        def start_prefetch(index: int) -> None:
+            if index < len(players) and index not in tasks:
+                tasks[index] = asyncio.create_task(fetch_speech(players[index]))
+
+        for index in range(min(prefetch_size, len(players))):
+            start_prefetch(index)
+
+        for index, player in enumerate(players):
+            if index not in tasks:
+                start_prefetch(index)
+            speech = await tasks.pop(index)
+            if speech:
+                await self.ai_speak(player, speech)
+            start_prefetch(index + prefetch_size)
+
     async def ai_speak(self, player, message: str):
         """AI玩家发言"""
         print(f"[发言] {player.name}: {message}")
@@ -581,5 +630,6 @@ class AIController:
             'is_running': self.is_running,
             'ai_players_count': len(self.ai_players),
             'current_speaker': self.current_speaker,
-            'auto_delay': self.auto_delay
+            'auto_delay': self.auto_delay,
+            'speech_prefetch_size': self.speech_prefetch_size,
         }
