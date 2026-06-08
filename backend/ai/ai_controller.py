@@ -494,9 +494,10 @@ class AIController:
             if index not in tasks:
                 start_prefetch(index)
             speech = await tasks.pop(index)
+            # 在 ai_speak 等待期间并行拉取后续玩家发言，而非等朗读结束后再预取
+            start_prefetch(index + prefetch_size)
             if speech:
                 await self.ai_speak(player, speech)
-            start_prefetch(index + prefetch_size)
 
     async def ai_speak(self, player, message: str):
         """AI玩家发言"""

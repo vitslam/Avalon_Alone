@@ -93,8 +93,15 @@ class LogManager:
                 })
                 f.write(json.dumps(secret_entry, ensure_ascii=False) + '\n')
 
-    def log_player_interaction(self, player_name: str, request: Dict[str, Any], response: Dict[str, Any]):
-        """记录玩家与AI模型的交互"""
+    def log_player_interaction(
+        self,
+        player_name: str,
+        request: Dict[str, Any],
+        response: Dict[str, Any],
+        request_at: datetime.datetime = None,
+        response_at: datetime.datetime = None,
+    ):
+        """记录玩家与AI模型的交互（含请求/响应时刻与耗时）"""
         # 如果玩家日志文件不存在，则创建
         if player_name not in self.player_log_files:
             player_log_path = os.path.join(self.game_log_dir, f'{player_name}.jsonl')
@@ -102,11 +109,19 @@ class LogManager:
         else:
             player_log_path = self.player_log_files[player_name]
 
-        log_entry = self._base_entry()
-        log_entry.update({
+        request_at = request_at or datetime.datetime.now()
+        response_at = response_at or datetime.datetime.now()
+        duration_ms = max(0, int((response_at - request_at).total_seconds() * 1000))
+
+        log_entry = {
+            'request_at': request_at.strftime('%Y-%m-%d %H:%M:%S'),
+            'response_at': response_at.strftime('%Y-%m-%d %H:%M:%S'),
+            'duration_ms': duration_ms,
             'request': request,
-            'response': response
-        })
+            'response': response,
+        }
+        if self.model:
+            log_entry['model'] = self.model
 
         with open(player_log_path, 'a') as f:
             f.write(json.dumps(log_entry, ensure_ascii=False) + '\n')

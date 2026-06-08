@@ -1,4 +1,5 @@
 import asyncio
+import datetime
 import json
 import os
 from typing import Optional, Dict, Any, List
@@ -61,7 +62,9 @@ class AIService:
                 "messages": messages
             }
 
+            request_at = datetime.datetime.now()
             speech = await self.model_client.chat_completion(messages)
+            response_at = datetime.datetime.now()
 
             response_log = {
                 "speech": speech
@@ -69,7 +72,9 @@ class AIService:
 
             # 记录日志
             if self.log_manager:
-                self.log_manager.log_player_interaction(player_name, request_log, response_log)
+                self.log_manager.log_player_interaction(
+                    player_name, request_log, response_log, request_at, response_at
+                )
 
             if speech:
                 print(f"AI {player_name} 获得发言: {speech}")
@@ -102,7 +107,9 @@ class AIService:
                 "messages": messages
             }
 
+            request_at = datetime.datetime.now()
             content = await self.model_client.chat_completion(messages)
+            response_at = datetime.datetime.now()
 
             response_log = {
                 "content": content
@@ -125,7 +132,9 @@ class AIService:
 
             # 记录日志
             if self.log_manager:
-                self.log_manager.log_player_interaction(player_name, request_log, response_log)
+                self.log_manager.log_player_interaction(
+                    player_name, request_log, response_log, request_at, response_at
+                )
 
             return team
         except Exception as e:
@@ -154,7 +163,9 @@ class AIService:
                 "messages": messages
             }
 
+            request_at = datetime.datetime.now()
             content = await self.model_client.chat_completion(messages)
+            response_at = datetime.datetime.now()
 
             vote = None
             if content:
@@ -180,7 +191,9 @@ class AIService:
 
             # 记录日志
             if self.log_manager:
-                self.log_manager.log_player_interaction(player_name, request_log, response_log)
+                self.log_manager.log_player_interaction(
+                    player_name, request_log, response_log, request_at, response_at
+                )
 
             return vote
         except Exception as e:
@@ -397,7 +410,9 @@ class AIService:
                 "messages": messages
             }
 
+            request_at = datetime.datetime.now()
             target = await self.model_client.chat_completion(messages)
+            response_at = datetime.datetime.now()
 
             response_log = {
                 "content": target
@@ -405,14 +420,15 @@ class AIService:
 
             if target and target.strip() in good_players:
                 response_log["target"] = target.strip()
-                # 记录日志
-                if self.log_manager:
-                    self.log_manager.log_player_interaction(assassin_name, request_log, response_log)
-                return target.strip()
 
             # 记录日志
             if self.log_manager:
-                self.log_manager.log_player_interaction(assassin_name, request_log, response_log)
+                self.log_manager.log_player_interaction(
+                    assassin_name, request_log, response_log, request_at, response_at
+                )
+
+            if target and target.strip() in good_players:
+                return target.strip()
 
         except Exception as e:
             print(f"AI {assassin_name} 刺杀目标选择失败: {e}")
