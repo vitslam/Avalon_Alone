@@ -166,10 +166,10 @@ class AIService:
                     elif "reject" in content or "反对" in content:
                         vote = "reject"
                 elif vote_type == "mission":
-                    if "success" in content or "成功" in content:
-                        vote = "success"
-                    elif "fail" in content or "失败" in content:
+                    if "fail" in content:
                         vote = "fail"
+                    elif "success" in content:
+                        vote = "success"
 
                 print(f"AI {player_name} 投票决策: {content}")
 

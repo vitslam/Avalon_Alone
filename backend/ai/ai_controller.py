@@ -16,7 +16,7 @@ class AIController:
         self.websocket_notifier = websocket_notifier
         self.ai_players = [p for p in game.players if p.is_ai]
         self.is_running = False
-        self.auto_delay = 2.0
+        self.auto_delay = 0.1
         self.current_speaker = None
         self.log_manager = LogManager()
         # 更新AI服务的日志管理器
@@ -231,7 +231,7 @@ class AIController:
             elif 'error' in result:
                 print(f"投票失败: {result['error']}")
 
-            await asyncio.sleep(0.5)
+            await asyncio.sleep(0.1)
 
     async def _leader_revise_team(self):
         """队长在讨论后二次确认或修改队伍成员"""
@@ -330,7 +330,7 @@ class AIController:
                     else:
                         print(f"任务投票失败: {result['error']}")
 
-                    await asyncio.sleep(0.5)
+                    await asyncio.sleep(0.1)
 
     async def handle_assassination(self):
         """处理刺杀阶段"""
