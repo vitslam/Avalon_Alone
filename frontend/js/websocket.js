@@ -2,7 +2,11 @@
 import state from './state.js';
 import { addChatMessage } from './chat.js';
 import { updateCurrentSpeaker, showPlayerSpeaking, showCurrentSpeakerIndicator } from './table.js';
-import { handleGameStarted, handleTeamSelected, handleTeamVoteRecorded, handleMissionVoteRecorded, handleAssassinationResult, handleGameReset } from './game.js';
+import {
+    handleGameStarted, handleTeamSelected,
+    handleTeamVotePhaseStart, handleTeamVoteProgress, handleTeamVoteCompleted, handleTeamVoteRecorded,
+    handleMissionVoteRecorded, handleAssassinationResult, handleGameReset
+} from './game.js';
 
 export function connectWebSocket() {
     const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
@@ -71,11 +75,17 @@ function handleWebSocketMessage(data) {
         case 'team_selected':
             handleTeamSelected(data.data);
             break;
+        case 'team_vote_phase_start':
+            handleTeamVotePhaseStart(data.data);
+            break;
+        case 'team_vote_progress':
+            handleTeamVoteProgress(data.data);
+            break;
+        case 'team_vote_completed':
+            handleTeamVoteCompleted(data.data);
+            break;
         case 'team_vote_recorded':
             handleTeamVoteRecorded(data.data);
-            if (data.data?.status === 'team_approved') {
-                setTimeout(fetchCurrentGameState, 200);
-            }
             break;
         case 'mission_vote_recorded':
             handleMissionVoteRecorded(data.data);

@@ -1,7 +1,7 @@
 // 游戏状态管理和事件处理
 import state from './state.js';
 import { addChatMessage } from './chat.js';
-import { updatePlayersDisplay } from './table.js';
+import { updatePlayersDisplay, showTeamVoteProgress, showTeamVoteResult, clearTeamVoteDisplay } from './table.js';
 import { showTeamSelection, showMissionVoting, showAssassinationPanel } from './controls.js';
 import { updatePlayerList, updateStartButton } from './players.js';
 import { playMissionVideo, stopMissionVideo, setMissionResult } from './missionVideo.js';
@@ -97,18 +97,47 @@ export function handleTeamSelected(data) {
     }
 }
 
-export function handleTeamVoteRecorded(data) {
-    addChatMessage('系统', `投票记录: ${data.remaining_votes || 0} 票待投`, 'system');
+const TEAM_VOTE_RESULT_DURATION = 4000;
 
-    if (data.status === 'team_approved') {
-        addChatMessage('系统', `队伍投票通过！进入任务阶段`, 'system');
-        showMissionVoting();
-        triggerMissionVideo(data.team);
-    } else if (data.status === 'team_rejected') {
-        addChatMessage('系统', `队伍投票被拒绝，重新选择队伍`, 'system');
-        showTeamSelection();
-    } else if (data.status === 'evil_win') {
-        showGameResult('坏人获胜', data.reason);
+export function handleTeamVotePhaseStart(data) {
+    showTeamVoteProgress(data.voted_count || 0, data.total_players || 0);
+}
+
+export function handleTeamVoteProgress(data) {
+    showTeamVoteProgress(data.voted_count || 0, data.total_players || 0);
+}
+
+export function handleTeamVoteCompleted(data) {
+    showTeamVoteResult(data);
+
+    setTimeout(async () => {
+        clearTeamVoteDisplay();
+
+        if (data.status === 'team_approved') {
+            showMissionVoting();
+            triggerMissionVideo(data.team);
+        } else if (data.status === 'team_rejected') {
+            showTeamSelection();
+        } else if (data.status === 'evil_win') {
+            showGameResult('坏人获胜', data.reason);
+        }
+
+        const { fetchCurrentGameState } = await import('./websocket.js');
+        fetchCurrentGameState();
+    }, TEAM_VOTE_RESULT_DURATION);
+}
+
+export function handleTeamVoteRecorded(data) {
+    if (data.status === 'vote_recorded') {
+        handleTeamVoteProgress({
+            voted_count: data.voted_count,
+            total_players: data.total_players,
+        });
+        return;
+    }
+
+    if (['team_approved', 'team_rejected', 'evil_win'].includes(data.status)) {
+        handleTeamVoteCompleted(data);
     }
 }
 
@@ -166,6 +195,7 @@ export async function resetGame() {
         const response = await fetch(`${state.API_BASE}/game/reset`, { method: 'POST' });
 
         if (response.ok) {
+            clearTeamVoteDisplay();
             stopMissionVideo();
             document.getElementById('gameSetup').style.display = 'block';
             document.getElementById('gameInterface').style.display = 'none';
@@ -183,6 +213,7 @@ export async function resetGame() {
 }
 
 export function handleGameReset(data) {
+    clearTeamVoteDisplay();
     stopMissionVideo();
     document.getElementById('gameSetup').style.display = 'block';
     document.getElementById('gameInterface').style.display = 'none';

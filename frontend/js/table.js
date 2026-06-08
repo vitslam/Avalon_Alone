@@ -21,15 +21,7 @@ export function updatePlayersDisplay() {
     const rightCol = document.createElement('div');
     rightCol.className = 'players-right';
 
-    const tableCenter = document.createElement('div');
-    tableCenter.className = 'table-center';
-
-    const tableInfo = document.createElement('div');
-    tableInfo.className = 'table-info';
-    if (state.gameState.current_mission) {
-        tableInfo.textContent = `第${state.gameState.current_mission}轮任务`;
-    }
-    tableCenter.appendChild(tableInfo);
+    const tableCenter = createTableCenter();
 
     // 将玩家分配到四个边：上、右、下、左（顺时针）
     const topCount = Math.ceil(totalPlayers / 3);
@@ -87,6 +79,14 @@ function createPlayerCard(player) {
         playerCard.classList.add('on-mission');
     }
 
+    let playerVote = null;
+    if (state.teamVoteDisplay?.phase === 'result' && state.teamVoteDisplay.votes) {
+        playerVote = state.teamVoteDisplay.votes.find(v => v.player === player.name);
+        if (playerVote) {
+            playerCard.classList.add(playerVote.vote === 'approve' ? 'vote-approve' : 'vote-reject');
+        }
+    }
+
     let roleDisplay = '未知';
     if (player.role) {
         const roleNames = {
@@ -110,7 +110,76 @@ function createPlayerCard(player) {
         <div class="player-status">${statusParts.join(' • ')}</div>
     `;
 
+    if (playerVote) {
+        const voteBubble = document.createElement('div');
+        voteBubble.className = 'vote-bubble';
+        voteBubble.textContent = playerVote.vote === 'approve' ? '赞成' : '反对';
+        playerCard.appendChild(voteBubble);
+    }
+
     return playerCard;
+}
+
+function createTableCenter() {
+    const tableCenter = document.createElement('div');
+    tableCenter.className = 'table-center';
+
+    const tableInfo = document.createElement('div');
+    tableInfo.className = 'table-info';
+    if (state.gameState?.current_mission) {
+        tableInfo.textContent = `第${state.gameState.current_mission}轮任务`;
+    }
+    tableCenter.appendChild(tableInfo);
+
+    const overlay = document.createElement('div');
+    overlay.className = 'table-vote-overlay';
+    overlay.id = 'tableVoteOverlay';
+
+    if (state.teamVoteDisplay) {
+        if (state.teamVoteDisplay.phase === 'progress') {
+            overlay.innerHTML = `
+                <div class="table-vote-progress">投票中 ${state.teamVoteDisplay.votedCount}/${state.teamVoteDisplay.totalPlayers}</div>
+            `;
+        } else if (state.teamVoteDisplay.phase === 'result') {
+            const { approveCount, rejectCount, hint } = state.teamVoteDisplay;
+            overlay.innerHTML = `
+                <div class="table-vote-result">
+                    <div class="vote-counts">
+                        <span class="vote-count-approve">赞成 ${approveCount}</span>
+                        <span class="vote-count-sep">·</span>
+                        <span class="vote-count-reject">反对 ${rejectCount}</span>
+                    </div>
+                    <div class="vote-hint">${hint || ''}</div>
+                </div>
+            `;
+        }
+    }
+
+    tableCenter.appendChild(overlay);
+    return tableCenter;
+}
+
+export function showTeamVoteProgress(votedCount, totalPlayers) {
+    state.teamVoteDisplay = { phase: 'progress', votedCount, totalPlayers, votes: null };
+    updatePlayersDisplay();
+}
+
+export function showTeamVoteResult(data) {
+    state.teamVoteDisplay = {
+        phase: 'result',
+        votedCount: data.votes?.length || 0,
+        totalPlayers: data.votes?.length || 0,
+        votes: data.votes || [],
+        approveCount: data.approve_count || 0,
+        rejectCount: data.reject_count || 0,
+        hint: data.hint || '',
+    };
+    updatePlayersDisplay();
+}
+
+export function clearTeamVoteDisplay() {
+    state.teamVoteDisplay = null;
+    updatePlayersDisplay();
 }
 
 export function updateCurrentSpeaker(speaker) {

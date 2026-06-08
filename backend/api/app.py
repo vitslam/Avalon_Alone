@@ -159,6 +159,20 @@ async def select_team(selection: TeamSelection):
 
     return result
 
+def _build_team_vote_hint(result: Dict[str, Any]) -> str:
+    status = result.get('status')
+    approve = result.get('approve_count', 0)
+    reject = result.get('reject_count', 0)
+    if status == 'team_approved':
+        return f"表决通过（{approve} 赞成 / {reject} 反对），远征队即将出发执行任务…"
+    if status == 'team_rejected':
+        leader = result.get('next_leader', '')
+        return f"表决未通过（{approve} 赞成 / {reject} 反对），队长移交给 {leader}，重新组队…"
+    if status == 'evil_win':
+        return result.get('reason', '坏人获胜')
+    return ''
+
+
 @app.post("/game/vote-team")
 async def vote_team(vote: Vote):
     """队伍投票"""
@@ -170,8 +184,18 @@ async def vote_team(vote: Vote):
     if 'error' in result:
         raise HTTPException(status_code=400, detail=result['error'])
 
-    # 通知所有WebSocket连接
-    await notify_all_connections("team_vote_recorded", result)
+    if result.get('status') == 'vote_recorded':
+        await notify_all_connections("team_vote_progress", {
+            "voted_count": result.get('voted_count'),
+            "total_players": result.get('total_players'),
+        })
+    elif result.get('status') in ['team_approved', 'team_rejected', 'evil_win']:
+        await notify_all_connections("team_vote_completed", {
+            **result,
+            "hint": _build_team_vote_hint(result),
+        })
+    else:
+        await notify_all_connections("team_vote_recorded", result)
 
     return result
 

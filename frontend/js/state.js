@@ -6,7 +6,8 @@ const state = {
     websocket: null,
     currentPlayer: null,
     tts: null,
-    API_BASE: `${window.location.protocol}//${window.location.host}`
+    API_BASE: `${window.location.protocol}//${window.location.host}`,
+    teamVoteDisplay: null,
 };
 
 export default state;

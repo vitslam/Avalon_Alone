@@ -121,6 +121,8 @@ class AvalonGame:
         # 检查是否所有玩家都投票了
         if len(self.team_votes) == len(self.players):
             approve_count = sum(1 for v in self.team_votes if v['vote'] == 'approve')
+            reject_count = len(self.team_votes) - approve_count
+            votes_snapshot = list(self.team_votes)
 
             if approve_count > len(self.players) / 2:
                 # 队伍通过，进入任务投票
@@ -128,6 +130,8 @@ class AvalonGame:
                 return {
                     'status': 'team_approved',
                     'approve_count': approve_count,
+                    'reject_count': reject_count,
+                    'votes': votes_snapshot,
                     'next_phase': 'mission_vote',
                     'team': self.current_team,
                 }
@@ -139,19 +143,33 @@ class AvalonGame:
                 if self.failed_team_votes >= 5:
                     # 5次拒绝，坏人获胜
                     self.end_game('evil')
-                    return {'status': 'evil_win', 'reason': '队伍被拒绝5次'}
+                    return {
+                        'status': 'evil_win',
+                        'reason': '队伍被拒绝5次',
+                        'approve_count': approve_count,
+                        'reject_count': reject_count,
+                        'votes': votes_snapshot,
+                    }
 
                 # 重新选择队伍
                 self.team_votes = []
                 self.phase = GAME_PHASES['team_selection']
                 return {
                     'status': 'team_rejected',
+                    'approve_count': approve_count,
+                    'reject_count': reject_count,
+                    'votes': votes_snapshot,
                     'failed_votes': self.failed_team_votes,
                     'next_leader': self.players[self.current_leader_index].name,
                     'next_phase': 'team_selection'
                 }
 
-        return {'status': 'vote_recorded', 'remaining_votes': len(self.players) - len(self.team_votes)}
+        return {
+            'status': 'vote_recorded',
+            'voted_count': len(self.team_votes),
+            'total_players': len(self.players),
+            'remaining_votes': len(self.players) - len(self.team_votes),
+        }
 
     def vote_mission(self, player_name: str, vote: str) -> Dict[str, Any]:
         """任务投票"""

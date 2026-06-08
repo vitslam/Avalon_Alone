@@ -29,6 +29,7 @@ class AIController:
         self.per_char_seconds = 0.18
         self.min_speech_seconds = 2.0
         self.max_speech_seconds = 14.0
+        self.team_vote_result_pause = 4.0
 
     async def start_auto_play(self):
         """开始AI自动游戏"""
@@ -191,26 +192,43 @@ class AIController:
         print("队伍投票-阶段2：队长二次确认/修改队伍")
         await self._leader_revise_team()
 
-        # 阶段3：全员统一投票
-        print("队伍投票-阶段3：全员统一投票")
+        # 阶段3：全员并行投票（官方规则：同时表决，不发言）
+        print("队伍投票-阶段3：全员并行投票")
+        total_players = len(self.game.players)
+        voted_names = {v['player'] for v in self.game.team_votes}
+        ai_pending = [
+            p for p in self.game.players
+            if p.is_ai and p.name not in voted_names
+        ]
+
         self.log_manager.log_global_event("team_vote_phase_start", {
             "team": self.game.current_team,
-            "mission_number": self.game.current_mission
+            "mission_number": self.game.current_mission,
+            "total_players": total_players,
+            "voted_count": len(self.game.team_votes),
         })
-        for i in range(n):
-            player = self.game.players[(start + i) % n]
-            if not player.is_ai:
-                continue
-            if player.name in [v['player'] for v in self.game.team_votes]:
-                continue
+        await self.notify_frontend("team_vote_phase_start", {
+            "team": self.game.current_team,
+            "mission_number": self.game.current_mission,
+            "total_players": total_players,
+            "voted_count": len(self.game.team_votes),
+        })
 
-            print(f"AI玩家 {player.name} 准备对队伍投票")
+        if not ai_pending:
+            return
 
+        async def fetch_team_vote(player):
             vote = await self._ai_decide_team_vote_with_llm(player)
             if not vote:
                 print(f"AI API失败，使用备用逻辑为 {player.name}")
                 vote = self.ai_decide_team_vote(player)
+            return player, vote
 
+        tasks = [asyncio.create_task(fetch_team_vote(p)) for p in ai_pending]
+        final_result = None
+
+        for task in asyncio.as_completed(tasks):
+            player, vote = await task
             if not vote:
                 continue
 
@@ -221,20 +239,23 @@ class AIController:
                 "team": self.game.current_team
             })
 
-            vote_speech = "我赞成这个队伍" if vote == "approve" else "我反对这个队伍"
-            await self.ai_speak(player, vote_speech)
-
             result = self.game.vote_team(player.name, vote)
-            if 'error' not in result:
-                await self.notify_frontend("team_vote_recorded", result)
+            if 'error' in result:
+                print(f"投票失败: {result['error']}")
+                continue
+
+            await self.notify_frontend("team_vote_progress", {
+                "voted_count": result.get('voted_count', len(self.game.team_votes)),
+                "total_players": total_players,
+            })
 
             if result.get('status') in ['team_approved', 'team_rejected', 'evil_win']:
-                print(f"队伍投票完成，结果: {result.get('status')}")
-                return
-            elif 'error' in result:
-                print(f"投票失败: {result['error']}")
+                final_result = result
 
-            await asyncio.sleep(0.1)
+        if final_result:
+            print(f"队伍投票完成，结果: {final_result.get('status')}")
+            await self._notify_team_vote_completed(final_result)
+            await asyncio.sleep(self.team_vote_result_pause)
 
     async def _leader_revise_team(self):
         """队长在讨论后二次确认或修改队伍成员"""
@@ -522,6 +543,25 @@ class AIController:
         """通知前端"""
         if self.websocket_notifier:
             await self.websocket_notifier(event, data)
+
+    def _build_team_vote_hint(self, result: Dict[str, Any]) -> str:
+        status = result.get('status')
+        approve = result.get('approve_count', 0)
+        reject = result.get('reject_count', 0)
+        if status == 'team_approved':
+            return f"表决通过（{approve} 赞成 / {reject} 反对），远征队即将出发执行任务…"
+        if status == 'team_rejected':
+            leader = result.get('next_leader', '')
+            return f"表决未通过（{approve} 赞成 / {reject} 反对），队长移交给 {leader}，重新组队…"
+        if status == 'evil_win':
+            return result.get('reason', '坏人获胜')
+        return ''
+
+    async def _notify_team_vote_completed(self, result: Dict[str, Any]):
+        await self.notify_frontend("team_vote_completed", {
+            **result,
+            "hint": self._build_team_vote_hint(result),
+        })
 
     async def handle_voice_start(self, data: Dict[str, Any]):
         """处理前端发送的语音开始播放通知（仅记录，节奏已由后端自行控制）"""
