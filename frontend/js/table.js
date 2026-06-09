@@ -209,12 +209,8 @@ export function updateCurrentSpeaker(speaker) {
 
     if (speaker && state.gameState && state.gameState.players) {
         const speakerCard = document.querySelector(`.player-card[data-player-name="${speaker}"]`);
-
         if (speakerCard) {
             speakerCard.classList.add('speaking');
-            setTimeout(() => {
-                speakerCard.classList.remove('speaking');
-            }, 15000);
         }
     }
 }
@@ -237,14 +233,6 @@ export function showPlayerSpeaking(speaker, message) {
         speakerCard.style.zIndex = String(speechBubbleLayer);
         speakerCard.classList.add('speech-active');
         speakerCard.appendChild(speechBubble);
-
-        setTimeout(() => {
-            if (speechBubble.parentNode) speechBubble.remove();
-            if (!speakerCard.querySelector('.speech-bubble')) {
-                speakerCard.classList.remove('speech-active');
-                speakerCard.style.zIndex = '';
-            }
-        }, 15000);
     }
 }
 
@@ -255,9 +243,27 @@ export function showCurrentSpeakerIndicator(speaker) {
     if (indicator && speakerNameElement) {
         speakerNameElement.textContent = speaker;
         indicator.classList.add('visible');
+    }
+}
 
-        setTimeout(() => {
-            indicator.classList.remove('visible');
-        }, 15000);
+/** 语音播完或无 TTS 时估算结束后，由 speechPresenter 调用以收起发言 UI */
+export function hideSpeechPresentation(speaker) {
+    document.querySelectorAll('.player-card').forEach(card => {
+        card.classList.remove('speaking');
+    });
+
+    if (speaker) {
+        const speakerCard = document.querySelector(`.player-card[data-player-name="${speaker}"]`);
+        if (speakerCard) {
+            const bubble = speakerCard.querySelector('.speech-bubble');
+            if (bubble) bubble.remove();
+            speakerCard.classList.remove('speech-active');
+            speakerCard.style.zIndex = '';
+        }
+    }
+
+    const indicator = document.getElementById('currentSpeaker');
+    if (indicator) {
+        indicator.classList.remove('visible');
     }
 }

@@ -34,7 +34,6 @@ class AIController:
         self.base_speech_seconds = 0.8
         self.per_char_seconds = 0.18
         self.min_speech_seconds = 2.0
-        self.max_speech_seconds = 14.0
         self.team_vote_result_pause = 4.0
         self.speech_prefetch_size = max(
             0,
@@ -535,7 +534,7 @@ class AIController:
         if not message:
             return self.min_speech_seconds
         seconds = self.base_speech_seconds + len(message) * self.per_char_seconds
-        return max(self.min_speech_seconds, min(seconds, self.max_speech_seconds))
+        return max(self.min_speech_seconds, seconds)
 
     # 备用逻辑方法（原有的简单AI逻辑）
     def ai_select_team(self, leader, available_players: List[str], team_size: int) -> List[str]:
