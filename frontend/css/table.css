@@ -123,7 +123,12 @@
     box-shadow: 0 4px 12px var(--shadow-dark);
     transition: all 0.3s;
     position: relative;
+    z-index: 1;
     border: 1px solid var(--border-stone);
+}
+
+.player-card.speech-active {
+    z-index: 50;
 }
 
 .player-card::before {

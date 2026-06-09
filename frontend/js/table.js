@@ -1,6 +1,8 @@
 // 桌面显示和玩家卡片
 import state from './state.js';
 
+let speechBubbleLayer = 10;
+
 export function updatePlayersDisplay() {
     const playersContainer = document.getElementById('playersContainer');
     playersContainer.innerHTML = '';
@@ -230,11 +232,18 @@ export function showPlayerSpeaking(speaker, message) {
         const existingBubble = speakerCard.querySelector('.speech-bubble');
         if (existingBubble) existingBubble.remove();
 
-        speakerCard.style.position = 'relative';
+        // 新发言气泡叠在最上层，避免被上一位弥留的气泡遮挡
+        speechBubbleLayer += 1;
+        speakerCard.style.zIndex = String(speechBubbleLayer);
+        speakerCard.classList.add('speech-active');
         speakerCard.appendChild(speechBubble);
 
         setTimeout(() => {
             if (speechBubble.parentNode) speechBubble.remove();
+            if (!speakerCard.querySelector('.speech-bubble')) {
+                speakerCard.classList.remove('speech-active');
+                speakerCard.style.zIndex = '';
+            }
         }, 15000);
     }
 }
