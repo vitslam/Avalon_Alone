@@ -23,21 +23,8 @@ export function updatePlayersDisplay() {
 
     const tableCenter = createTableCenter();
 
-    // 将玩家分配到四个边：上、右、下、左（顺时针）
-    const topCount = Math.ceil(totalPlayers / 3);
-    let bottomCount = Math.ceil((totalPlayers - topCount) / 2);
-    let sideCount = totalPlayers - topCount - bottomCount;
-    let rightCount = Math.ceil(sideCount / 2);
-    let leftCount = sideCount - rightCount;
-
-    if (totalPlayers >= 5 && leftCount === 0) {
-        leftCount = 1;
-        bottomCount -= 1;
-    }
-    if (totalPlayers >= 5 && rightCount === 0) {
-        rightCount = 1;
-        bottomCount -= 1;
-    }
+    const { top: topCount, right: rightCount, bottom: bottomCount, left: leftCount } =
+        getSeatLayout(totalPlayers);
 
     let playerIndex = 0;
 
@@ -62,6 +49,34 @@ export function updatePlayersDisplay() {
     playersContainer.appendChild(tableCenter);
     playersContainer.appendChild(rightCol);
     playersContainer.appendChild(bottomRow);
+}
+
+function getSeatLayout(totalPlayers) {
+    const overrides = {
+        9: { top: 3, right: 1, bottom: 4, left: 1 },
+        10: { top: 4, right: 1, bottom: 4, left: 1 },
+    };
+    if (overrides[totalPlayers]) {
+        return overrides[totalPlayers];
+    }
+
+    // 默认：上、右、下、左（顺时针）
+    let top = Math.ceil(totalPlayers / 3);
+    let bottom = Math.ceil((totalPlayers - top) / 2);
+    let side = totalPlayers - top - bottom;
+    let right = Math.ceil(side / 2);
+    let left = side - right;
+
+    if (totalPlayers >= 5 && left === 0) {
+        left = 1;
+        bottom -= 1;
+    }
+    if (totalPlayers >= 5 && right === 0) {
+        right = 1;
+        bottom -= 1;
+    }
+
+    return { top, right, bottom, left };
 }
 
 function createPlayerCard(player) {
