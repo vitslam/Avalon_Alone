@@ -21,6 +21,10 @@
         font-size: 18px;
         margin-bottom: 8px;
     }
+
+    .player-avatar.avatar-dual {
+        font-size: 14px;
+    }
 }
 
 @media screen and (max-width: 900px) {
@@ -64,6 +68,10 @@
         font-size: 16px;
         margin-bottom: 6px;
     }
+
+    .player-avatar.avatar-dual {
+        font-size: 13px;
+    }
 }
 
 @media screen and (max-width: 600px) {
@@ -85,6 +93,10 @@
         height: 40px;
         font-size: 14px;
         margin-bottom: 4px;
+    }
+
+    .player-avatar.avatar-dual {
+        font-size: 11px;
     }
 
     .player-role { font-size: 10px; padding: 2px 4px; }

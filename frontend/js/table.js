@@ -104,8 +104,11 @@ function createPlayerCard(player) {
         statusParts.push('任务中');
     }
 
+    const avatarText = player.name.slice(0, 2);
+    const avatarClass = avatarText.length >= 2 ? 'player-avatar avatar-dual' : 'player-avatar';
+
     playerCard.innerHTML = `
-        <div class="player-avatar">${player.name.charAt(0)}</div>
+        <div class="${avatarClass}">${avatarText}</div>
         <div class="player-role">${roleDisplay}</div>
         <div class="player-status">${statusParts.join(' • ')}</div>
     `;

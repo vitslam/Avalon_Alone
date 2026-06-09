@@ -179,6 +179,13 @@
     margin: 0 auto 10px;
     border: 2px solid var(--border-stone);
     transition: all 0.3s;
+    line-height: 1;
+    white-space: nowrap;
+}
+
+.player-avatar.avatar-dual {
+    font-size: 16px;
+    letter-spacing: -0.5px;
 }
 
 .player-card:hover .player-avatar {
