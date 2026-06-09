@@ -2,9 +2,9 @@ import asyncio
 import datetime
 import json
 import os
-from typing import Optional, Dict, Any, List
+from typing import Optional, Dict, Any, List, Callable
 from dotenv import load_dotenv
-from .model_client import ModelClientFactory, BaseModelClient
+from .model_client import ModelClientFactory, BaseModelClient, ModelCallResult, classify_api_error
 from ..core.roles import ROLES, get_game_description, get_team_description, get_role_description
 from ..core.constants import VOTE_RULES
 from ..core.log_manager import LogManager
@@ -30,12 +30,80 @@ class AIService:
             print(f"初始化AI服务失败: {e}")
             self.model_client = None
 
+    def _log_player_llm_call(
+        self,
+        player_name: str,
+        request_log: Dict[str, Any],
+        response_log: Dict[str, Any],
+        request_at: datetime.datetime,
+        response_at: datetime.datetime,
+    ) -> None:
+        if self.log_manager:
+            self.log_manager.log_player_interaction(
+                player_name, request_log, response_log, request_at, response_at
+            )
+
+    def _build_response_log(self, result: ModelCallResult, **fields) -> Dict[str, Any]:
+        response_log: Dict[str, Any] = {"success": result.success}
+        response_log.update(fields)
+
+        if result.success:
+            if result.content is not None:
+                if "content" not in response_log and "speech" not in response_log:
+                    response_log["content"] = result.content
+            else:
+                response_log["success"] = False
+                response_log["error"] = {
+                    "type": "empty_response",
+                    "message": "模型返回空内容",
+                }
+        elif result.error:
+            response_log["error"] = result.error
+
+        return response_log
+
+    async def _call_model(
+        self,
+        player_name: str,
+        request_log: Dict[str, Any],
+        messages: List[Dict[str, str]],
+        finalize_response: Optional[Callable[[ModelCallResult, Dict[str, Any]], Dict[str, Any]]] = None,
+    ) -> ModelCallResult:
+        request_at = datetime.datetime.now()
+
+        if not self.model_client:
+            response_at = datetime.datetime.now()
+            response_log = {
+                "success": False,
+                "error": {
+                    "type": "service_unavailable",
+                    "message": "AI模型客户端未初始化",
+                },
+            }
+            self._log_player_llm_call(player_name, request_log, response_log, request_at, response_at)
+            return ModelCallResult(success=False, error=response_log["error"])
+
+        try:
+            result = await self.model_client.chat_completion(messages)
+            response_at = datetime.datetime.now()
+            response_log = self._build_response_log(result)
+            if finalize_response:
+                response_log = finalize_response(result, response_log)
+            self._log_player_llm_call(player_name, request_log, response_log, request_at, response_at)
+            return result
+        except Exception as e:
+            response_at = datetime.datetime.now()
+            error = classify_api_error(e, timeout_seconds=self.timeout)
+            response_log = {
+                "success": False,
+                "error": error,
+            }
+            self._log_player_llm_call(player_name, request_log, response_log, request_at, response_at)
+            print(f"AI {player_name} 模型调用异常: {e}")
+            return ModelCallResult(success=False, error=error)
+
     async def get_ai_speech(self, player_name: str, role: str, game_context: Dict[str, Any]) -> Optional[str]:
         """获取AI玩家的发言"""
-        if not self.model_client:
-            print(f"AI服务未初始化，{player_name} 使用默认发言")
-            return None
-
         try:
             prompt = self._build_speech_prompt(player_name, role, game_context)
 
@@ -56,40 +124,33 @@ class AIService:
             ]
 
             request_log = {
+                "action": "speech",
                 "player_name": player_name,
                 "role": role,
                 "game_context": game_context,
                 "messages": messages
             }
 
-            request_at = datetime.datetime.now()
-            speech = await self.model_client.chat_completion(messages)
-            response_at = datetime.datetime.now()
+            def finalize_speech(result: ModelCallResult, response_log: Dict[str, Any]) -> Dict[str, Any]:
+                if result.success and result.content:
+                    response_log["speech"] = result.content
+                return response_log
 
-            response_log = {
-                "speech": speech
-            }
-
-            # 记录日志
-            if self.log_manager:
-                self.log_manager.log_player_interaction(
-                    player_name, request_log, response_log, request_at, response_at
-                )
-
-            if speech:
-                print(f"AI {player_name} 获得发言: {speech}")
-                return speech
+            result = await self._call_model(
+                player_name, request_log, messages, finalize_response=finalize_speech
+            )
+            if result.success and result.content:
+                print(f"AI {player_name} 获得发言: {result.content}")
+                return result.content
 
         except Exception as e:
             print(f"AI {player_name} 发言获取失败: {e}")
-            return None
+
+        return None
 
     async def get_ai_team_selection(self, player_name: str, role: str, game_context: Dict[str, Any],
                                   available_players: List[str], team_size: int) -> Optional[List[str]]:
         """获取AI玩家的队伍选择"""
-        if not self.model_client:
-            return None
-
         try:
             prompt = self._build_team_selection_prompt(player_name, role, game_context, available_players, team_size)
 
@@ -99,6 +160,7 @@ class AIService:
             ]
 
             request_log = {
+                "action": "team_selection",
                 "player_name": player_name,
                 "role": role,
                 "game_context": game_context,
@@ -107,34 +169,39 @@ class AIService:
                 "messages": messages
             }
 
-            request_at = datetime.datetime.now()
-            content = await self.model_client.chat_completion(messages)
-            response_at = datetime.datetime.now()
+            def finalize_team(result: ModelCallResult, response_log: Dict[str, Any]) -> Dict[str, Any]:
+                if not result.success or not result.content:
+                    return response_log
 
-            response_log = {
-                "content": content
-            }
-
-            team = None
-            if content:
-                # 尝试解析JSON
+                content = result.content
+                response_log["content"] = content
                 try:
                     team = json.loads(content)
                     if isinstance(team, list) and len(team) == team_size:
-                        print(f"AI {player_name} 选择队伍: {team}")
                         response_log["team"] = team
                 except json.JSONDecodeError:
-                    # 如果不是JSON，尝试提取玩家名称
                     team = self._extract_player_names(content, available_players, team_size)
                     if team:
-                        print(f"AI {player_name} 选择队伍(提取): {team}")
                         response_log["team"] = team
+                        response_log["parse_method"] = "extract"
+                return response_log
 
-            # 记录日志
-            if self.log_manager:
-                self.log_manager.log_player_interaction(
-                    player_name, request_log, response_log, request_at, response_at
-                )
+            result = await self._call_model(
+                player_name, request_log, messages, finalize_response=finalize_team
+            )
+            content = result.content if result.success else None
+
+            team = None
+            if content:
+                try:
+                    team = json.loads(content)
+                    if not (isinstance(team, list) and len(team) == team_size):
+                        team = None
+                except json.JSONDecodeError:
+                    team = self._extract_player_names(content, available_players, team_size)
+
+                if team:
+                    print(f"AI {player_name} 选择队伍: {team}")
 
             return team
         except Exception as e:
@@ -144,9 +211,6 @@ class AIService:
     async def get_ai_vote_decision(self, player_name: str, role: str, game_context: Dict[str, Any],
                                  vote_type: str) -> Optional[str]:
         """获取AI玩家的投票决策"""
-        if not self.model_client:
-            return None
-
         try:
             prompt = self._build_vote_prompt(player_name, role, game_context, vote_type)
 
@@ -156,6 +220,7 @@ class AIService:
             ]
 
             request_log = {
+                "action": "vote_decision",
                 "player_name": player_name,
                 "role": role,
                 "game_context": game_context,
@@ -163,14 +228,15 @@ class AIService:
                 "messages": messages
             }
 
-            request_at = datetime.datetime.now()
-            content = await self.model_client.chat_completion(messages)
-            response_at = datetime.datetime.now()
+            def finalize_vote(result: ModelCallResult, response_log: Dict[str, Any]) -> Dict[str, Any]:
+                if not result.success or not result.content:
+                    return response_log
 
-            vote = None
-            if content:
-                content = content.strip().lower()
+                raw_content = result.content
+                content = raw_content.strip().lower()
+                response_log["content"] = raw_content
 
+                vote = None
                 if vote_type == "team":
                     if "approve" in content or "赞成" in content:
                         vote = "approve"
@@ -182,18 +248,29 @@ class AIService:
                     elif "success" in content:
                         vote = "success"
 
-                print(f"AI {player_name} 投票决策: {content}")
+                response_log["vote"] = vote
+                if vote is None:
+                    response_log["parse_error"] = "无法从模型回复中解析投票结果"
+                return response_log
 
-            response_log = {
-                "content": content,
-                "vote": vote
-            }
+            result = await self._call_model(
+                player_name, request_log, messages, finalize_response=finalize_vote
+            )
 
-            # 记录日志
-            if self.log_manager:
-                self.log_manager.log_player_interaction(
-                    player_name, request_log, response_log, request_at, response_at
-                )
+            vote = None
+            if result.success and result.content:
+                content = result.content.strip().lower()
+                if vote_type == "team":
+                    if "approve" in content or "赞成" in content:
+                        vote = "approve"
+                    elif "reject" in content or "反对" in content:
+                        vote = "reject"
+                elif vote_type == "mission":
+                    if "fail" in content:
+                        vote = "fail"
+                    elif "success" in content:
+                        vote = "success"
+                print(f"AI {player_name} 投票决策: {result.content}")
 
             return vote
         except Exception as e:
@@ -229,8 +306,6 @@ class AIService:
 - 当前任务：第{current_mission}个
 - 当前队伍：{current_team if current_team else '未选择'}
 {context_info}
-
-请根据你的角色和当前情况发言，要简洁有趣（不超过100字）。体现你的角色特点和策略思考。
 """
         return prompt
 
@@ -380,9 +455,6 @@ class AIService:
 
     async def get_ai_assassination_target(self, assassin_name: str, role: str, good_players: List[str]) -> Optional[str]:
         """获取AI刺客的刺杀目标"""
-        if not self.model_client:
-            return None
-
         try:
             # 从配置中获取刺客角色信息
             role_info = ROLES.get(role, {'name': role, 'description': role, 'strategy_tips': []})
@@ -404,31 +476,31 @@ class AIService:
             ]
 
             request_log = {
+                "action": "assassination",
                 "player_name": assassin_name,
                 "role": role,
                 "good_players": good_players,
                 "messages": messages
             }
 
-            request_at = datetime.datetime.now()
-            target = await self.model_client.chat_completion(messages)
-            response_at = datetime.datetime.now()
+            def finalize_assassination(result: ModelCallResult, response_log: Dict[str, Any]) -> Dict[str, Any]:
+                if not result.success or not result.content:
+                    return response_log
 
-            response_log = {
-                "content": target
-            }
+                target = result.content.strip()
+                response_log["content"] = result.content
+                if target in good_players:
+                    response_log["target"] = target
+                else:
+                    response_log["parse_error"] = f"模型返回的目标不在可选列表中: {target}"
+                return response_log
 
-            if target and target.strip() in good_players:
-                response_log["target"] = target.strip()
+            result = await self._call_model(
+                assassin_name, request_log, messages, finalize_response=finalize_assassination
+            )
 
-            # 记录日志
-            if self.log_manager:
-                self.log_manager.log_player_interaction(
-                    assassin_name, request_log, response_log, request_at, response_at
-                )
-
-            if target and target.strip() in good_players:
-                return target.strip()
+            if result.success and result.content and result.content.strip() in good_players:
+                return result.content.strip()
 
         except Exception as e:
             print(f"AI {assassin_name} 刺杀目标选择失败: {e}")

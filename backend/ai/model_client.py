@@ -1,16 +1,67 @@
 import os
 import asyncio
 from abc import ABC, abstractmethod
+from dataclasses import dataclass
 from typing import Optional, Dict, Any, List, AsyncGenerator
 from dotenv import load_dotenv
 
 # 加载环境变量
 load_dotenv()
 
+DEFAULT_REQUEST_TIMEOUT_SECONDS = int(os.getenv("AI_RESPONSE_TIMEOUT", "30"))
+
+
+@dataclass
+class ModelCallResult:
+    """模型 API 调用结果，成功时 content 有值，失败时 error 有详情。"""
+    success: bool
+    content: Optional[str] = None
+    error: Optional[Dict[str, Any]] = None
+
+
+def classify_api_error(exc: Exception, timeout_seconds: Optional[int] = None) -> Dict[str, Any]:
+    """将异常归类为可写入玩家日志的错误信息。"""
+    message = str(exc)
+    lower_message = message.lower()
+    exception_name = type(exc).__name__
+
+    error_type = "api_error"
+    if (
+        "timed out" in lower_message
+        or "timeout" in lower_message
+        or "timeout" in exception_name.lower()
+    ):
+        error_type = "timeout"
+    elif hasattr(exc, "status_code"):
+        error_type = f"http_{exc.status_code}"
+
+    error: Dict[str, Any] = {
+        "type": error_type,
+        "message": message,
+        "exception": exception_name,
+    }
+    if timeout_seconds is not None:
+        error["timeout_seconds"] = timeout_seconds
+    if hasattr(exc, "status_code"):
+        error["status_code"] = exc.status_code
+    if hasattr(exc, "code"):
+        error["code"] = exc.code
+    return error
+
+
+def _failed_result(exc: Exception, provider: str, timeout_seconds: int) -> ModelCallResult:
+    print(f"{provider}请求失败: {exc}")
+    return ModelCallResult(
+        success=False,
+        error=classify_api_error(exc, timeout_seconds=timeout_seconds),
+    )
+
 
 class BaseModelClient(ABC):
+    request_timeout_seconds: int = DEFAULT_REQUEST_TIMEOUT_SECONDS
+
     @abstractmethod
-    async def chat_completion(self, messages: List[Dict[str, str]], **kwargs) -> Optional[str]:
+    async def chat_completion(self, messages: List[Dict[str, str]], **kwargs) -> ModelCallResult:
         """
         发送聊天完成请求到模型（非流式）
 
@@ -19,7 +70,7 @@ class BaseModelClient(ABC):
             **kwargs: 其他可选参数
 
         Returns:
-            模型响应文本
+            包含响应文本或错误详情的 ModelCallResult
         """
         pass
 
@@ -44,6 +95,7 @@ class OpenAIModelClient(BaseModelClient):
         self.base_url = base_url or os.getenv("OPENAI_BASE_URL", "https://api.openai.com/v1")
         self.model = model
         self.client = None
+        self.request_timeout_seconds = DEFAULT_REQUEST_TIMEOUT_SECONDS
         self._initialize()
 
     def _initialize(self):
@@ -58,7 +110,7 @@ class OpenAIModelClient(BaseModelClient):
             self.client = AsyncOpenAI(
                 api_key=self.api_key,
                 base_url=self.base_url,
-                timeout=httpx.Timeout(30)
+                timeout=httpx.Timeout(self.request_timeout_seconds)
             )
             print(f"✅ OpenAI客户端初始化成功，模型: {self.model}")
         except ImportError:
@@ -66,7 +118,7 @@ class OpenAIModelClient(BaseModelClient):
         except Exception as e:
             raise RuntimeError(f"OpenAI客户端初始化失败: {e}")
 
-    async def chat_completion(self, messages: List[Dict[str, str]], **kwargs) -> Optional[str]:
+    async def chat_completion(self, messages: List[Dict[str, str]], **kwargs) -> ModelCallResult:
         """发送聊天完成请求到OpenAI模型（非流式）"""
         if not self.client:
             self._initialize()
@@ -78,10 +130,18 @@ class OpenAIModelClient(BaseModelClient):
                 stream=False,
                 **kwargs
             )
-            return response.choices[0].message.content.strip()
+            content = response.choices[0].message.content
+            if content is None or not content.strip():
+                return ModelCallResult(
+                    success=False,
+                    error={
+                        "type": "empty_response",
+                        "message": "模型返回空内容",
+                    },
+                )
+            return ModelCallResult(success=True, content=content.strip())
         except Exception as e:
-            print(f"OpenAI请求失败: {e}")
-            return None
+            return _failed_result(e, "OpenAI", self.request_timeout_seconds)
 
     async def stream_chat_completion(self, messages: List[Dict[str, str]], **kwargs) -> AsyncGenerator[str, None]:
         """发送聊天完成请求到OpenAI模型（流式）"""
@@ -107,6 +167,7 @@ class ZhipuAIModelClient(BaseModelClient):
         self.api_key = api_key or os.getenv("ZHIPU_API_KEY")
         self.model = model
         self.client = None
+        self.request_timeout_seconds = DEFAULT_REQUEST_TIMEOUT_SECONDS
         self._initialize()
 
     def _initialize(self):
@@ -124,7 +185,7 @@ class ZhipuAIModelClient(BaseModelClient):
         except Exception as e:
             raise RuntimeError(f"智谱AI客户端初始化失败: {e}")
 
-    async def chat_completion(self, messages: List[Dict[str, str]], **kwargs) -> Optional[str]:
+    async def chat_completion(self, messages: List[Dict[str, str]], **kwargs) -> ModelCallResult:
         """发送聊天完成请求到智谱AI模型（非流式）"""
         if not self.client:
             self._initialize()
@@ -136,10 +197,18 @@ class ZhipuAIModelClient(BaseModelClient):
                 stream=False,
                 **kwargs
             )
-            return response.choices[0].message.content.strip()
+            content = response.choices[0].message.content
+            if content is None or not content.strip():
+                return ModelCallResult(
+                    success=False,
+                    error={
+                        "type": "empty_response",
+                        "message": "模型返回空内容",
+                    },
+                )
+            return ModelCallResult(success=True, content=content.strip())
         except Exception as e:
-            print(f"智谱AI请求失败: {e}")
-            return None
+            return _failed_result(e, "智谱AI", self.request_timeout_seconds)
 
     async def stream_chat_completion(self, messages: List[Dict[str, str]], **kwargs) -> AsyncGenerator[str, None]:
         """发送聊天完成请求到智谱AI模型（流式）"""
@@ -170,6 +239,7 @@ class VolcEngineModelClient(BaseModelClient):
         self.base_url = base_url or os.getenv("VOLCENGINE_BASE_URL", self.VOLCENGINE_BASE_URL)
         self.model = model or os.getenv("MODEL", "doubao-seed-2.0-mini")
         self.client = None
+        self.request_timeout_seconds = DEFAULT_REQUEST_TIMEOUT_SECONDS
         self._initialize()
 
     def _initialize(self):
@@ -184,7 +254,7 @@ class VolcEngineModelClient(BaseModelClient):
             self.client = AsyncOpenAI(
                 api_key=self.api_key,
                 base_url=self.base_url,
-                timeout=httpx.Timeout(30)
+                timeout=httpx.Timeout(self.request_timeout_seconds)
             )
             print(f"✅ 火山方舟客户端初始化成功，模型: {self.model}")
         except ImportError:
@@ -192,7 +262,7 @@ class VolcEngineModelClient(BaseModelClient):
         except Exception as e:
             raise RuntimeError(f"火山方舟客户端初始化失败: {e}")
 
-    async def chat_completion(self, messages: List[Dict[str, str]], **kwargs) -> Optional[str]:
+    async def chat_completion(self, messages: List[Dict[str, str]], **kwargs) -> ModelCallResult:
         """发送聊天完成请求到火山方舟模型（非流式）"""
         if not self.client:
             self._initialize()
@@ -204,10 +274,18 @@ class VolcEngineModelClient(BaseModelClient):
                 stream=False,
                 **kwargs
             )
-            return response.choices[0].message.content.strip()
+            content = response.choices[0].message.content
+            if content is None or not content.strip():
+                return ModelCallResult(
+                    success=False,
+                    error={
+                        "type": "empty_response",
+                        "message": "模型返回空内容",
+                    },
+                )
+            return ModelCallResult(success=True, content=content.strip())
         except Exception as e:
-            print(f"火山方舟请求失败: {e}")
-            return None
+            return _failed_result(e, "火山方舟", self.request_timeout_seconds)
 
     async def stream_chat_completion(self, messages: List[Dict[str, str]], **kwargs) -> AsyncGenerator[str, None]:
         """发送聊天完成请求到火山方舟模型（流式）"""

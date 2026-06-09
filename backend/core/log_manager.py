@@ -117,6 +117,7 @@ class LogManager:
             'request_at': request_at.strftime('%Y-%m-%d %H:%M:%S'),
             'response_at': response_at.strftime('%Y-%m-%d %H:%M:%S'),
             'duration_ms': duration_ms,
+            'status': 'error' if response.get('success') is False or 'error' in response else 'success',
             'request': request,
             'response': response,
         }
