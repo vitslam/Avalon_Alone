@@ -340,7 +340,7 @@ class AIService:
         history_info = ""
         if messages_history:
             history_lines = []
-            for msg in messages_history[-5:]:  # 只取最近5条消息
+            for msg in messages_history: 
                 history_lines.append(f"{msg['player']}说: {msg['content']}")
             history_info = "\n\n对话历史:\n" + '\n'.join(history_lines)
 
@@ -365,7 +365,7 @@ class AIService:
 - {team_strategy}
 {history_info}
 
-返回JSON格式的玩家座位号列表，例如：["1", "2"]
+返回JSON格式的增序排列的玩家座位号列表，例如：["1", "2"]
 """
         return prompt
 
@@ -395,7 +395,7 @@ class AIService:
         history_info = ""
         if messages_history:
             history_lines = []
-            for msg in messages_history[-20:]:
+            for msg in messages_history:
                 history_lines.append(f"{msg['player']}说: {msg['content']}")
             history_info = "\n\n对话历史:\n" + '\n'.join(history_lines)
 
