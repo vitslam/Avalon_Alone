@@ -16,11 +16,11 @@ class TextToSpeech {
         this.currentUtterance = null;
         this.speaking = false;
         this._lastAiPlayers = null; // 语音列表异步加载后重新分配音色
-        
+
         if (this.isSupported) {
             // 初始化语音列表
             this.initVoices();
-            
+
             // 监听语音加载事件
             window.speechSynthesis.onvoiceschanged = () => {
                 this.initVoices();
@@ -31,6 +31,10 @@ class TextToSpeech {
         } else {
             console.warn('浏览器不支持Web Speech API，无法使用语音合成功能');
         }
+    }
+
+    _getSpeechGapMs() {
+        return window.__avalonSpeechGapMs ?? 300;
     }
 
     // 初始化语音列表
@@ -191,7 +195,7 @@ class TextToSpeech {
             
             // 处理下一个语音请求
             if (this.utteranceQueue.length > 0) {
-                setTimeout(() => this._processQueue(), 300); // 短暂延迟，让玩家能区分不同发言
+                setTimeout(() => this._processQueue(), this._getSpeechGapMs());
             }
         };
         
@@ -204,7 +208,7 @@ class TextToSpeech {
             
             // 处理下一个语音请求
             if (this.utteranceQueue.length > 0) {
-                setTimeout(() => this._processQueue(), 300);
+                setTimeout(() => this._processQueue(), this._getSpeechGapMs());
             }
         };
         

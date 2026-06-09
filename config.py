@@ -5,6 +5,10 @@
 import os
 from typing import Dict, Any
 
+from dotenv import load_dotenv
+
+load_dotenv()
+
 # 服务器配置
 SERVER_CONFIG = {
     'host': os.getenv('AVALON_HOST', '0.0.0.0'),
@@ -49,7 +53,9 @@ FRONTEND_CONFIG = {
     'websocket_url': os.getenv('AVALON_WS_URL', 'ws://182.92.157.51:8234/ws'),
     'api_base_url': os.getenv('AVALON_API_URL', 'http://182.92.157.51:8234'),
     'auto_reconnect': True,
-    'reconnect_interval': 5000  # 毫秒
+    'reconnect_interval': 5000,  # 毫秒
+    # 相邻发言之间的间隔（毫秒），由 speechPresenter 与 TTS 队列共用
+    'speech_gap_ms': int(os.getenv('AVALON_SPEECH_GAP_MS', '300')),
 }
 
 # 日志配置

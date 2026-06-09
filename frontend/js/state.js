@@ -8,6 +8,7 @@ const state = {
     tts: null,
     API_BASE: `${window.location.protocol}//${window.location.host}`,
     teamVoteDisplay: null,
+    speechGapMs: 300,
 };
 
 export default state;

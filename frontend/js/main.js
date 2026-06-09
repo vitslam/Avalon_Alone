@@ -6,8 +6,10 @@ import { confirmTeam, vote, voteMission, confirmAssassination } from './controls
 import { sendMessage } from './chat.js';
 import { connectWebSocket } from './websocket.js';
 import { loadTTSModule, initializeVoiceControl, testVoice } from './voice.js';
+import { loadClientConfig } from './config.js';
 
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', async function() {
+    await loadClientConfig();
     initializeEventListeners();
     connectWebSocket();
     initializeDefaultPlayers();

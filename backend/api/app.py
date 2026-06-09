@@ -11,6 +11,7 @@ from ..core.game import AvalonGame
 from ..models.player import Player, AIPlayer
 from ..models.god import God
 from ..ai.ai_controller import AIController
+from config import FRONTEND_CONFIG
 
 app = FastAPI(title="Avalon Alone API", version="1.0.0")
 
@@ -65,6 +66,13 @@ async def serve_index():
 async def favicon():
     """返回空响应避免404"""
     return Response(status_code=204)
+
+@app.get("/client-config")
+async def get_client_config():
+    """向前端下发可由 .env 配置的客户端参数"""
+    return {
+        "speech_gap_ms": FRONTEND_CONFIG["speech_gap_ms"],
+    }
 
 @app.post("/game/start")
 async def start_game(config: GameConfig):
