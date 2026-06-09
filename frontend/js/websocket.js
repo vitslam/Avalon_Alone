@@ -1,7 +1,7 @@
 // WebSocket 连接和消息路由
 import state from './state.js';
 import { addChatMessage } from './chat.js';
-import { updateCurrentSpeaker, showPlayerSpeaking, showCurrentSpeakerIndicator } from './table.js';
+import { enqueuePlayerSpeech } from './speechPresenter.js';
 import {
     handleGameStarted, handleTeamSelected,
     handleTeamVotePhaseStart, handleTeamVoteProgress, handleTeamVoteCompleted, handleTeamVoteRecorded,
@@ -109,19 +109,9 @@ function handleWebSocketMessage(data) {
 }
 
 function handlePlayerSpeaking(speakingData) {
-    const { speaker, message, role, is_ai } = speakingData;
+    const { speaker, message, is_ai } = speakingData;
 
+    // 聊天区即时更新；气泡、呼吸灯、TTS 由展示队列串行同步
     addChatMessage(speaker, message, is_ai ? 'ai' : 'player');
-    showCurrentSpeakerIndicator(speaker);
-    updateCurrentSpeaker(speaker);
-    showPlayerSpeaking(speaker, message);
-
-    if (state.tts) {
-        const status = state.tts.getStatus();
-        if (is_ai && status.enabled) {
-            setTimeout(() => {
-                state.tts.speak(message, speaker);
-            }, 300);
-        }
-    }
+    enqueuePlayerSpeech(speakingData);
 }

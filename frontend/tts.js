@@ -114,15 +114,16 @@ class TextToSpeech {
         console.log(`已为玩家 ${playerName} 配置语音:`, {name: voice?.name, pitch, rate, volume});
     }
 
-    // 播放文本语音
-    speak(text, playerName = 'AI') {
+    // 播放文本语音（onComplete 在当前条播完后回调，仅调用一次）
+    speak(text, playerName = 'AI', onComplete = null) {
         if (!this.isSupported || !this.enabled || !text) {
             console.log(`语音播放被跳过: 支持=${this.isSupported}, 启用=${this.enabled}, 文本=${!!text}`);
+            if (onComplete) onComplete();
             return;
         }
         
         // 将语音请求添加到队列
-        this.utteranceQueue.push({ text, playerName });
+        this.utteranceQueue.push({ text, playerName, onComplete });
         console.log(`添加语音到队列 (${playerName})，当前队列长度: ${this.utteranceQueue.length}`);
         
         // 如果当前没有正在播放的语音，开始处理队列
@@ -139,7 +140,7 @@ class TextToSpeech {
         
         // 获取队列中的第一个语音请求
         const request = this.utteranceQueue.shift();
-        const { text, playerName } = request;
+        const { text, playerName, onComplete } = request;
         
         // 获取该玩家的语音配置
         const config = this.voiceMap[playerName] || {
@@ -185,6 +186,8 @@ class TextToSpeech {
                 console.log(`通知后端语音播放完成: ${playerName}`);
                 window.onVoiceEnd(playerName, utterance.text);
             }
+
+            if (onComplete) onComplete();
             
             // 处理下一个语音请求
             if (this.utteranceQueue.length > 0) {
@@ -196,6 +199,8 @@ class TextToSpeech {
             console.error(`语音播放错误 (${playerName}):`, event.error);
             this.speaking = false;
             this.currentUtterance = null;
+
+            if (onComplete) onComplete();
             
             // 处理下一个语音请求
             if (this.utteranceQueue.length > 0) {

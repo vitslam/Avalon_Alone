@@ -2,6 +2,7 @@
 import state from './state.js';
 import { addChatMessage } from './chat.js';
 import { updatePlayersDisplay, showTeamVoteProgress, showTeamVoteResult, clearTeamVoteDisplay } from './table.js';
+import { clearSpeechQueue } from './speechPresenter.js';
 import { showTeamSelection, showMissionVoting, showAssassinationPanel } from './controls.js';
 import { updatePlayerList, updateStartButton } from './players.js';
 import { playMissionVideo, stopMissionVideo, setMissionResult } from './missionVideo.js';
@@ -195,6 +196,7 @@ export async function resetGame() {
         const response = await fetch(`${state.API_BASE}/game/reset`, { method: 'POST' });
 
         if (response.ok) {
+            clearSpeechQueue();
             clearTeamVoteDisplay();
             stopMissionVideo();
             document.getElementById('gameSetup').style.display = 'block';
@@ -213,6 +215,7 @@ export async function resetGame() {
 }
 
 export function handleGameReset(data) {
+    clearSpeechQueue();
     clearTeamVoteDisplay();
     stopMissionVideo();
     document.getElementById('gameSetup').style.display = 'block';
