@@ -319,18 +319,11 @@ class AIController:
         await self.notify_frontend("team_selected", result)
 
     async def handle_mission_vote(self):
-        """处理任务投票阶段"""
+        """处理任务投票阶段：车队成员并行 LLM 投票（秘密表决，不发言）"""
         print("处理任务投票阶段")
 
-        mission_vote_data = {
-            "team": self.game.current_team,
-            "mission_number": self.game.current_mission
-        }
-        self.log_manager.log_global_event("mission_vote_start", mission_vote_data)
-
-        team_ai_players = [p for p in self.ai_players if p.name in self.game.current_team]
-
         total_team_members = len(self.game.current_team)
+        voted_names = {v['player'] for v in self.game.mission_votes}
         voted_members = len(self.game.mission_votes)
 
         print(f"任务投票进度: {voted_members}/{total_team_members}")
@@ -339,36 +332,56 @@ class AIController:
             print("所有队伍成员已完成任务投票，等待游戏状态更新...")
             return
 
-        for player in team_ai_players:
-            if player.name not in [v['player'] for v in self.game.mission_votes]:
-                print(f"AI队伍成员 {player.name} 准备任务投票")
+        mission_vote_data = {
+            "team": self.game.current_team,
+            "mission_number": self.game.current_mission,
+            "total_team_members": total_team_members,
+            "voted_count": voted_members,
+        }
+        self.log_manager.log_global_event("mission_vote_start", mission_vote_data)
 
-                vote = await self._ai_decide_mission_vote_with_llm(player)
+        ai_pending = [
+            p for p in self.ai_players
+            if p.name in self.game.current_team and p.name not in voted_names
+        ]
 
-                if not vote:
-                    print(f"AI API失败，使用备用逻辑为 {player.name}")
-                    vote = self.ai_decide_mission_vote(player)
+        if not ai_pending:
+            return
 
-                if vote:
-                    print(f"AI队伍成员 {player.name} 任务投票: {vote}")
+        async def fetch_mission_vote(player):
+            vote = await self._ai_decide_mission_vote_with_llm(player)
+            if not vote:
+                print(f"AI API失败，使用备用逻辑为 {player.name}")
+                vote = self.ai_decide_mission_vote(player)
+            return player, vote
 
-                    mission_vote_data = {
-                        "player": player.name,
-                        "vote": vote,
-                        "mission_number": self.game.current_mission
-                    }
-                    self.log_manager.log_global_event("mission_vote", mission_vote_data)
-                    result = self.game.vote_mission(player.name, vote)
-                    if 'error' not in result:
-                        await self.notify_frontend("mission_vote_recorded", result)
+        tasks = [asyncio.create_task(fetch_mission_vote(p)) for p in ai_pending]
+        final_result = None
 
-                        if result.get('status') in ['good_mission_win', 'evil_win', 'mission_completed']:
-                            print(f"任务投票完成，结果: {result.get('status')}")
-                            return
-                    else:
-                        print(f"任务投票失败: {result['error']}")
+        for task in asyncio.as_completed(tasks):
+            player, vote = await task
+            if not vote:
+                continue
 
-                    await asyncio.sleep(0.1)
+            print(f"AI队伍成员 {player.name} 任务投票: {vote}")
+            self.log_manager.log_global_event("mission_vote", {
+                "player": player.name,
+                "vote": vote,
+                "mission_number": self.game.current_mission,
+            })
+
+            result = self.game.vote_mission(player.name, vote)
+            if 'error' in result:
+                print(f"任务投票失败: {result['error']}")
+                continue
+
+            await self.notify_frontend("mission_vote_recorded", result)
+
+            if result.get('status') in ['good_mission_win', 'evil_win', 'mission_completed']:
+                final_result = result
+
+        if final_result:
+            print(f"任务投票完成，结果: {final_result.get('status')}")
 
     async def handle_assassination(self):
         """处理刺杀阶段"""
