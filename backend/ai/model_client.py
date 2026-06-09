@@ -9,6 +9,24 @@ from dotenv import load_dotenv
 load_dotenv()
 
 DEFAULT_REQUEST_TIMEOUT_SECONDS = int(os.getenv("AI_RESPONSE_TIMEOUT", "30"))
+DEFAULT_MAX_RETRIES = int(os.getenv("AI_MAX_RETRIES", "0"))
+
+
+def _create_async_openai_client(
+    api_key: str,
+    base_url: str,
+    timeout_seconds: int,
+    max_retries: int,
+):
+    from openai import AsyncOpenAI
+    import httpx
+
+    return AsyncOpenAI(
+        api_key=api_key,
+        base_url=base_url,
+        timeout=httpx.Timeout(timeout_seconds),
+        max_retries=max_retries,
+    )
 
 
 @dataclass
@@ -19,7 +37,11 @@ class ModelCallResult:
     error: Optional[Dict[str, Any]] = None
 
 
-def classify_api_error(exc: Exception, timeout_seconds: Optional[int] = None) -> Dict[str, Any]:
+def classify_api_error(
+    exc: Exception,
+    timeout_seconds: Optional[int] = None,
+    max_retries: Optional[int] = None,
+) -> Dict[str, Any]:
     """将异常归类为可写入玩家日志的错误信息。"""
     message = str(exc)
     lower_message = message.lower()
@@ -42,6 +64,8 @@ def classify_api_error(exc: Exception, timeout_seconds: Optional[int] = None) ->
     }
     if timeout_seconds is not None:
         error["timeout_seconds"] = timeout_seconds
+    if max_retries is not None:
+        error["max_retries"] = max_retries
     if hasattr(exc, "status_code"):
         error["status_code"] = exc.status_code
     if hasattr(exc, "code"):
@@ -49,16 +73,26 @@ def classify_api_error(exc: Exception, timeout_seconds: Optional[int] = None) ->
     return error
 
 
-def _failed_result(exc: Exception, provider: str, timeout_seconds: int) -> ModelCallResult:
+def _failed_result(
+    exc: Exception,
+    provider: str,
+    timeout_seconds: int,
+    max_retries: int = DEFAULT_MAX_RETRIES,
+) -> ModelCallResult:
     print(f"{provider}请求失败: {exc}")
     return ModelCallResult(
         success=False,
-        error=classify_api_error(exc, timeout_seconds=timeout_seconds),
+        error=classify_api_error(
+            exc,
+            timeout_seconds=timeout_seconds,
+            max_retries=max_retries,
+        ),
     )
 
 
 class BaseModelClient(ABC):
     request_timeout_seconds: int = DEFAULT_REQUEST_TIMEOUT_SECONDS
+    max_retries: int = DEFAULT_MAX_RETRIES
 
     @abstractmethod
     async def chat_completion(self, messages: List[Dict[str, str]], **kwargs) -> ModelCallResult:
@@ -96,6 +130,7 @@ class OpenAIModelClient(BaseModelClient):
         self.model = model
         self.client = None
         self.request_timeout_seconds = DEFAULT_REQUEST_TIMEOUT_SECONDS
+        self.max_retries = DEFAULT_MAX_RETRIES
         self._initialize()
 
     def _initialize(self):
@@ -104,15 +139,16 @@ class OpenAIModelClient(BaseModelClient):
             raise ValueError("未提供OpenAI API密钥")
 
         try:
-            from openai import AsyncOpenAI
-            import httpx
-
-            self.client = AsyncOpenAI(
-                api_key=self.api_key,
-                base_url=self.base_url,
-                timeout=httpx.Timeout(self.request_timeout_seconds)
+            self.client = _create_async_openai_client(
+                self.api_key,
+                self.base_url,
+                self.request_timeout_seconds,
+                self.max_retries,
             )
-            print(f"✅ OpenAI客户端初始化成功，模型: {self.model}")
+            print(
+                f"✅ OpenAI客户端初始化成功，模型: {self.model}，"
+                f"超时 {self.request_timeout_seconds}s，重试 {self.max_retries} 次"
+            )
         except ImportError:
             raise ImportError("未找到openai包，请安装: pip install openai")
         except Exception as e:
@@ -141,7 +177,9 @@ class OpenAIModelClient(BaseModelClient):
                 )
             return ModelCallResult(success=True, content=content.strip())
         except Exception as e:
-            return _failed_result(e, "OpenAI", self.request_timeout_seconds)
+            return _failed_result(
+                e, "OpenAI", self.request_timeout_seconds, self.max_retries
+            )
 
     async def stream_chat_completion(self, messages: List[Dict[str, str]], **kwargs) -> AsyncGenerator[str, None]:
         """发送聊天完成请求到OpenAI模型（流式）"""
@@ -168,6 +206,7 @@ class ZhipuAIModelClient(BaseModelClient):
         self.model = model
         self.client = None
         self.request_timeout_seconds = DEFAULT_REQUEST_TIMEOUT_SECONDS
+        self.max_retries = DEFAULT_MAX_RETRIES
         self._initialize()
 
     def _initialize(self):
@@ -208,7 +247,9 @@ class ZhipuAIModelClient(BaseModelClient):
                 )
             return ModelCallResult(success=True, content=content.strip())
         except Exception as e:
-            return _failed_result(e, "智谱AI", self.request_timeout_seconds)
+            return _failed_result(
+                e, "智谱AI", self.request_timeout_seconds, self.max_retries
+            )
 
     async def stream_chat_completion(self, messages: List[Dict[str, str]], **kwargs) -> AsyncGenerator[str, None]:
         """发送聊天完成请求到智谱AI模型（流式）"""
@@ -240,6 +281,7 @@ class VolcEngineModelClient(BaseModelClient):
         self.model = model or os.getenv("MODEL", "doubao-seed-2.0-mini")
         self.client = None
         self.request_timeout_seconds = DEFAULT_REQUEST_TIMEOUT_SECONDS
+        self.max_retries = DEFAULT_MAX_RETRIES
         self._initialize()
 
     def _initialize(self):
@@ -248,15 +290,16 @@ class VolcEngineModelClient(BaseModelClient):
             raise ValueError("未提供火山方舟 API密钥（API_KEY）")
 
         try:
-            from openai import AsyncOpenAI
-            import httpx
-
-            self.client = AsyncOpenAI(
-                api_key=self.api_key,
-                base_url=self.base_url,
-                timeout=httpx.Timeout(self.request_timeout_seconds)
+            self.client = _create_async_openai_client(
+                self.api_key,
+                self.base_url,
+                self.request_timeout_seconds,
+                self.max_retries,
             )
-            print(f"✅ 火山方舟客户端初始化成功，模型: {self.model}")
+            print(
+                f"✅ 火山方舟客户端初始化成功，模型: {self.model}，"
+                f"超时 {self.request_timeout_seconds}s，重试 {self.max_retries} 次"
+            )
         except ImportError:
             raise ImportError("未找到openai包，请安装: pip install openai")
         except Exception as e:
@@ -285,7 +328,9 @@ class VolcEngineModelClient(BaseModelClient):
                 )
             return ModelCallResult(success=True, content=content.strip())
         except Exception as e:
-            return _failed_result(e, "火山方舟", self.request_timeout_seconds)
+            return _failed_result(
+                e, "火山方舟", self.request_timeout_seconds, self.max_retries
+            )
 
     async def stream_chat_completion(self, messages: List[Dict[str, str]], **kwargs) -> AsyncGenerator[str, None]:
         """发送聊天完成请求到火山方舟模型（流式）"""

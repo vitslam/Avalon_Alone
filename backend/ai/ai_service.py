@@ -17,6 +17,7 @@ class AIService:
     def __init__(self, log_manager: LogManager = None, player_count: int = 5):
         self.ai_provider = os.getenv("AI_PROVIDER", "zhipu").lower()
         self.timeout = int(os.getenv("AI_RESPONSE_TIMEOUT", "30"))
+        self.max_retries = int(os.getenv("AI_MAX_RETRIES", "0"))
         self.fallback_enabled = os.getenv("AI_FALLBACK_ENABLED", "true").lower() == "true"
         self.log_manager = log_manager
         self.player_count = player_count
@@ -93,7 +94,11 @@ class AIService:
             return result
         except Exception as e:
             response_at = datetime.datetime.now()
-            error = classify_api_error(e, timeout_seconds=self.timeout)
+            error = classify_api_error(
+                e,
+                timeout_seconds=self.timeout,
+                max_retries=self.max_retries,
+            )
             response_log = {
                 "success": False,
                 "error": error,
