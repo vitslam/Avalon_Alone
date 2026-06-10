@@ -160,6 +160,15 @@
     text-shadow: 0 0 6px rgba(212, 168, 67, 0.5);
 }
 
+.player-card.on-proposed-team::before {
+    background: #ab47bc;
+}
+
+.player-card.on-proposed-team {
+    border-color: #ce93d8;
+    box-shadow: 0 0 10px rgba(171, 71, 188, 0.25);
+}
+
 .player-card.on-mission::before {
     background: #9C27B0;
 }

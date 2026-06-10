@@ -3,6 +3,26 @@ import state from './state.js';
 
 let speechBubbleLayer = 10;
 
+const PROPOSED_TEAM_PHASES = new Set(['选择队伍', '队伍投票', 'team_selection', 'team_vote']);
+const MISSION_VOTE_PHASES = new Set(['任务投票', 'mission_vote']);
+
+export function isProposedTeamPhase(phase) {
+    return PROPOSED_TEAM_PHASES.has(phase);
+}
+
+export function isMissionVotePhase(phase) {
+    return MISSION_VOTE_PHASES.has(phase);
+}
+
+export function sortTeamNames(names) {
+    return [...names].sort((a, b) => {
+        const na = parseInt(a, 10);
+        const nb = parseInt(b, 10);
+        if (!Number.isNaN(na) && !Number.isNaN(nb)) return na - nb;
+        return String(a).localeCompare(String(b));
+    });
+}
+
 export function updatePlayersDisplay() {
     const playersContainer = document.getElementById('playersContainer');
     playersContainer.innerHTML = '';
@@ -92,7 +112,12 @@ function createPlayerCard(player) {
     if (player.is_ai) {
         playerCard.classList.add('ai');
     }
-    if (state.gameState.current_team && state.gameState.current_team.includes(player.name)) {
+    const phase = state.gameState.phase;
+    const onTeam = state.gameState.current_team?.includes(player.name);
+    if (onTeam && isProposedTeamPhase(phase)) {
+        playerCard.classList.add('on-proposed-team');
+    }
+    if (onTeam && isMissionVotePhase(phase)) {
         playerCard.classList.add('on-mission');
     }
 
@@ -117,7 +142,10 @@ function createPlayerCard(player) {
     const statusParts = [];
     if (player.name === state.gameState.current_leader) statusParts.push('队长');
     statusParts.push(player.is_ai ? 'AI' : '玩家');
-    if (state.gameState.current_team && state.gameState.current_team.includes(player.name)) {
+    if (onTeam && isProposedTeamPhase(phase)) {
+        statusParts.push('远征队');
+    }
+    if (onTeam && isMissionVotePhase(phase)) {
         statusParts.push('任务中');
     }
 

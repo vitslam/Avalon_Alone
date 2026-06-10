@@ -1,7 +1,15 @@
 // 游戏状态管理和事件处理
 import state from './state.js';
 import { addChatMessage } from './chat.js';
-import { updatePlayersDisplay, showTeamVoteProgress, showTeamVoteResult, clearTeamVoteDisplay } from './table.js';
+import {
+    updatePlayersDisplay,
+    showTeamVoteProgress,
+    showTeamVoteResult,
+    clearTeamVoteDisplay,
+    isProposedTeamPhase,
+    isMissionVotePhase,
+    sortTeamNames,
+} from './table.js';
 import { clearSpeechQueue } from './speechPresenter.js';
 import { showTeamSelection, showMissionVoting, showAssassinationPanel } from './controls.js';
 import { updatePlayerList, updateStartButton } from './players.js';
@@ -75,9 +83,39 @@ function updateMissionProgress() {
 
 function updateCurrentPhase() {
     const currentPhase = document.getElementById('currentPhase');
-    if (state.gameState) {
-        currentPhase.textContent = state.gameState.phase || '未知阶段';
+    if (!currentPhase || !state.gameState) return;
+
+    const phase = state.gameState.phase || '未知阶段';
+    const mission = state.gameState.current_mission;
+    const team = state.gameState.current_team;
+    const missionPrefix = mission ? `第 ${mission} 轮任务` : '';
+
+    if (team?.length && isProposedTeamPhase(phase)) {
+        const chipsHtml = sortTeamNames(team)
+            .map(name => `<span class="team-nominee-chip">${name}</span>`)
+            .join('');
+        currentPhase.innerHTML = `
+            <div class="phase-situation-line">
+                <span class="phase-situation-text">${missionPrefix} · 队伍提名</span>
+                <span class="phase-situation-chips">${chipsHtml}</span>
+            </div>
+        `;
+        return;
     }
+
+    if (isMissionVotePhase(phase)) {
+        currentPhase.textContent = missionPrefix
+            ? `${missionPrefix} · 任务表决`
+            : phase;
+        return;
+    }
+
+    if (missionPrefix) {
+        currentPhase.textContent = `${missionPrefix} · ${phase}`;
+        return;
+    }
+
+    currentPhase.textContent = phase;
 }
 
 export function handleGameStarted(data) {
@@ -92,6 +130,12 @@ export function handleGameStarted(data) {
 
 export function handleTeamSelected(data) {
     addChatMessage('系统', `队伍已选择: ${data.team.join(', ')}`, 'system');
+
+    if (state.gameState && data.team) {
+        state.gameState.current_team = data.team;
+        updatePlayersDisplay();
+        updateCurrentPhase();
+    }
 
     if (state.gameState && (state.gameState.phase === 'team_selection' || state.gameState.phase === '选择队伍')) {
         showTeamSelection();
