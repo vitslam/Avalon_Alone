@@ -251,7 +251,10 @@ export function setMissionResult(success) {
 export function playAssassinationVideo(assassinSucceeded, onEnded) {
     const file = assassinSucceeded ? ASSASSIN_SUCCESS_VIDEO : ASSASSIN_FAILED_VIDEO;
     console.log(`刺杀结果视频: ${file}`);
-    playFile(file, onEnded || hideOverlay);
+    playFile(file, () => {
+        hideOverlay();
+        if (onEnded) onEnded();
+    });
 }
 
 export function playMissionVideo(teamNames, players, missionNumber) {
