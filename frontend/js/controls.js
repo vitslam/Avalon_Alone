@@ -108,53 +108,24 @@ export function showMissionVoting() {
     showPanel('missionVoting');
 }
 
-export function showAssassinationPanel() {
+function isAssassinationPhase() {
+    const phase = state.gameState?.phase;
+    return phase === '刺杀阶段' || phase === 'assassination';
+}
+
+export function showAssassinationDiscussionPanel(data = {}) {
+    if (!isAssassinationPhase()) return;
+
     showPanel('assassinationPanel');
 
-    const targetSelection = document.getElementById('targetSelection');
-    targetSelection.innerHTML = '';
+    const round = data.round || state.gameState?.assassination_discussion_round || 0;
+    const maxRounds = data.max_rounds || state.gameState?.max_assassination_discussion_rounds || 3;
+    const evilPlayers = data.evil_players || [];
 
-    if (state.gameState && state.gameState.players) {
-        state.gameState.players.forEach(player => {
-            if (player.role && ['merlin', 'percival', 'loyal_servant'].includes(player.role)) {
-                const targetOption = document.createElement('div');
-                targetOption.className = 'player-option';
-                targetOption.textContent = player.name;
-                targetOption.onclick = () => selectAssassinationTarget(player.name, targetOption);
-                targetSelection.appendChild(targetOption);
-            }
-        });
-    }
-}
-
-function selectAssassinationTarget(targetName, element) {
-    document.querySelectorAll('#targetSelection .player-option').forEach(opt => {
-        opt.classList.remove('selected');
-    });
-
-    element.classList.add('selected');
-    state.selectedPlayers = [targetName];
-    document.getElementById('confirmAssassinationBtn').disabled = false;
-}
-
-export async function confirmAssassination() {
-    if (state.selectedPlayers.length === 0) {
-        alert('请选择刺杀目标');
-        return;
-    }
-
-    try {
-        const response = await fetch(`${state.API_BASE}/game/assassinate`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ target_name: state.selectedPlayers[0] })
-        });
-
-        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-    } catch (error) {
-        console.error('刺杀失败:', error);
-        alert('刺杀失败: ' + error.message);
-    }
+    document.getElementById('assassinationPanelTitle').textContent = '刺杀阶段 · 坏人讨论';
+    document.getElementById('assassinationDiscussionStatus').textContent = round > 0
+        ? `第 ${round}/${maxRounds} 轮讨论中，发言顺序：${evilPlayers.join(' → ') || '刺客起按座位顺时针'}`
+        : '坏人阵营正在秘密商议，刺客起按座位号顺序发言…';
 }
 
 function showPanel(panelId) {

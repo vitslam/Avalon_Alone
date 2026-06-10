@@ -6,7 +6,7 @@ import asyncio
 import os
 import random
 from typing import Dict, List, Optional, Callable, Any, Awaitable
-from ..core.constants import GAME_PHASES, GAME_STATES
+from ..core.constants import GAME_PHASES, GAME_STATES, MAX_ASSASSINATION_DISCUSSION_ROUNDS
 from ..core.roles import ROLES
 from ..core.roles import ROLES
 from .ai_service import ai_service
@@ -44,7 +44,6 @@ class AIController:
                 os.getenv('AVALON_SPEECH_PREFETCH_SIZE', '1'),
             )),
         )
-
     async def start_auto_play(self):
         """开始AI自动游戏"""
         if not self.ai_players:
@@ -388,41 +387,88 @@ class AIController:
             print(f"任务投票完成，结果: {final_result.get('status')}")
 
     async def handle_assassination(self):
-        """处理刺杀阶段"""
+        """处理刺杀阶段：坏人阵营多轮讨论后由刺客决定行刺或继续讨论。"""
         print("处理刺杀阶段")
 
         assassination_data = {
-            "mission_results": self.game.mission_results
+            "mission_results": self.game.mission_results,
+            "max_rounds": MAX_ASSASSINATION_DISCUSSION_ROUNDS,
         }
         self.log_manager.log_global_event("assassination_start", assassination_data)
 
-        assassin = None
-        for player in self.ai_players:
-            if player.role == 'assassin':
-                assassin = player
-                break
+        assassin = self.game.get_assassin()
+        if not assassin:
+            print("未找到刺客，跳过刺杀阶段")
+            return
 
-        if assassin:
-            print(f"AI刺客 {assassin.name} 准备选择刺杀目标")
+        good_players = [
+            p.name for p in self.game.players
+            if p.role in ['merlin', 'percival', 'loyal_servant']
+        ]
+        if not good_players:
+            print("没有可刺杀的好人玩家")
+            return
 
-            await self.ai_speak(assassin, "是时候展现真正的技术了...")
+        evil_players = self.game.get_evil_players_from_assassin()
+        print(
+            f"刺杀讨论开始，刺客 {assassin.name}，"
+            f"坏人发言顺序: {[p.name for p in evil_players]}"
+        )
 
-            good_players = [p.name for p in self.game.players if p.role in ['merlin', 'percival', 'loyal_servant']]
+        await self.notify_frontend("assassination_discussion_start", {
+            "assassin": assassin.name,
+            "evil_players": [p.name for p in evil_players],
+            "max_rounds": MAX_ASSASSINATION_DISCUSSION_ROUNDS,
+        })
 
-            if good_players:
-                target = await self._ai_select_assassination_target_with_llm(assassin, good_players)
+        for round_num in range(1, MAX_ASSASSINATION_DISCUSSION_ROUNDS + 1):
+            self.game.assassination_discussion_round = round_num
 
-                if not target:
-                    print(f"AI API失败，使用备用逻辑为 {assassin.name}")
-                    target = self.ai_select_assassination_target(assassin, good_players)
+            await self.notify_frontend("assassination_round_start", {
+                "round": round_num,
+                "max_rounds": MAX_ASSASSINATION_DISCUSSION_ROUNDS,
+                "evil_players": [p.name for p in evil_players],
+            })
 
+            await self._run_prefetched_speeches(
+                evil_players,
+                self._get_ai_assassination_discussion_speech,
+            )
+
+            must_assassinate = round_num >= MAX_ASSASSINATION_DISCUSSION_ROUNDS
+            if must_assassinate:
+                target = await self._resolve_assassination_target(assassin, good_players)
                 if target:
-                    print(f"刺客 {assassin.name} 选择刺杀: {target}")
+                    await self._execute_assassination(assassin, target)
+                return
 
-                    await self.ai_speak(assassin, f"我要刺杀 {target}！")
+            decision = await self._ai_assassination_decision_with_llm(
+                assassin, good_players, round_num
+            )
+            if decision == 'continue':
+                print(f"刺客 {assassin.name} 选择继续第 {round_num + 1} 轮讨论")
+                continue
 
-                    result = self.game.assassinate(target)
-                    await self.notify_frontend("assassination_result", result)
+            target = decision if decision in good_players else None
+            if not target:
+                target = await self._resolve_assassination_target(assassin, good_players)
+            if target:
+                await self._execute_assassination(assassin, target)
+            return
+
+    async def _resolve_assassination_target(self, assassin, good_players: List[str]) -> Optional[str]:
+        """综合 LLM 与备用逻辑确定刺杀目标。"""
+        target = await self._ai_select_assassination_target_with_llm(assassin, good_players)
+        if not target:
+            print(f"AI API失败，使用备用逻辑为 {assassin.name}")
+            target = self.ai_select_assassination_target(assassin, good_players)
+        return target
+
+    async def _execute_assassination(self, assassin, target: str) -> None:
+        print(f"刺客 {assassin.name} 选择刺杀: {target}")
+        await self.ai_speak(assassin, f"我要刺杀 {target}！")
+        result = self.game.assassinate(target)
+        await self.notify_frontend("assassination_result", result)
 
     def _get_player_last_speech(self, player_name: str, phase: Optional[str] = None) -> Optional[str]:
         """获取玩家在指定阶段最近一条发言（从后往前找）。"""
@@ -490,6 +536,26 @@ class AIController:
         return await ai_service.get_ai_assassination_target(
             assassin.name, assassin.role, good_players, game_context
         )
+
+    async def _ai_assassination_decision_with_llm(
+        self, assassin, good_players: List[str], discussion_round: int
+    ) -> Optional[str]:
+        """使用 LLM 决定继续讨论或立即行刺。"""
+        game_context = self.game.get_game_state()
+        return await ai_service.get_ai_assassination_decision(
+            assassin.name,
+            assassin.role,
+            good_players,
+            game_context,
+            discussion_round,
+            MAX_ASSASSINATION_DISCUSSION_ROUNDS,
+        )
+
+    async def _get_ai_assassination_discussion_speech(self, player) -> Optional[str]:
+        """获取刺杀阶段坏人阵营讨论发言。"""
+        game_context = self.game.get_game_state()
+        game_context['vote_context'] = 'assassination_discussion'
+        return await ai_service.get_ai_speech(player.name, player.role, game_context)
 
     async def _get_ai_team_vote_speech(self, player) -> Optional[str]:
         """获取AI队伍投票时的发言"""

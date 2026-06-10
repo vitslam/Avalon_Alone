@@ -1,5 +1,8 @@
-from typing import List, Dict, Any
-from .constants import GAME_PHASES, MISSION_CONFIGS, GAME_STATES
+from typing import List, Dict, Any, Optional
+from .constants import (
+    GAME_PHASES, MISSION_CONFIGS, GAME_STATES,
+    EVIL_ROLES, MAX_ASSASSINATION_DISCUSSION_ROUNDS,
+)
 from ..models.player import Player
 from ..models.god import God
 
@@ -20,6 +23,7 @@ class AvalonGame:
         self.failed_team_votes = 0
         self.game_history = []
         self.messages_history = []
+        self.assassination_discussion_round = 0
 
         # 根据玩家数量设置任务配置
         player_count = len(players)
@@ -252,6 +256,28 @@ class AvalonGame:
 
         return {'status': 'vote_recorded', 'remaining_votes': len(self.current_team) - len(self.mission_votes)}
 
+    def get_assassin(self) -> Optional[Player]:
+        """返回刺客玩家，不存在时返回 None。"""
+        for player in self.players:
+            if player.role == 'assassin':
+                return player
+        return None
+
+    def get_evil_players_from_assassin(self) -> List[Player]:
+        """从刺客座位起按顺时针，返回坏人阵营玩家列表（含刺客）。"""
+        assassin = self.get_assassin()
+        if not assassin:
+            return []
+
+        n = len(self.players)
+        start_idx = self.players.index(assassin)
+        evil_players = []
+        for offset in range(n):
+            player = self.players[(start_idx + offset) % n]
+            if player.role in EVIL_ROLES:
+                evil_players.append(player)
+        return evil_players
+
     def record_message(self, player_name: str, content: str):
         """记录玩家发言"""
         self.messages_history.append({
@@ -325,7 +351,9 @@ class AvalonGame:
             'failed_team_votes': self.failed_team_votes,
             'players': [{'name': p.name, 'role': p.role, 'is_ai': p.is_ai} for p in self.players],
             'winner': getattr(self, 'winner', None),
-            'messages_history': self.messages_history
+            'messages_history': self.messages_history,
+            'assassination_discussion_round': self.assassination_discussion_round,
+            'max_assassination_discussion_rounds': MAX_ASSASSINATION_DISCUSSION_ROUNDS,
         }
 
     def get_mission_config(self) -> Dict[str, Any]:

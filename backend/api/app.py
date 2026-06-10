@@ -42,9 +42,6 @@ class Vote(BaseModel):
     player_name: str
     vote: str
 
-class Assassination(BaseModel):
-    target_name: str
-
 class GameConfig(BaseModel):
     players: List[PlayerConfig]
 
@@ -220,22 +217,6 @@ async def vote_mission(vote: Vote):
 
     # 通知所有WebSocket连接
     await notify_all_connections("mission_vote_recorded", result)
-
-    return result
-
-@app.post("/game/assassinate")
-async def assassinate(assassination: Assassination):
-    """刺客刺杀"""
-    if not game_instance:
-        raise HTTPException(status_code=404, detail="游戏未开始")
-
-    result = game_instance.assassinate(assassination.target_name)
-
-    if 'error' in result:
-        raise HTTPException(status_code=400, detail=result['error'])
-
-    # 通知所有WebSocket连接
-    await notify_all_connections("assassination_result", result)
 
     return result
 

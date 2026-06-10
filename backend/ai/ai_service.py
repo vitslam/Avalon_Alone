@@ -363,6 +363,15 @@ class AIService:
             context_info = f"当前需要对队伍 {current_team} 进行投票。"
         elif vote_context == "mission_vote":
             context_info = "你在任务队伍中，需要决定任务的成败。"
+        elif vote_context == "assassination_discussion":
+            discussion_round = game_context.get('assassination_discussion_round', 1)
+            max_rounds = game_context.get('max_assassination_discussion_rounds', 3)
+            context_info = (
+                f"好人已获得 3 次任务成功，进入刺杀阶段。"
+                f"当前是坏人阵营第 {discussion_round}/{max_rounds} 轮秘密讨论，"
+                f"请与同伴交流你对梅林身份的推断，帮助刺客做出最终决定。"
+                f"这是坏人之间的私下商议，可以坦诚分享你的判断。"
+            )
 
         prompt = f"""
 {history_info}
@@ -589,6 +598,130 @@ class AIService:
 
 只返回玩家座位号，例如：3
 """
+
+    def _build_assassination_decision_prompt(
+        self,
+        assassin_name: str,
+        good_players: List[str],
+        game_context: Dict[str, Any],
+        discussion_round: int,
+        max_rounds: int,
+    ) -> str:
+        messages_history = game_context.get('messages_history', [])
+        assassination_phase = game_context.get('phase', '刺杀阶段')
+
+        discussion_lines = [
+            f"{msg['player']}说: {msg['content']}"
+            for msg in messages_history
+            if msg.get('phase') == assassination_phase
+        ]
+        discussion_info = ""
+        if discussion_lines:
+            discussion_info = "\n\n本轮坏人阵营讨论:\n" + '\n'.join(discussion_lines)
+
+        remaining_rounds = max_rounds - discussion_round
+        if remaining_rounds > 0:
+            continue_hint = (
+                f"你还可以选择继续讨论（剩余 {remaining_rounds} 轮讨论机会），"
+                f"或现在就选定刺杀目标。"
+            )
+        else:
+            continue_hint = "这是最后一轮讨论，讨论结束后你必须立即选定刺杀目标。"
+
+        return f"""【刺客决策】
+你是刺客 {assassin_name}，刚完成第 {discussion_round}/{max_rounds} 轮坏人阵营讨论。
+可刺杀的好人玩家：{good_players}
+{discussion_info}
+
+{continue_hint}
+
+请做出决策：
+- 若需要继续讨论，只回答 continue
+- 若决定行刺，只回答 assassinate:玩家座位号（例如 assassinate:3）
+"""
+
+    async def get_ai_assassination_decision(
+        self,
+        assassin_name: str,
+        role: str,
+        good_players: List[str],
+        game_context: Dict[str, Any],
+        discussion_round: int,
+        max_rounds: int,
+    ) -> Optional[str]:
+        """获取刺客决策：continue 或 assassinate:目标"""
+        try:
+            players = game_context.get('players', [])
+            context = self._build_role_decision_context(role, assassin_name, players)
+            task_prompt = self._build_assassination_decision_prompt(
+                assassin_name, good_players, game_context, discussion_round, max_rounds
+            )
+            user_content = f"{context}\n\n{task_prompt}"
+
+            messages = [
+                {
+                    "role": "system",
+                    "content": (
+                        "你是阿瓦隆游戏中的刺客。"
+                        "根据坏人阵营讨论，决定继续讨论或立即行刺。"
+                        "只回答 continue 或 assassinate:玩家座位号。"
+                    ),
+                },
+                {"role": "user", "content": user_content},
+            ]
+
+            request_log = {
+                "action": "assassination_decision",
+                "player_name": assassin_name,
+                "role": role,
+                "discussion_round": discussion_round,
+                "good_players": good_players,
+                "game_context": game_context,
+                "messages": messages,
+            }
+
+            def finalize_decision(result: ModelCallResult, response_log: Dict[str, Any]) -> Dict[str, Any]:
+                if not result.success or not result.content:
+                    return response_log
+
+                raw = result.content.strip()
+                response_log["content"] = raw
+                normalized = raw.lower().replace('：', ':').strip()
+
+                if normalized == 'continue':
+                    response_log["decision"] = 'continue'
+                elif normalized.startswith('assassinate:'):
+                    target = normalized.split(':', 1)[1].strip()
+                    response_log["decision"] = 'assassinate'
+                    response_log["target"] = target
+                elif normalized in good_players:
+                    response_log["decision"] = 'assassinate'
+                    response_log["target"] = normalized
+                return response_log
+
+            result = await self._call_model(
+                assassin_name, request_log, messages, finalize_response=finalize_decision
+            )
+
+            if not result.success or not result.content:
+                return None
+
+            normalized = result.content.strip().lower().replace('：', ':')
+            if normalized == 'continue':
+                return 'continue'
+
+            if normalized.startswith('assassinate:'):
+                target = normalized.split(':', 1)[1].strip()
+                if target in good_players:
+                    return target
+
+            if result.content.strip() in good_players:
+                return result.content.strip()
+
+        except Exception as e:
+            print(f"AI {assassin_name} 刺杀决策失败: {e}")
+
+        return None
 
     async def get_ai_assassination_target(
         self,

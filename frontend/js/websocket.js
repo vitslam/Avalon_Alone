@@ -5,7 +5,11 @@ import { enqueuePlayerSpeech } from './speechPresenter.js';
 import {
     handleGameStarted, handleTeamSelected,
     handleTeamVotePhaseStart, handleTeamVoteProgress, handleTeamVoteCompleted, handleTeamVoteRecorded,
-    handleMissionVoteRecorded, handleAssassinationResult, handleGameReset
+    handleMissionVoteRecorded,
+    handleAssassinationDiscussionStart,
+    handleAssassinationRoundStart,
+    handleAssassinationResult,
+    handleGameReset,
 } from './game.js';
 
 export function connectWebSocket() {
@@ -97,8 +101,17 @@ function handleWebSocketMessage(data) {
         case 'voice_complete':
             setTimeout(fetchCurrentGameState, 100);
             break;
+        case 'assassination_discussion_start':
+            handleAssassinationDiscussionStart(data.data);
+            setTimeout(fetchCurrentGameState, 100);
+            break;
+        case 'assassination_round_start':
+            handleAssassinationRoundStart(data.data);
+            setTimeout(fetchCurrentGameState, 100);
+            break;
         case 'assassination_result':
             handleAssassinationResult(data.data);
+            setTimeout(fetchCurrentGameState, 100);
             break;
         case 'game_reset':
             handleGameReset(data.data);

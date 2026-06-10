@@ -2,7 +2,7 @@
 import state from './state.js';
 import { addPlayer, removePlayer, updateStartButton, initializeDefaultPlayers } from './players.js';
 import { startGame, resetGame, setCurrentPlayer } from './game.js';
-import { confirmTeam, vote, voteMission, confirmAssassination } from './controls.js';
+import { confirmTeam, vote, voteMission } from './controls.js';
 import { sendMessage } from './chat.js';
 import { connectWebSocket } from './websocket.js';
 import { loadTTSModule, initializeVoiceControl, testVoice } from './voice.js';
@@ -23,7 +23,6 @@ window.startGame = startGame;
 window.confirmTeam = confirmTeam;
 window.vote = vote;
 window.voteMission = voteMission;
-window.confirmAssassination = confirmAssassination;
 window.sendMessage = sendMessage;
 window.resetGame = resetGame;
 window.setCurrentPlayer = setCurrentPlayer;

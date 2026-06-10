@@ -70,6 +70,12 @@ ROLE_ASSIGNMENT = {
     10: ["merlin", "percival", "loyal_servant", "loyal_servant", "loyal_servant", "loyal_servant", "morgana", "assassin", "mordred", "oberon"]
 }
 
+# 坏人角色（刺杀讨论阶段按座位顺序发言）
+EVIL_ROLES = frozenset(['morgana', 'assassin', 'minion', 'mordred', 'oberon'])
+
+# 刺杀阶段坏人阵营最多讨论轮数
+MAX_ASSASSINATION_DISCUSSION_ROUNDS = 3
+
 # 投票规则
 VOTE_RULES = {
     "team": {

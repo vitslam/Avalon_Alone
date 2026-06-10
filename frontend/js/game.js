@@ -11,7 +11,11 @@ import {
     sortTeamNames,
 } from './table.js';
 import { clearSpeechQueue } from './speechPresenter.js';
-import { showTeamSelection, showMissionVoting, showAssassinationPanel } from './controls.js';
+import {
+    showTeamSelection,
+    showMissionVoting,
+    showAssassinationDiscussionPanel,
+} from './controls.js';
 import { updatePlayerList, updateStartButton } from './players.js';
 import { playMissionVideo, playAssassinationVideo, stopMissionVideo, setMissionResult } from './missionVideo.js';
 
@@ -107,6 +111,17 @@ function updateCurrentPhase() {
         currentPhase.textContent = missionPrefix
             ? `${missionPrefix} · 任务表决`
             : phase;
+        return;
+    }
+
+    if (phase === '刺杀阶段' || phase === 'assassination') {
+        const round = state.gameState.assassination_discussion_round || 0;
+        const maxRounds = state.gameState.max_assassination_discussion_rounds || 3;
+        if (round > 0) {
+            currentPhase.textContent = `刺杀阶段 · 坏人讨论 第 ${round}/${maxRounds} 轮`;
+        } else {
+            currentPhase.textContent = '刺杀阶段 · 坏人讨论';
+        }
         return;
     }
 
@@ -211,8 +226,8 @@ export function handleMissionVoteRecorded(data) {
     }
 
     if (data.status === 'good_mission_win') {
-        addChatMessage('系统', '好人获得3次任务成功！进入刺杀阶段', 'system');
-        showAssassinationPanel();
+        addChatMessage('系统', '好人获得3次任务成功！坏人阵营进入秘密讨论', 'system');
+        showAssassinationDiscussionPanel();
     } else if (data.status === 'evil_win') {
         showGameResult('坏人获胜', data.reason);
     } else if (data.status === 'mission_completed') {
@@ -221,7 +236,40 @@ export function handleMissionVoteRecorded(data) {
     }
 }
 
+export function handleAssassinationDiscussionStart(data) {
+    if (state.gameState) {
+        state.gameState.assassination_discussion_round = 0;
+    }
+
+    addChatMessage(
+        '系统',
+        `进入刺杀阶段，坏人从刺客起按座位顺序讨论（最多 ${data.max_rounds || 3} 轮）`,
+        'system'
+    );
+    showAssassinationDiscussionPanel(data);
+    updateCurrentPhase();
+}
+
+export function handleAssassinationRoundStart(data) {
+    if (state.gameState) {
+        state.gameState.assassination_discussion_round = data.round;
+    }
+
+    addChatMessage(
+        '系统',
+        `刺杀讨论第 ${data.round}/${data.max_rounds} 轮开始`,
+        'system'
+    );
+    showAssassinationDiscussionPanel(data);
+    updateCurrentPhase();
+}
+
 export function handleAssassinationResult(data) {
+    const assassinationPanel = document.getElementById('assassinationPanel');
+    if (assassinationPanel) {
+        assassinationPanel.style.display = 'none';
+    }
+
     const showResult = () => {
         if (data.status === 'evil_win') {
             showGameResult('坏人获胜', data.reason);
