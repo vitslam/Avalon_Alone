@@ -7,6 +7,8 @@ import os
 import random
 from typing import Dict, List, Optional, Callable, Any, Awaitable
 from ..core.constants import GAME_PHASES, GAME_STATES
+from ..core.roles import ROLES
+from ..core.roles import ROLES
 from .ai_service import ai_service
 from ..core.log_manager import LogManager
 
@@ -234,7 +236,7 @@ class AIController:
         async def fetch_team_vote(player):
             vote = await self._ai_decide_team_vote_with_llm(player)
             if not vote:
-                print(f"AI API失败，使用备用逻辑为 {player.name}")
+                print(f"AI API失败，使用发言解析/兜底逻辑为 {player.name}")
                 vote = self.ai_decide_team_vote(player)
             return player, vote
 
@@ -353,7 +355,7 @@ class AIController:
         async def fetch_mission_vote(player):
             vote = await self._ai_decide_mission_vote_with_llm(player)
             if not vote:
-                print(f"AI API失败，使用备用逻辑为 {player.name}")
+                print(f"AI API失败，使用发言解析/兜底逻辑为 {player.name}")
                 vote = self.ai_decide_mission_vote(player)
             return player, vote
 
@@ -421,6 +423,16 @@ class AIController:
 
                     result = self.game.assassinate(target)
                     await self.notify_frontend("assassination_result", result)
+
+    def _get_player_last_speech(self, player_name: str, phase: Optional[str] = None) -> Optional[str]:
+        """获取玩家在指定阶段最近一条发言（从后往前找）。"""
+        for msg in reversed(self.game.messages_history):
+            if msg.get('player') != player_name:
+                continue
+            if phase and msg.get('phase') != phase:
+                continue
+            return msg.get('content')
+        return None
 
     def _parse_vote_from_speech(self, speech: str, vote_type: str) -> Optional[str]:
         """从发言中解析投票决策，减少LLM调用。无法确定时返回None，走LLM兜底。"""
@@ -597,20 +609,22 @@ class AIController:
         return sorted(team, key=lambda n: int(n) if n.isdigit() else n)
 
     def ai_decide_team_vote(self, player) -> str:
-        """AI队伍投票决策备用逻辑"""
-        if player.role in ['morgana', 'assassin', 'minion', 'mordred']:
-            evil_in_team = any(p.role in ['morgana', 'assassin', 'minion', 'mordred', 'oberon']
-                             for p in self.game.players if p.name in self.game.current_team)
-            return "approve" if evil_in_team else "reject"
-        else:
-            return random.choice(["approve", "reject"])
+        """AI队伍投票决策备用逻辑：解析本队讨论发言，无法解析时默认赞成"""
+        speech = self._get_player_last_speech(player.name, GAME_PHASES['team_vote'])
+        vote = self._parse_vote_from_speech(speech, "team")
+        if vote:
+            return vote
+        return "approve"
 
     def ai_decide_mission_vote(self, player) -> str:
-        """AI任务投票决策备用逻辑"""
-        if player.role in ['morgana', 'assassin', 'minion', 'mordred']:
-            return random.choice(["success", "fail"])
-        else:
-            return "success"
+        """AI任务投票决策备用逻辑：解析本队讨论发言，无法解析时按阵营投票"""
+        speech = self._get_player_last_speech(player.name, GAME_PHASES['team_vote'])
+        vote = self._parse_vote_from_speech(speech, "mission")
+        if vote:
+            return vote
+        if ROLES.get(player.role, {}).get('team') == 'evil':
+            return "fail"
+        return "success"
 
     def ai_select_assassination_target(self, assassin, good_players: List[str]) -> str:
         """AI刺杀目标选择备用逻辑"""
