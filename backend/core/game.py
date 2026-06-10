@@ -23,6 +23,7 @@ class AvalonGame:
         self.failed_team_votes = 0
         self.game_history = []
         self.messages_history = []
+        self.round_discussion_summaries: Dict[int, str] = {}
         self.assassination_discussion_round = 0
 
         # 根据玩家数量设置任务配置
@@ -215,7 +216,8 @@ class AvalonGame:
             self.messages_history.append({
                 'player': 'system',
                 'content': f"第{self.current_mission}轮任务{'成功' if mission_success else '失败'}（{success_count}票成功，{fail_count}票失败）",
-                'phase': self.phase
+                'phase': self.phase,
+                'mission': self.current_mission,
             })
 
             # 检查游戏是否结束
@@ -283,7 +285,8 @@ class AvalonGame:
         self.messages_history.append({
             'player': player_name,
             'content': content,
-            'phase': self.phase
+            'phase': self.phase,
+            'mission': self.current_mission,
         })
 
     def assassinate(self, target_name: str) -> Dict[str, Any]:
@@ -352,6 +355,7 @@ class AvalonGame:
             'players': [{'name': p.name, 'role': p.role, 'is_ai': p.is_ai} for p in self.players],
             'winner': getattr(self, 'winner', None),
             'messages_history': self.messages_history,
+            'round_discussion_summaries': dict(self.round_discussion_summaries),
             'assassination_discussion_round': self.assassination_discussion_round,
             'max_assassination_discussion_rounds': MAX_ASSASSINATION_DISCUSSION_ROUNDS,
         }

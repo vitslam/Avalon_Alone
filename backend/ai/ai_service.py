@@ -2,7 +2,10 @@ import asyncio
 import datetime
 import json
 import os
-from typing import Optional, Dict, Any, List, Callable
+from typing import Optional, Dict, Any, List, Callable, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from ..core.game import AvalonGame
 from dotenv import load_dotenv
 from .model_client import ModelClientFactory, BaseModelClient, ModelCallResult, classify_api_error
 from ..core.roles import (
@@ -14,6 +17,10 @@ from ..core.roles import (
 )
 from ..core.constants import VOTE_RULES
 from ..core.log_manager import LogManager
+from ..core.prompt_context import (
+    format_dialogue_history_block,
+    collect_round_messages,
+)
 
 # 加载环境变量
 load_dotenv()
@@ -48,6 +55,18 @@ class AIService:
         if self.log_manager:
             self.log_manager.log_player_interaction(
                 player_name, request_log, response_log, request_at, response_at
+            )
+
+    def _log_system_llm_call(
+        self,
+        request_log: Dict[str, Any],
+        response_log: Dict[str, Any],
+        request_at: datetime.datetime,
+        response_at: datetime.datetime,
+    ) -> None:
+        if self.log_manager:
+            self.log_manager.log_system_interaction(
+                request_log, response_log, request_at, response_at
             )
 
     def _build_response_log(self, result: ModelCallResult, **fields) -> Dict[str, Any]:
@@ -343,20 +362,112 @@ class AIService:
         role_description = get_role_description(role, player_name, players)
         return f"{game_description}\n\n{decision_guidance}\n\n{role_description}"
 
+    async def compress_round_discussion(
+        self,
+        game: "AvalonGame",
+        mission_number: int,
+    ) -> None:
+        """任务轮次结束后异步压缩该轮对话，写入 game.round_discussion_summaries。"""
+        if mission_number in game.round_discussion_summaries:
+            return
+
+        round_messages = collect_round_messages(game.messages_history, mission_number)
+        if not round_messages:
+            return
+
+        mission_result = next(
+            (r for r in game.mission_results if r.get('mission') == mission_number),
+            None,
+        )
+        dialogue_lines = [
+            f"{msg['player']}说: {msg['content']}"
+            for msg in round_messages
+        ]
+        result_hint = ""
+        if mission_result:
+            status = '成功' if mission_result.get('success') else '失败'
+            result_hint = (
+                f"任务结果：第{mission_number}轮{status}，"
+                f"队伍 {mission_result.get('team')}，"
+                f"{mission_result.get('success_count', 0)}票成功 / "
+                f"{mission_result.get('fail_count', 0)}票失败。"
+            )
+
+        user_prompt = f"""请将以下阿瓦隆第 {mission_number} 轮任务的讨论发言压缩为一段 80~150 字的中文摘要。
+
+要求：
+1. 保留各玩家的核心立场（赞成/反对哪支队伍、怀疑谁）
+2. 保留关键推理与分歧点
+3. 不要逐句复述，不要添加原文没有的信息
+4. {result_hint}
+
+【第{mission_number}轮完整讨论】
+{chr(10).join(dialogue_lines)}
+"""
+
+        messages = [
+            {
+                "role": "system",
+                "content": "你是游戏记录员，负责将冗长讨论压缩为简洁摘要，只输出摘要正文。",
+            },
+            {"role": "user", "content": user_prompt},
+        ]
+        request_log = {
+            "action": "round_discussion_compress",
+            "mission_number": mission_number,
+            "message_count": len(round_messages),
+            "messages": messages,
+        }
+        request_at = datetime.datetime.now()
+
+        if not self.model_client:
+            response_at = datetime.datetime.now()
+            self._log_system_llm_call(
+                request_log,
+                {"success": False, "error": "AI模型客户端未初始化"},
+                request_at,
+                response_at,
+            )
+            return
+
+        try:
+            result = await self.model_client.chat_completion(messages)
+            response_at = datetime.datetime.now()
+            response_log = self._build_response_log(result)
+
+            if result.success and result.content:
+                summary = result.content.strip()
+                game.round_discussion_summaries[mission_number] = summary
+                response_log["summary"] = summary
+                print(f"第{mission_number}轮讨论摘要已生成: {summary[:60]}...")
+            else:
+                print(f"第{mission_number}轮讨论摘要生成失败")
+
+            self._log_system_llm_call(request_log, response_log, request_at, response_at)
+        except Exception as e:
+            response_at = datetime.datetime.now()
+            error = classify_api_error(
+                e,
+                timeout_seconds=self.timeout,
+                max_retries=self.max_retries,
+            )
+            self._log_system_llm_call(
+                request_log,
+                {"success": False, "error": error},
+                request_at,
+                response_at,
+            )
+            print(f"第{mission_number}轮讨论摘要异常: {e}")
+
     def _build_speech_prompt(self, player_name: str, role: str, game_context: Dict[str, Any]) -> str:
         phase = game_context.get('phase', '未知')
         current_mission = game_context.get('current_mission', 1)
         current_team = game_context.get('current_team', [])
         vote_context = game_context.get('vote_context', '')
-        messages_history = game_context.get('messages_history', [])
 
-        # 添加对话历史
-        history_info = ""
-        if messages_history:
-            history_lines = []
-            for msg in messages_history:
-                history_lines.append(f"{msg['player']}说: {msg['content']}")
-            history_info = "\n\n对话历史:\n" + '\n'.join(history_lines)
+        history_info = format_dialogue_history_block(
+            game_context, label="对话历史", player_name=player_name
+        )
 
         context_info = ""
         if vote_context == "team_vote":
@@ -385,7 +496,6 @@ class AIService:
 
     def _build_team_selection_prompt(self, player_name: str, role: str, game_context: Dict[str, Any],
                                    available_players: List[str], team_size: int) -> str:
-        messages_history = game_context.get('messages_history', [])
         mission_results = game_context.get('mission_results', [])
 
         role_info = ROLES.get(role, {'name': role, 'team': 'unknown'})
@@ -403,13 +513,9 @@ class AIService:
             ]
             mission_info = "\n\n任务历史:\n" + '\n'.join(mission_lines)
 
-        # 添加对话历史
-        history_info = ""
-        if messages_history:
-            history_lines = []
-            for msg in messages_history:
-                history_lines.append(f"{msg['player']}说: {msg['content']}")
-            history_info = "\n\n对话历史:\n" + '\n'.join(history_lines)
+        history_info = format_dialogue_history_block(
+            game_context, label="对话历史", player_name=player_name
+        )
 
         # 根据角色阵营生成策略建议
         if role_info['team'] == 'good':
@@ -441,7 +547,6 @@ class AIService:
         team_size: int,
         current_team: List[str],
     ) -> str:
-        messages_history = game_context.get('messages_history', [])
         mission_results = game_context.get('mission_results', [])
         role_info = ROLES.get(role, {'name': role, 'team': 'unknown'})
 
@@ -457,13 +562,11 @@ class AIService:
             ]
             mission_info = "\n\n任务历史:\n" + '\n'.join(mission_lines)
 
-        history_info = ""
-        if messages_history:
-            history_lines = [
-                f"{msg['player']}说: {msg['content']}"
-                for msg in messages_history
-            ]
-            history_info = "\n\n讨论发言（含你对当前队伍的提议及众人意见）:\n" + '\n'.join(history_lines)
+        history_info = format_dialogue_history_block(
+            game_context,
+            label="讨论发言（含你对当前队伍的提议及众人意见）",
+            player_name=player_name,
+        )
 
         if role_info['team'] == 'good':
             team_strategy = "尽量选择可信的玩家，避免选择可疑的玩家"
@@ -490,16 +593,11 @@ class AIService:
 
     def _build_vote_prompt(self, player_name: str, role: str, game_context: Dict[str, Any], vote_type: str) -> str:
         current_team = game_context.get('current_team', [])
-        messages_history = game_context.get('messages_history', [])
         role_info = ROLES.get(role, {'name': role, 'team': 'unknown'})
 
-        history_info = ""
-        if messages_history:
-            history_lines = [
-                f"{msg['player']}说: {msg['content']}"
-                for msg in messages_history
-            ]
-            history_info = "\n\n对话历史:\n" + '\n'.join(history_lines)
+        history_info = format_dialogue_history_block(
+            game_context, label="对话历史", player_name=player_name
+        )
 
         mission_summary = ""
         mission_results = game_context.get('mission_results', [])
@@ -568,31 +666,11 @@ class AIService:
         good_players: List[str],
         game_context: Optional[Dict[str, Any]] = None,
     ) -> str:
-        messages_history = (game_context or {}).get('messages_history', [])
-        mission_results = (game_context or {}).get('mission_results', [])
-
-        history_info = ""
-        if messages_history:
-            history_lines = [
-                f"{msg['player']}说: {msg['content']}"
-                for msg in messages_history
-            ]
-            history_info = "\n\n对话历史:\n" + '\n'.join(history_lines)
-
-        mission_info = ""
-        if mission_results:
-            mission_lines = [
-                (
-                    f"第{r['mission']}轮任务{'成功' if r['success'] else '失败'}，"
-                    f"队伍 {r['team']}"
-                )
-                for r in mission_results
-            ]
-            mission_info = "\n\n任务历史:\n" + '\n'.join(mission_lines)
+        ctx = game_context or {}
+        history_info = format_dialogue_history_block(ctx, label="对话历史")
 
         return f"""【刺杀阶段】
 可刺杀的好人玩家：{good_players}
-{mission_info}
 请根据整场对局的发言与任务记录，选择一个你认为最可能是梅林的玩家进行刺杀。
 {history_info}
 
@@ -607,17 +685,9 @@ class AIService:
         discussion_round: int,
         max_rounds: int,
     ) -> str:
-        messages_history = game_context.get('messages_history', [])
-        assassination_phase = game_context.get('phase', '刺杀阶段')
-
-        discussion_lines = [
-            f"{msg['player']}说: {msg['content']}"
-            for msg in messages_history
-            if msg.get('phase') == assassination_phase
-        ]
-        discussion_info = ""
-        if discussion_lines:
-            discussion_info = "\n\n本轮坏人阵营讨论:\n" + '\n'.join(discussion_lines)
+        discussion_info = format_dialogue_history_block(
+            game_context, label="对话历史", player_name=assassin_name
+        )
 
         remaining_rounds = max_rounds - discussion_round
         if remaining_rounds > 0:

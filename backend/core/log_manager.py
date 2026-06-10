@@ -127,6 +127,33 @@ class LogManager:
         with open(player_log_path, 'a') as f:
             f.write(json.dumps(log_entry, ensure_ascii=False) + '\n')
 
+    def log_system_interaction(
+        self,
+        request: Dict[str, Any],
+        response: Dict[str, Any],
+        request_at: datetime.datetime = None,
+        response_at: datetime.datetime = None,
+    ) -> None:
+        """记录系统级 LLM 调用（如对话历史压缩）到 system.jsonl。"""
+        system_log_path = os.path.join(self.game_log_dir, 'system.jsonl')
+        request_at = request_at or datetime.datetime.now()
+        response_at = response_at or datetime.datetime.now()
+        duration_ms = max(0, int((response_at - request_at).total_seconds() * 1000))
+
+        log_entry = {
+            'request_at': request_at.strftime('%Y-%m-%d %H:%M:%S'),
+            'response_at': response_at.strftime('%Y-%m-%d %H:%M:%S'),
+            'duration_ms': duration_ms,
+            'status': 'error' if response.get('success') is False or 'error' in response else 'success',
+            'request': request,
+            'response': response,
+        }
+        if self.model:
+            log_entry['model'] = self.model
+
+        with open(system_log_path, 'a') as f:
+            f.write(json.dumps(log_entry, ensure_ascii=False) + '\n')
+
     def get_game_log_dir(self) -> str:
         """获取游戏日志目录路径"""
         return self.game_log_dir

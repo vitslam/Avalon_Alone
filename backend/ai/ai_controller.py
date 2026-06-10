@@ -382,6 +382,8 @@ class AIController:
 
             if result.get('status') in ['good_mission_win', 'evil_win', 'mission_completed']:
                 final_result = result
+                if result.get('status') in ('mission_completed', 'good_mission_win'):
+                    self._schedule_round_discussion_compress()
 
         if final_result:
             print(f"任务投票完成，结果: {final_result.get('status')}")
@@ -455,6 +457,19 @@ class AIController:
             if target:
                 await self._execute_assassination(assassin, target)
             return
+
+    def _schedule_round_discussion_compress(self) -> None:
+        """任务轮次结束后异步压缩刚结束轮次的讨论。"""
+        if not self.game.mission_results:
+            return
+
+        completed_mission = self.game.mission_results[-1].get('mission')
+        if not completed_mission:
+            return
+
+        asyncio.create_task(
+            ai_service.compress_round_discussion(self.game, int(completed_mission))
+        )
 
     async def _resolve_assassination_target(self, assassin, good_players: List[str]) -> Optional[str]:
         """综合 LLM 与备用逻辑确定刺杀目标。"""
