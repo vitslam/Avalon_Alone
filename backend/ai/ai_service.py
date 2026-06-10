@@ -159,29 +159,58 @@ class AIService:
 
         return None
 
-    async def get_ai_team_selection(self, player_name: str, role: str, game_context: Dict[str, Any],
-                                  available_players: List[str], team_size: int) -> Optional[List[str]]:
-        """获取AI玩家的队伍选择"""
+    async def get_ai_team_selection(
+        self,
+        player_name: str,
+        role: str,
+        game_context: Dict[str, Any],
+        available_players: List[str],
+        team_size: int,
+        current_team: Optional[List[str]] = None,
+    ) -> Optional[List[str]]:
+        """获取AI玩家的队伍选择；传入 current_team 时进入讨论后改队流程。"""
+        is_revision = current_team is not None
         try:
             players = game_context.get('players', [])
             context = self._build_role_decision_context(role, player_name, players)
-            task_prompt = self._build_team_selection_prompt(player_name, role, game_context, available_players, team_size)
+            if is_revision:
+                task_prompt = self._build_team_revision_prompt(
+                    player_name, role, game_context, available_players, team_size, current_team
+                )
+                system_content = (
+                    "你是阿瓦隆游戏中的AI玩家。你已提议一支队伍并完成讨论，"
+                    "请根据你的角色确认是否维持或调整队伍。"
+                    "只返回JSON格式的增序排列的玩家名称列表。"
+                )
+                action = "team_revision"
+            else:
+                task_prompt = self._build_team_selection_prompt(
+                    player_name, role, game_context, available_players, team_size
+                )
+                system_content = (
+                    "你是阿瓦隆游戏中的AI玩家。请根据你的角色选择任务队伍。"
+                    "只返回JSON格式的增序排列的玩家名称列表。"
+                )
+                action = "team_selection"
+
             user_content = f"{context}\n\n{task_prompt}"
 
             messages = [
-                {"role": "system", "content": "你是阿瓦隆游戏中的AI玩家。请根据你的角色选择任务队伍。只返回JSON格式的增序排列的玩家名称列表。"},
-                {"role": "user", "content": user_content}
+                {"role": "system", "content": system_content},
+                {"role": "user", "content": user_content},
             ]
 
             request_log = {
-                "action": "team_selection",
+                "action": action,
                 "player_name": player_name,
                 "role": role,
                 "game_context": game_context,
                 "available_players": available_players,
                 "team_size": team_size,
-                "messages": messages
+                "messages": messages,
             }
+            if is_revision:
+                request_log["current_team"] = current_team
 
             def finalize_team(result: ModelCallResult, response_log: Dict[str, Any]) -> Dict[str, Any]:
                 if not result.success or not result.content:
@@ -393,6 +422,62 @@ class AIService:
 返回JSON格式的增序排列的玩家座位号列表，例如：["1", "2"]
 """
         return prompt
+
+    def _build_team_revision_prompt(
+        self,
+        player_name: str,
+        role: str,
+        game_context: Dict[str, Any],
+        available_players: List[str],
+        team_size: int,
+        current_team: List[str],
+    ) -> str:
+        messages_history = game_context.get('messages_history', [])
+        mission_results = game_context.get('mission_results', [])
+        role_info = ROLES.get(role, {'name': role, 'team': 'unknown'})
+
+        mission_info = ""
+        if mission_results:
+            mission_lines = [
+                (
+                    f"第{r['mission']}轮任务{'成功' if r['success'] else '失败'}，"
+                    f"队伍 {r['team']}，"
+                    f"{r.get('success_count', 0)}票成功 / {r.get('fail_count', 0)}票失败"
+                )
+                for r in mission_results
+            ]
+            mission_info = "\n\n任务历史:\n" + '\n'.join(mission_lines)
+
+        history_info = ""
+        if messages_history:
+            history_lines = [
+                f"{msg['player']}说: {msg['content']}"
+                for msg in messages_history
+            ]
+            history_info = "\n\n讨论发言（含你对当前队伍的提议及众人意见）:\n" + '\n'.join(history_lines)
+
+        if role_info['team'] == 'good':
+            team_strategy = "尽量选择可信的玩家，避免选择可疑的玩家"
+        elif role_info['team'] == 'evil':
+            team_strategy = "考虑是否要破坏任务，选择有利于己方的玩家"
+        else:
+            team_strategy = "根据情况选择合适的玩家"
+
+        return f"""【讨论后确认或调整队伍】
+你作为队长，已提议当前任务队伍：{current_team}
+全队刚完成针对该队伍的讨论发言，尚未正式投票。
+可选玩家：{available_players}
+需要 {team_size} 名玩家组成任务队伍。
+{mission_info}
+
+请根据讨论内容决定最终队伍：
+- 若讨论中无人明确反对当前队伍，也没有令人信服的理由要求换人，应维持原队伍不变（返回与当前队伍相同的成员列表）
+- 仅当有人提出有理有据的反对、或推荐了更合适的替代人选时，才调整队伍成员
+- {team_strategy}
+{history_info}
+
+返回JSON格式的增序排列的玩家座位号列表。维持原队时返回与当前提议相同的列表，例如：{json.dumps(current_team)}
+"""
 
     def _build_vote_prompt(self, player_name: str, role: str, game_context: Dict[str, Any], vote_type: str) -> str:
         current_team = game_context.get('current_team', [])

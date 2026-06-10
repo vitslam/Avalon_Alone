@@ -36,4 +36,8 @@ export const DEFAULT_VIDEO = 'Mission_Default.mp4';
 export const SUCCESS_VIDEO = 'mission_success.mp4';
 export const FAIL_VIDEO = 'mission_fail.mp4';
 
+// 刺杀结果视频（刺客成功刺杀梅林 / 刺杀失败）
+export const ASSASSIN_SUCCESS_VIDEO = 'assassin_success.mp4';
+export const ASSASSIN_FAILED_VIDEO = 'assassin_failed.mp4';
+
 export const VIDEO_BASE_PATH = '/static/assets/videos';

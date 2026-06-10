@@ -1,4 +1,12 @@
-import { MISSION_VIDEOS, DEFAULT_VIDEO, SUCCESS_VIDEO, FAIL_VIDEO, VIDEO_BASE_PATH } from './videoManifest.js';
+import {
+    MISSION_VIDEOS,
+    DEFAULT_VIDEO,
+    SUCCESS_VIDEO,
+    FAIL_VIDEO,
+    ASSASSIN_SUCCESS_VIDEO,
+    ASSASSIN_FAILED_VIDEO,
+    VIDEO_BASE_PATH,
+} from './videoManifest.js';
 
 const ROLE_TO_TOKEN = {
     merlin: 'Merlin',
@@ -119,6 +127,17 @@ export function resolveMissionVideo(teamNames, players) {
         };
     }
 
+    const countCandidates = MISSION_VIDEOS.filter(filename => {
+        return parseVideoTokens(filename).length === teamSides.total;
+    });
+
+    if (countCandidates.length > 0) {
+        return {
+            filename: countCandidates[Math.floor(Math.random() * countCandidates.length)],
+            matchLevel: 'count',
+        };
+    }
+
     return { filename: DEFAULT_VIDEO, matchLevel: 'default' };
 }
 
@@ -227,6 +246,12 @@ export function setMissionResult(success) {
         playResultVideo();
     }
     // 执行视频还在播放时，结果会在 onExecutionEnded 中衔接
+}
+
+export function playAssassinationVideo(assassinSucceeded, onEnded) {
+    const file = assassinSucceeded ? ASSASSIN_SUCCESS_VIDEO : ASSASSIN_FAILED_VIDEO;
+    console.log(`刺杀结果视频: ${file}`);
+    playFile(file, onEnded || hideOverlay);
 }
 
 export function playMissionVideo(teamNames, players, missionNumber) {

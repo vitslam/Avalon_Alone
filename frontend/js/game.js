@@ -5,7 +5,7 @@ import { updatePlayersDisplay, showTeamVoteProgress, showTeamVoteResult, clearTe
 import { clearSpeechQueue } from './speechPresenter.js';
 import { showTeamSelection, showMissionVoting, showAssassinationPanel } from './controls.js';
 import { updatePlayerList, updateStartButton } from './players.js';
-import { playMissionVideo, stopMissionVideo, setMissionResult } from './missionVideo.js';
+import { playMissionVideo, playAssassinationVideo, stopMissionVideo, setMissionResult } from './missionVideo.js';
 
 export function updateGameState(newState) {
     state.gameState = newState;
@@ -178,10 +178,16 @@ export function handleMissionVoteRecorded(data) {
 }
 
 export function handleAssassinationResult(data) {
-    if (data.status === 'evil_win') {
-        showGameResult('坏人获胜', data.reason);
-    } else if (data.status === 'good_win') {
-        showGameResult('好人获胜', data.reason);
+    const showResult = () => {
+        if (data.status === 'evil_win') {
+            showGameResult('坏人获胜', data.reason);
+        } else if (data.status === 'good_win') {
+            showGameResult('好人获胜', data.reason);
+        }
+    };
+
+    if (data.status === 'evil_win' || data.status === 'good_win') {
+        playAssassinationVideo(data.status === 'evil_win', showResult);
     }
 }
 

@@ -285,7 +285,9 @@ class AIController:
         available_players = self.game.get_available_players()
         original_team = list(self.game.current_team)
 
-        revised_team = await self._ai_select_team_with_llm(current_leader, available_players, team_size)
+        revised_team = await self._ai_revise_team_with_llm(
+            current_leader, available_players, team_size, original_team
+        )
         if not revised_team:
             revised_team = self.ai_select_team(current_leader, available_players, team_size)
 
@@ -449,6 +451,16 @@ class AIController:
         """使用LLM API选择队伍"""
         game_context = self.game.get_game_state()
         return await ai_service.get_ai_team_selection(leader.name, leader.role, game_context, available_players, team_size)
+
+    async def _ai_revise_team_with_llm(
+        self, leader, available_players: List[str], team_size: int, current_team: List[str]
+    ) -> Optional[List[str]]:
+        """使用LLM API在讨论后确认或调整队伍"""
+        game_context = self.game.get_game_state()
+        return await ai_service.get_ai_team_selection(
+            leader.name, leader.role, game_context, available_players, team_size,
+            current_team=current_team,
+        )
 
     async def _ai_decide_team_vote_with_llm(self, player) -> Optional[str]:
         """使用LLM API决定队伍投票"""
