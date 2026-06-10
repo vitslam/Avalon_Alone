@@ -462,7 +462,10 @@ class AIController:
 
     async def _ai_select_assassination_target_with_llm(self, assassin, good_players: List[str]) -> Optional[str]:
         """使用LLM API选择刺杀目标"""
-        return await ai_service.get_ai_assassination_target(assassin.name, assassin.role, good_players)
+        game_context = self.game.get_game_state()
+        return await ai_service.get_ai_assassination_target(
+            assassin.name, assassin.role, good_players, game_context
+        )
 
     async def _get_ai_team_vote_speech(self, player) -> Optional[str]:
         """获取AI队伍投票时的发言"""
@@ -567,7 +570,7 @@ class AIController:
             team.append(selected)
             remaining_players.remove(selected)
 
-        return team
+        return sorted(team, key=lambda n: int(n) if n.isdigit() else n)
 
     def select_evil_team(self, leader, available_players: List[str], team_size: int) -> List[str]:
         """坏人选择队伍策略"""
@@ -579,7 +582,7 @@ class AIController:
             team.append(selected)
             remaining_players.remove(selected)
 
-        return team
+        return sorted(team, key=lambda n: int(n) if n.isdigit() else n)
 
     def ai_decide_team_vote(self, player) -> str:
         """AI队伍投票决策备用逻辑"""
