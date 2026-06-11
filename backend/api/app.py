@@ -85,6 +85,9 @@ async def start_game(config: GameConfig):
     # 开始游戏
     result = game_instance.start_game()
 
+    for entry in game_instance.get_chat_log():
+        await notify_all_connections("chat_log_entry", entry)
+
     # 通知所有WebSocket连接
     await notify_all_connections("game_started", result)
 
@@ -98,6 +101,15 @@ async def start_auto_game():
     global ai_controller
     if ai_controller:
         await ai_controller.start_auto_play()
+
+@app.get("/game/chat-history")
+async def get_chat_history():
+    """获取完整战报历史（用于刷新页面或中途查看）"""
+    if not game_instance:
+        return {"status": "not_started", "entries": [], "count": 0}
+
+    entries = game_instance.get_chat_log()
+    return {"status": "ok", "entries": entries, "count": len(entries)}
 
 @app.get("/game/state")
 async def get_game_state():

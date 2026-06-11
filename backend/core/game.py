@@ -1,3 +1,4 @@
+from datetime import datetime, timezone
 from typing import List, Dict, Any, Optional
 from .constants import (
     GAME_PHASES, MISSION_CONFIGS, GAME_STATES,
@@ -22,6 +23,8 @@ class AvalonGame:
         self.failed_team_votes = 0
         self.game_history = []
         self.messages_history = []
+        self.chat_log: List[Dict[str, Any]] = []
+        self._chat_log_id = 0
         self.round_discussion_summaries: Dict[int, str] = {}
         self.assassination_discussion_round = 0
 
@@ -43,6 +46,8 @@ class AvalonGame:
 
         self.phase = GAME_PHASES['team_selection']
         self.current_leader_index = 0
+
+        self.append_chat_log('系统', '游戏开始！角色已分配完成', 'system')
 
         return {
             'status': 'started',
@@ -268,13 +273,38 @@ class AvalonGame:
         return evil_players
 
     def record_message(self, player_name: str, content: str):
-        """记录玩家发言"""
+        """记录玩家发言（供 AI 上下文使用，与战报 chat_log 分离）"""
         self.messages_history.append({
             'player': player_name,
             'content': content,
             'phase': self.phase,
             'mission': self.current_mission,
         })
+
+    def append_chat_log(
+        self,
+        sender: str,
+        message: str,
+        msg_type: str = 'system',
+        role: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """追加战报条目并返回完整记录"""
+        self._chat_log_id += 1
+        entry = {
+            'id': self._chat_log_id,
+            'sender': sender,
+            'message': message,
+            'type': msg_type,
+            'timestamp': datetime.now(timezone.utc).isoformat(),
+        }
+        if role:
+            entry['role'] = role
+        self.chat_log.append(entry)
+        return entry
+
+    def get_chat_log(self) -> List[Dict[str, Any]]:
+        """返回完整战报历史"""
+        return list(self.chat_log)
 
     def assassinate(self, target_name: str) -> Dict[str, Any]:
         """刺客刺杀"""

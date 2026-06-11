@@ -1,5 +1,7 @@
 // 战报展示（只读，无人类输入）
 
+let lastChatLogId = 0;
+
 function escapeHtml(text) {
     return String(text)
         .replace(/&/g, '&amp;')
@@ -17,8 +19,7 @@ export function stripMarkdownQuotes(text) {
         .trim();
 }
 
-export function addChatMessage(sender, message, type = 'system') {
-    const chatMessages = document.getElementById('chatMessages');
+function createChatMessageElement(sender, message, type = 'system') {
     const messageDiv = document.createElement('div');
     messageDiv.className = `chat-message ${type}`;
 
@@ -27,6 +28,44 @@ export function addChatMessage(sender, message, type = 'system') {
     body.innerHTML = `<span class="chat-sender">${escapeHtml(sender)}:</span> ${escapeHtml(stripMarkdownQuotes(message))}`;
 
     messageDiv.appendChild(body);
+    return messageDiv;
+}
+
+export function addChatMessage(sender, message, type = 'system') {
+    const chatMessages = document.getElementById('chatMessages');
+    const messageDiv = createChatMessageElement(sender, message, type);
     chatMessages.appendChild(messageDiv);
     chatMessages.scrollTop = chatMessages.scrollHeight;
+}
+
+export function appendChatLogEntry(entry) {
+    if (!entry || typeof entry.id !== 'number') return false;
+    if (entry.id <= lastChatLogId) return false;
+
+    const chatMessages = document.getElementById('chatMessages');
+    if (!chatMessages) return false;
+
+    const type = entry.type || 'system';
+    const messageDiv = createChatMessageElement(entry.sender, entry.message, type);
+    messageDiv.dataset.chatLogId = String(entry.id);
+    chatMessages.appendChild(messageDiv);
+    lastChatLogId = entry.id;
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+    return true;
+}
+
+export function renderChatLog(entries) {
+    const chatMessages = document.getElementById('chatMessages');
+    if (!chatMessages || !entries?.length) return;
+
+    chatMessages.innerHTML = '';
+    lastChatLogId = 0;
+
+    for (const entry of entries) {
+        appendChatLogEntry(entry);
+    }
+}
+
+export function resetChatLogState() {
+    lastChatLogId = 0;
 }

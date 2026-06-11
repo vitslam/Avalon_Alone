@@ -58,6 +58,9 @@ class AIController:
             print("开始新游戏")
             game_start_result = self.game.start_game()
 
+            for entry in self.game.get_chat_log():
+                await self.notify_frontend('chat_log_entry', entry)
+
             # 记录游戏开始和角色分配信息到全局日志
             if 'role_assignments' in game_start_result:
                 self.log_manager.log_game_start_with_roles(
@@ -174,6 +177,11 @@ class AIController:
 
                 result = self.game.select_team(selected_team)
                 if 'error' not in result:
+                    await self._publish_chat(
+                        '系统',
+                        f"队伍已选择: {', '.join(result['team'])}",
+                        'system',
+                    )
                     await self.notify_frontend("team_selected", result)
                 else:
                     print(f"队伍选择失败: {result['error']}")
@@ -318,6 +326,11 @@ class AIController:
             current_leader,
             f"听完大家的发言，我决定调整队伍为：{', '.join(revised_team)}，现在开始投票。"
         )
+        await self._publish_chat(
+            '系统',
+            f"队伍已选择: {', '.join(result['team'])}",
+            'system',
+        )
         await self.notify_frontend("team_selected", result)
 
     async def handle_mission_vote(self):
@@ -383,6 +396,7 @@ class AIController:
 
         if final_result:
             print(f"任务投票完成，结果: {final_result.get('status')}")
+            await self._publish_mission_vote_chat(final_result)
 
     async def handle_assassination(self):
         """处理刺杀阶段：坏人阵营多轮讨论后由刺客决定行刺或继续讨论。"""
@@ -413,6 +427,11 @@ class AIController:
             f"坏人发言顺序: {[p.name for p in evil_players]}"
         )
 
+        await self._publish_chat(
+            '系统',
+            f"进入刺杀阶段，坏人从刺客起按座位顺序讨论（最多 {MAX_ASSASSINATION_DISCUSSION_ROUNDS} 轮）",
+            'system',
+        )
         await self.notify_frontend("assassination_discussion_start", {
             "assassin": assassin.name,
             "evil_players": [p.name for p in evil_players],
@@ -422,6 +441,11 @@ class AIController:
         for round_num in range(1, MAX_ASSASSINATION_DISCUSSION_ROUNDS + 1):
             self.game.assassination_discussion_round = round_num
 
+            await self._publish_chat(
+                '系统',
+                f"刺杀讨论第 {round_num}/{MAX_ASSASSINATION_DISCUSSION_ROUNDS} 轮开始",
+                'system',
+            )
             await self.notify_frontend("assassination_round_start", {
                 "round": round_num,
                 "max_rounds": MAX_ASSASSINATION_DISCUSSION_ROUNDS,
@@ -479,6 +503,7 @@ class AIController:
         print(f"刺客 {assassin.name} 选择刺杀: {target}")
         await self.ai_speak(assassin, f"我要刺杀 {target}！")
         result = self.game.assassinate(target)
+        await self._publish_assassination_result_chat(result)
         await self.notify_frontend("assassination_result", result)
 
     def _get_player_last_speech(self, player_name: str, phase: Optional[str] = None) -> Optional[str]:
@@ -635,6 +660,9 @@ class AIController:
 
         self.game.record_message(player.name, message)
 
+        msg_type = 'ai' if player.is_ai else 'player'
+        await self._publish_chat(player.name, message, msg_type, player.role)
+
         if self.log_manager:
             self.log_manager.log_player_speech(
                 player_name=player.name,
@@ -725,6 +753,55 @@ class AIController:
         if self.websocket_notifier:
             await self.websocket_notifier(event, data)
 
+    async def _publish_chat(
+        self,
+        sender: str,
+        message: str,
+        msg_type: str = 'system',
+        role: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """写入战报并通过 WebSocket 推送"""
+        entry = self.game.append_chat_log(sender, message, msg_type, role)
+        await self.notify_frontend('chat_log_entry', entry)
+        return entry
+
+    async def _publish_mission_vote_chat(self, result: Dict[str, Any]) -> None:
+        status = result.get('status')
+        if status == 'good_mission_win':
+            await self._publish_chat(
+                '系统',
+                '好人获得3次任务成功！坏人阵营进入秘密讨论',
+                'system',
+            )
+        elif status == 'mission_completed':
+            success = result.get('mission_result')
+            await self._publish_chat(
+                '系统',
+                f"任务完成，结果: {'成功' if success else '失败'}",
+                'system',
+            )
+        elif status == 'evil_win':
+            await self._publish_chat(
+                '系统',
+                result.get('reason', '坏人获胜'),
+                'system',
+            )
+
+    async def _publish_assassination_result_chat(self, result: Dict[str, Any]) -> None:
+        status = result.get('status')
+        if status == 'evil_win':
+            await self._publish_chat(
+                '系统',
+                result.get('reason', '坏人获胜'),
+                'system',
+            )
+        elif status == 'good_win':
+            await self._publish_chat(
+                '系统',
+                result.get('reason', '好人获胜'),
+                'system',
+            )
+
     def _build_team_vote_hint(self, result: Dict[str, Any]) -> str:
         status = result.get('status')
         approve = result.get('approve_count', 0)
@@ -739,9 +816,12 @@ class AIController:
         return ''
 
     async def _notify_team_vote_completed(self, result: Dict[str, Any]):
+        hint = self._build_team_vote_hint(result)
+        if hint:
+            await self._publish_chat('系统', hint, 'system')
         await self.notify_frontend("team_vote_completed", {
             **result,
-            "hint": self._build_team_vote_hint(result),
+            "hint": hint,
         })
 
     async def handle_voice_start(self, data: Dict[str, Any]):

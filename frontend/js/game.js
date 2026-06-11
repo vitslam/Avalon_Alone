@@ -1,6 +1,6 @@
 // 游戏状态管理和事件处理
 import state from './state.js';
-import { addChatMessage } from './chat.js';
+import { addChatMessage, resetChatLogState } from './chat.js';
 import {
     updatePlayersDisplay,
     showTeamVoteProgress,
@@ -127,12 +127,10 @@ function updateCurrentPhase() {
 }
 
 export function handleGameStarted(data) {
-    addChatMessage('系统', '游戏开始！角色已分配完成', 'system');
+    // 战报由后端 chat_log + fetchChatHistory 回填
 }
 
 export function handleTeamSelected(data) {
-    addChatMessage('系统', `队伍已选择: ${data.team.join(', ')}`, 'system');
-
     if (state.gameState && data.team) {
         state.gameState.current_team = data.team;
         updatePlayersDisplay();
@@ -204,12 +202,8 @@ export function handleMissionVoteRecorded(data) {
         setMissionResult(data.mission_result);
     }
 
-    if (data.status === 'good_mission_win') {
-        addChatMessage('系统', '好人获得3次任务成功！坏人阵营进入秘密讨论', 'system');
-    } else if (data.status === 'evil_win') {
+    if (data.status === 'evil_win') {
         showGameResult('坏人获胜', data.reason);
-    } else if (data.status === 'mission_completed') {
-        addChatMessage('系统', `任务完成，结果: ${data.mission_result ? '成功' : '失败'}`, 'system');
     }
 }
 
@@ -218,11 +212,6 @@ export function handleAssassinationDiscussionStart(data) {
         state.gameState.assassination_discussion_round = 0;
     }
 
-    addChatMessage(
-        '系统',
-        `进入刺杀阶段，坏人从刺客起按座位顺序讨论（最多 ${data.max_rounds || 3} 轮）`,
-        'system'
-    );
     updateCurrentPhase();
 }
 
@@ -231,11 +220,6 @@ export function handleAssassinationRoundStart(data) {
         state.gameState.assassination_discussion_round = data.round;
     }
 
-    addChatMessage(
-        '系统',
-        `刺杀讨论第 ${data.round}/${data.max_rounds} 轮开始`,
-        'system'
-    );
     updateCurrentPhase();
 }
 
@@ -273,6 +257,7 @@ export async function resetGame() {
             state.players = [];
             updateStartButton();
             document.getElementById('chatMessages').innerHTML = '';
+            resetChatLogState();
             state.gameState = null;
             document.getElementById('gameResultModal').style.display = 'none';
             addChatMessage('系统', '游戏已重置，可以开始新游戏', 'system');
@@ -292,6 +277,7 @@ export function handleGameReset(data) {
     state.players = [];
     updateStartButton();
     document.getElementById('chatMessages').innerHTML = '';
+    resetChatLogState();
     state.gameState = null;
     document.getElementById('gameResultModal').style.display = 'none';
     addChatMessage('系统', '游戏已重置', 'system');
@@ -324,10 +310,8 @@ export async function startGame() {
             document.getElementById('gameSetup').style.display = 'none';
             document.getElementById('gameInterface').style.display = 'flex';
 
-            addChatMessage('系统', '游戏开始！角色已分配完成', 'system');
-
-            const { fetchCurrentGameState } = await import('./websocket.js');
-            setTimeout(fetchCurrentGameState, 100);
+            const { fetchChatHistory, fetchCurrentGameState } = await import('./websocket.js');
+            fetchChatHistory().then(() => setTimeout(fetchCurrentGameState, 100));
         } else {
             const errorText = await response.text();
             let errorMessage = '游戏开始失败';

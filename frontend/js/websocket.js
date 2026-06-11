@@ -1,6 +1,6 @@
 // WebSocket 连接和消息路由
 import state from './state.js';
-import { addChatMessage } from './chat.js';
+import { addChatMessage, appendChatLogEntry, renderChatLog } from './chat.js';
 import { enqueuePlayerSpeech } from './speechPresenter.js';
 import {
     handleGameStarted, handleTeamSelected,
@@ -37,7 +37,7 @@ export function connectWebSocket() {
     state.websocket.onopen = function() {
         console.log('WebSocket连接已建立');
         addChatMessage('系统', '已连接到游戏服务器', 'system');
-        fetchCurrentGameState();
+        fetchChatHistory().then(() => fetchCurrentGameState());
     };
 
     state.websocket.onmessage = function(event) {
@@ -54,6 +54,20 @@ export function connectWebSocket() {
         console.error('WebSocket错误:', error);
         addChatMessage('系统', '连接错误', 'system');
     };
+}
+
+export async function fetchChatHistory() {
+    try {
+        const response = await fetch(`${state.API_BASE}/game/chat-history`);
+        if (!response.ok) return;
+
+        const data = await response.json();
+        if (data.status === 'ok' && data.entries?.length) {
+            renderChatLog(data.entries);
+        }
+    } catch (error) {
+        console.error('获取战报历史失败:', error);
+    }
 }
 
 export async function fetchCurrentGameState() {
@@ -74,7 +88,10 @@ function handleWebSocketMessage(data) {
     switch (data.event) {
         case 'game_started':
             handleGameStarted(data.data);
-            setTimeout(fetchCurrentGameState, 100);
+            fetchChatHistory().then(() => setTimeout(fetchCurrentGameState, 100));
+            break;
+        case 'chat_log_entry':
+            appendChatLogEntry(data.data);
             break;
         case 'team_selected':
             handleTeamSelected(data.data);
@@ -122,9 +139,6 @@ function handleWebSocketMessage(data) {
 }
 
 function handlePlayerSpeaking(speakingData) {
-    const { speaker, message, is_ai } = speakingData;
-
-    // 聊天区即时更新；气泡、呼吸灯、TTS 由展示队列串行同步
-    addChatMessage(speaker, message, is_ai ? 'ai' : 'player');
+    // 战报由后端 chat_log 维护；此处仅处理气泡、呼吸灯、TTS
     enqueuePlayerSpeech(speakingData);
 }
