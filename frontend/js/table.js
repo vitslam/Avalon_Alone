@@ -1,5 +1,6 @@
 // 桌面显示和玩家卡片
 import state from './state.js';
+import { stripMarkdownQuotes } from './chat.js';
 
 let speechBubbleLayer = 10;
 
@@ -255,7 +256,7 @@ export function showPlayerSpeaking(speaker, message) {
     const speechBubble = document.createElement('div');
     speechBubble.className = 'speech-bubble';
     speechBubble.dataset.speaker = speaker;
-    speechBubble.textContent = message;
+    speechBubble.textContent = stripMarkdownQuotes(message);
 
     speechBubbleLayer += 1;
     speechBubble.style.zIndex = String(1500 + speechBubbleLayer);

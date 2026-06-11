@@ -52,27 +52,37 @@
 }
 
 .chat-message {
-    margin-bottom: 8px;
-    padding: 6px 10px;
-    border-radius: 4px;
+    margin-bottom: 6px;
+    padding: 4px 0;
     font-size: 12px;
     line-height: 1.5;
 }
 
+.chat-message-body {
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+.chat-sender {
+    font-weight: 700;
+}
+
+/* 系统通知：红色 */
 .chat-message.system {
-    background: rgba(74, 158, 255, 0.08);
-    color: var(--good-blue);
-    border-left: 3px solid var(--good-blue);
+    color: #e8a0a0;
 }
 
+.chat-message.system .chat-sender {
+    color: #f0b0b0;
+}
+
+/* 玩家发言：蓝色 */
+.chat-message.ai,
 .chat-message.player {
-    background: rgba(61, 170, 110, 0.08);
-    color: #6ac080;
-    border-left: 3px solid #3daa6e;
+    color: #a8c8f0;
 }
 
-.chat-message.ai {
-    background: rgba(224, 64, 64, 0.08);
-    color: #d08080;
-    border-left: 3px solid var(--evil-red);
+.chat-message.ai .chat-sender,
+.chat-message.player .chat-sender {
+    color: var(--good-blue);
 }
