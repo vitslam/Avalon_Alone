@@ -9,7 +9,6 @@
     <link rel="stylesheet" href="/static/css/setup.css">
     <link rel="stylesheet" href="/static/css/info.css">
     <link rel="stylesheet" href="/static/css/table.css">
-    <link rel="stylesheet" href="/static/css/controls.css">
     <link rel="stylesheet" href="/static/css/chat.css">
     <link rel="stylesheet" href="/static/css/modal.css">
     <link rel="stylesheet" href="/static/css/responsive.css">
@@ -26,18 +25,10 @@
 
         <!-- 游戏设置面板 -->
         <div id="gameSetup" class="game-setup">
-            <h2>召集勇士</h2>
+            <h2>召集 AI 勇士</h2>
             <div class="player-config">
                 <div class="player-input">
-                    <input type="text" id="playerName" placeholder="玩家名称" maxlength="20">
-                    <label>
-                        <input type="checkbox" id="isAI"> AI玩家
-                    </label>
-                    <select id="aiEngine" disabled>
-                        <option value="gpt-3.5">GPT-3.5</option>
-                        <option value="gpt-4">GPT-4</option>
-                        <option value="claude">Claude</option>
-                    </select>
+                    <input type="text" id="playerName" placeholder="AI 玩家编号" maxlength="20">
                     <button onclick="startGame()" id="startButton" disabled>出征</button>
                 </div>
                 <div class="player-list" id="playerList">
@@ -48,70 +39,34 @@
         </div>
 
         <!-- 游戏主界面 -->
-        <div id="gameInterface" class="game-interface" style="display: none;">
-            <!-- 游戏信息面板 -->
-            <div class="game-info">
+        <div id="gameInterface" class="game-main" style="display: none;">
+            <div class="game-interface">
                 <div class="mission-board">
                     <h3>任务战况</h3>
                     <div class="mission-progress" id="missionProgress">
                         <!-- 任务进度将在这里显示 -->
                     </div>
                 </div>
+
                 <div class="current-phase">
                     <h3>当前局势</h3>
                     <div id="currentPhase">等待开始</div>
                 </div>
-            </div>
 
-            <!-- 玩家桌子 -->
-            <div class="game-table">
-                <div class="players-container" id="playersContainer">
-                    <!-- 玩家将在这里显示 -->
-                </div>
-            </div>
-
-            <!-- 游戏操作面板 -->
-            <div class="game-controls">
-                <div class="team-selection" id="teamSelection" style="display: none;">
-                    <h3>组建远征队</h3>
-                    <div class="available-players" id="availablePlayers">
-                        <!-- 可选玩家将在这里显示 -->
+                <div class="game-table">
+                    <div class="players-container" id="playersContainer">
+                        <!-- 玩家将在这里显示 -->
                     </div>
-                    <button onclick="confirmTeam()" id="confirmTeamBtn" disabled>确认队伍</button>
-                </div>
-
-                <div class="voting-panel" id="votingPanel" style="display: none;">
-                    <h3>阵营表决</h3>
-                    <div class="vote-options">
-                        <button onclick="vote('approve')" class="vote-btn approve">赞成</button>
-                        <button onclick="vote('reject')" class="vote-btn reject">反对</button>
-                    </div>
-                </div>
-
-                <div class="mission-voting" id="missionVoting" style="display: none;">
-                    <h3>任务表决</h3>
-                    <div class="vote-options">
-                        <button onclick="voteMission('success')" class="vote-btn success">成功</button>
-                        <button onclick="voteMission('fail')" class="vote-btn fail">失败</button>
-                    </div>
-                </div>
-
-                <div class="assassination-panel" id="assassinationPanel" style="display: none;">
-                    <h3 id="assassinationPanelTitle">刺杀阶段</h3>
-                    <p id="assassinationDiscussionStatus" class="assassination-status"></p>
                 </div>
             </div>
 
-            <!-- 聊天和消息面板 -->
-            <div class="chat-panel">
+            <!-- 战报侧栏（独立于牌桌网格，避免被裁切） -->
+            <aside class="chat-panel">
+                <h3>战报</h3>
                 <div class="chat-messages" id="chatMessages">
                     <!-- 聊天消息将在这里显示 -->
                 </div>
-                <div class="chat-input">
-                    <input type="text" id="chatInput" placeholder="输入消息..." disabled>
-                    <button onclick="sendMessage()" disabled>发送</button>
-                </div>
-            </div>
+            </aside>
         </div>
 
         <!-- 游戏结果模态框 -->
@@ -130,6 +85,9 @@
                 <div class="mission-video-waiting-text">任务执行中，等待结果...</div>
             </div>
         </div>
+
+        <!-- 发言气泡层（置顶，避免被牌桌上方面板遮挡） -->
+        <div id="speechBubbleOverlay" class="speech-bubble-overlay" aria-hidden="true"></div>
 
         <!-- 当前发言者指示器 -->
         <div id="currentSpeaker" class="current-speaker-indicator">

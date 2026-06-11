@@ -11,11 +11,6 @@ import {
     sortTeamNames,
 } from './table.js';
 import { clearSpeechQueue } from './speechPresenter.js';
-import {
-    showTeamSelection,
-    showMissionVoting,
-    showAssassinationDiscussionPanel,
-} from './controls.js';
 import { updatePlayerList, updateStartButton } from './players.js';
 import { playMissionVideo, playAssassinationVideo, stopMissionVideo, setMissionResult } from './missionVideo.js';
 
@@ -29,7 +24,7 @@ export function updateGameState(newState) {
 
     if (newState.state === 'playing' || newState.phase) {
         document.getElementById('gameSetup').style.display = 'none';
-        document.getElementById('gameInterface').style.display = 'block';
+        document.getElementById('gameInterface').style.display = 'flex';
     }
 }
 
@@ -56,7 +51,6 @@ function updateMissionProgress() {
 
     if (!state.gameState) return;
 
-    // 任务总数固定为5（阿瓦隆标准）
     const totalMissions = 5;
     const currentMission = state.gameState.current_mission || 1;
     const missionResults = state.gameState.mission_results || [];
@@ -66,7 +60,6 @@ function updateMissionProgress() {
         missionItem.className = 'mission-item';
         missionItem.setAttribute('data-mission-num', i);
 
-        // 检查这个任务是否已经完成
         const completedMissionResult = missionResults.find(result => result.mission === i);
 
         if (completedMissionResult) {
@@ -151,10 +144,6 @@ export function handleTeamSelected(data) {
         updatePlayersDisplay();
         updateCurrentPhase();
     }
-
-    if (state.gameState && (state.gameState.phase === 'team_selection' || state.gameState.phase === '选择队伍')) {
-        showTeamSelection();
-    }
 }
 
 const TEAM_VOTE_RESULT_DURATION = 4000;
@@ -174,10 +163,7 @@ export function handleTeamVoteCompleted(data) {
         clearTeamVoteDisplay();
 
         if (data.status === 'team_approved') {
-            showMissionVoting();
             triggerMissionVideo(data.team);
-        } else if (data.status === 'team_rejected') {
-            showTeamSelection();
         } else if (data.status === 'evil_win') {
             showGameResult('坏人获胜', data.reason);
         }
@@ -220,19 +206,16 @@ async function triggerMissionVideo(teamFromEvent) {
 }
 
 export function handleMissionVoteRecorded(data) {
-    // 任务结果出炉时，衔接播放成功/失败视频（执行视频结束后或等待画面后）
     if (typeof data.mission_result === 'boolean') {
         setMissionResult(data.mission_result);
     }
 
     if (data.status === 'good_mission_win') {
         addChatMessage('系统', '好人获得3次任务成功！坏人阵营进入秘密讨论', 'system');
-        showAssassinationDiscussionPanel();
     } else if (data.status === 'evil_win') {
         showGameResult('坏人获胜', data.reason);
     } else if (data.status === 'mission_completed') {
         addChatMessage('系统', `任务完成，结果: ${data.mission_result ? '成功' : '失败'}`, 'system');
-        showTeamSelection();
     }
 }
 
@@ -246,7 +229,6 @@ export function handleAssassinationDiscussionStart(data) {
         `进入刺杀阶段，坏人从刺客起按座位顺序讨论（最多 ${data.max_rounds || 3} 轮）`,
         'system'
     );
-    showAssassinationDiscussionPanel(data);
     updateCurrentPhase();
 }
 
@@ -260,16 +242,10 @@ export function handleAssassinationRoundStart(data) {
         `刺杀讨论第 ${data.round}/${data.max_rounds} 轮开始`,
         'system'
     );
-    showAssassinationDiscussionPanel(data);
     updateCurrentPhase();
 }
 
 export function handleAssassinationResult(data) {
-    const assassinationPanel = document.getElementById('assassinationPanel');
-    if (assassinationPanel) {
-        assassinationPanel.style.display = 'none';
-    }
-
     const showResult = () => {
         if (data.status === 'evil_win') {
             showGameResult('坏人获胜', data.reason);
@@ -352,7 +328,7 @@ export async function startGame() {
             const result = await response.json();
 
             document.getElementById('gameSetup').style.display = 'none';
-            document.getElementById('gameInterface').style.display = 'block';
+            document.getElementById('gameInterface').style.display = 'flex';
 
             addChatMessage('系统', '游戏开始！角色已分配完成', 'system');
 
@@ -362,7 +338,6 @@ export async function startGame() {
                 });
             }
 
-            // 动态导入避免循环依赖
             const { fetchCurrentGameState } = await import('./websocket.js');
             setTimeout(fetchCurrentGameState, 100);
         } else {
@@ -380,9 +355,4 @@ export async function startGame() {
         console.error('开始游戏失败:', error);
         alert('开始游戏失败，请检查服务器连接: ' + error.message);
     }
-}
-
-export function setCurrentPlayer(playerName) {
-    state.currentPlayer = playerName;
-    addChatMessage('系统', `当前玩家设置为: ${playerName}`, 'system');
 }

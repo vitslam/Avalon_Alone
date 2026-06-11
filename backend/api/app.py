@@ -8,7 +8,7 @@ import json
 import asyncio
 import os
 from ..core.game import AvalonGame
-from ..models.player import Player, AIPlayer
+from ..models.player import AIPlayer
 from ..models.god import God
 from ..ai.ai_controller import AIController
 from config import FRONTEND_CONFIG
@@ -32,15 +32,8 @@ websocket_connections = []
 # Pydantic模型
 class PlayerConfig(BaseModel):
     name: str
-    is_ai: bool = False
-    ai_engine: Optional[str] = "gpt-3.5"
-
-class TeamSelection(BaseModel):
-    selected_players: List[str]
-
-class Vote(BaseModel):
-    player_name: str
-    vote: str
+    is_ai: bool = True
+    ai_engine: Optional[str] = None
 
 class GameConfig(BaseModel):
     players: List[PlayerConfig]
@@ -79,14 +72,11 @@ async def start_game(config: GameConfig):
     if len(config.players) < 5 or len(config.players) > 10:
         raise HTTPException(status_code=400, detail="玩家数量必须在5-10人之间")
 
-    # 创建玩家列表
-    players = []
-    for player_config in config.players:
-        if player_config.is_ai:
-            player = AIPlayer(player_config.name, player_config.ai_engine)
-        else:
-            player = Player(player_config.name)
-        players.append(player)
+    # 创建 AI 玩家列表
+    players = [
+        AIPlayer(player_config.name, player_config.ai_engine)
+        for player_config in config.players
+    ]
 
     # 创建上帝和游戏实例
     god = God()
@@ -101,11 +91,8 @@ async def start_game(config: GameConfig):
     # 通知所有WebSocket连接
     await notify_all_connections("game_started", result)
 
-    # 如果全是AI玩家，启动自动游戏
-    ai_players_count = sum(1 for p in players if p.is_ai)
-    if ai_players_count == len(players):
-        print("检测到全AI游戏，启动自动游戏模式")
-        asyncio.create_task(start_auto_game())
+    print("启动全 AI 自动游戏")
+    asyncio.create_task(start_auto_game())
 
     return result
 
@@ -136,89 +123,6 @@ async def get_mission_config():
         raise HTTPException(status_code=404, detail="游戏未开始")
 
     return game_instance.get_mission_config()
-
-@app.get("/game/available-players")
-async def get_available_players():
-    """获取可选择的玩家列表"""
-    if not game_instance:
-        raise HTTPException(status_code=404, detail="游戏未开始")
-
-    return {
-        "available_players": game_instance.get_available_players(),
-        "mission_players": game_instance.get_mission_players()
-    }
-
-@app.post("/game/select-team")
-async def select_team(selection: TeamSelection):
-    """选择任务队伍"""
-    if not game_instance:
-        raise HTTPException(status_code=404, detail="游戏未开始")
-
-    result = game_instance.select_team(selection.selected_players)
-
-    if 'error' in result:
-        raise HTTPException(status_code=400, detail=result['error'])
-
-    # 通知所有WebSocket连接
-    await notify_all_connections("team_selected", result)
-
-    return result
-
-def _build_team_vote_hint(result: Dict[str, Any]) -> str:
-    status = result.get('status')
-    approve = result.get('approve_count', 0)
-    reject = result.get('reject_count', 0)
-    if status == 'team_approved':
-        return f"表决通过（{approve} 赞成 / {reject} 反对），远征队即将出发执行任务…"
-    if status == 'team_rejected':
-        leader = result.get('next_leader', '')
-        return f"表决未通过（{approve} 赞成 / {reject} 反对），队长移交给 {leader}，重新组队…"
-    if status == 'evil_win':
-        return result.get('reason', '坏人获胜')
-    return ''
-
-
-@app.post("/game/vote-team")
-async def vote_team(vote: Vote):
-    """队伍投票"""
-    if not game_instance:
-        raise HTTPException(status_code=404, detail="游戏未开始")
-
-    result = game_instance.vote_team(vote.player_name, vote.vote)
-
-    if 'error' in result:
-        raise HTTPException(status_code=400, detail=result['error'])
-
-    if result.get('status') == 'vote_recorded':
-        await notify_all_connections("team_vote_progress", {
-            "voted_count": result.get('voted_count'),
-            "total_players": result.get('total_players'),
-        })
-    elif result.get('status') in ['team_approved', 'team_rejected', 'evil_win']:
-        await notify_all_connections("team_vote_completed", {
-            **result,
-            "hint": _build_team_vote_hint(result),
-        })
-    else:
-        await notify_all_connections("team_vote_recorded", result)
-
-    return result
-
-@app.post("/game/vote-mission")
-async def vote_mission(vote: Vote):
-    """任务投票"""
-    if not game_instance:
-        raise HTTPException(status_code=404, detail="游戏未开始")
-
-    result = game_instance.vote_mission(vote.player_name, vote.vote)
-
-    if 'error' in result:
-        raise HTTPException(status_code=400, detail=result['error'])
-
-    # 通知所有WebSocket连接
-    await notify_all_connections("mission_vote_recorded", result)
-
-    return result
 
 @app.get("/game/roles")
 async def get_roles():

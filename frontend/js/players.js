@@ -1,17 +1,12 @@
-// 玩家管理（设置阶段）
+// 玩家管理（设置阶段，纯 AI）
 import state from './state.js';
-import { loadTTSModule, preconfigureAIVoices } from './voice.js';
+import { preconfigureAIVoices } from './voice.js';
 
 export function addPlayer() {
-    console.log('添加玩家函数被调用');
-
     const nameInput = document.getElementById('playerName');
-    const isAICheckbox = document.getElementById('isAI');
-    const aiEngineSelect = document.getElementById('aiEngine');
-
     const name = nameInput.value.trim();
     if (!name) {
-        alert('请输入玩家名称');
+        alert('请输入玩家编号');
         return;
     }
 
@@ -21,22 +16,18 @@ export function addPlayer() {
     }
 
     const player = {
-        name: name,
-        is_ai: isAICheckbox.checked,
-        ai_engine: isAICheckbox.checked ? aiEngineSelect.value : null
+        name,
+        is_ai: true,
     };
 
     state.players.push(player);
 
-    if (player.is_ai && state.tts) {
+    if (state.tts) {
         preconfigureAIVoices();
     }
 
     updatePlayerList();
-
     nameInput.value = '';
-    isAICheckbox.checked = false;
-    aiEngineSelect.disabled = true;
     updateStartButton();
 }
 
@@ -51,7 +42,7 @@ export function updatePlayerList() {
     state.players.forEach((player, index) => {
         try {
             const playerItem = document.createElement('div');
-            playerItem.className = `player-item ${player.is_ai ? 'ai' : ''}`;
+            playerItem.className = 'player-item ai';
 
             const avatar = document.createElement('span');
             avatar.className = 'player-avatar-small';
@@ -62,8 +53,8 @@ export function updatePlayerList() {
             playerName.textContent = player.name || '未知玩家';
 
             const playerInfo = document.createElement('span');
-            playerInfo.className = player.is_ai ? 'ai-engine' : 'player-info';
-            playerInfo.textContent = player.is_ai ? 'AI' : '玩家';
+            playerInfo.className = 'ai-engine';
+            playerInfo.textContent = 'AI';
 
             const deleteButton = document.createElement('button');
             deleteButton.className = 'remove-btn';
@@ -110,16 +101,9 @@ export function updateStartButton() {
 export function initializeDefaultPlayers() {
     try {
         const nameInput = document.getElementById('playerName');
-        const isAICheckbox = document.getElementById('isAI');
-        const aiEngineSelect = document.getElementById('aiEngine');
 
         for (let i = 1; i <= 8; i++) {
             if (nameInput) nameInput.value = i.toString();
-            if (isAICheckbox) isAICheckbox.checked = true;
-            if (aiEngineSelect) {
-                aiEngineSelect.disabled = false;
-                aiEngineSelect.value = 'gpt-3.5';
-            }
             addPlayer();
         }
     } catch (error) {

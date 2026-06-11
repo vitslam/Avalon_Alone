@@ -2,9 +2,7 @@
 const state = {
     gameState: null,
     players: [],
-    selectedPlayers: [],
     websocket: null,
-    currentPlayer: null,
     tts: null,
     API_BASE: `${window.location.protocol}//${window.location.host}`,
     teamVoteDisplay: null,

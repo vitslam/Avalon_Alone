@@ -1,12 +1,12 @@
 /* ===== 响应式设计 ===== */
 @media screen and (max-width: 1200px) {
-    .game-interface {
-        grid-template-columns: 200px 1fr 200px;
-        gap: 10px;
+    .chat-panel {
+        width: 260px;
     }
 
-    .game-info, .game-controls {
-        padding: 12px;
+    .mission-board,
+    .current-phase {
+        padding: 10px 12px;
     }
 
     .player-card {
@@ -28,24 +28,24 @@
 }
 
 @media screen and (max-width: 900px) {
-    .game-interface {
-        grid-template-columns: 1fr;
-        grid-template-rows: auto 1fr auto;
-        gap: 10px;
+    .game-main {
+        flex-direction: column;
+        overflow: hidden;
     }
 
-    .game-info { order: 1; }
-    .game-table { order: 2; }
-    .game-controls { order: 3; }
+    .game-interface {
+        gap: 8px;
+        overflow: hidden;
+    }
+
+    .game-interface > .game-table {
+        min-height: 280px;
+    }
 
     .chat-panel {
-        position: fixed;
-        bottom: 0;
-        left: 0;
-        right: 0;
-        height: 200px;
-        border-radius: 12px 12px 0 0;
-        z-index: 100;
+        width: 100%;
+        height: 220px;
+        flex-shrink: 0;
     }
 
     .mission-progress { justify-content: center; }
@@ -80,6 +80,10 @@
     .game-header h1 {
         font-size: 1.8rem;
         letter-spacing: 3px;
+    }
+
+    .chat-panel {
+        height: 180px;
     }
 
     .player-card {

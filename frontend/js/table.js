@@ -247,21 +247,50 @@ export function showPlayerSpeaking(speaker, message) {
     if (!state.gameState || !state.gameState.players) return;
 
     const speakerCard = document.querySelector(`.player-card[data-player-name="${speaker}"]`);
+    const overlay = document.getElementById('speechBubbleOverlay');
+    if (!speakerCard || !overlay) return;
 
-    if (speakerCard) {
-        const speechBubble = document.createElement('div');
-        speechBubble.className = 'speech-bubble';
-        speechBubble.textContent = message;
+    overlay.querySelectorAll('.speech-bubble').forEach(b => b.remove());
 
-        const existingBubble = speakerCard.querySelector('.speech-bubble');
-        if (existingBubble) existingBubble.remove();
+    const speechBubble = document.createElement('div');
+    speechBubble.className = 'speech-bubble';
+    speechBubble.dataset.speaker = speaker;
+    speechBubble.textContent = message;
 
-        // 新发言气泡叠在最上层，避免被上一位弥留的气泡遮挡
-        speechBubbleLayer += 1;
-        speakerCard.style.zIndex = String(speechBubbleLayer);
-        speakerCard.classList.add('speech-active');
-        speakerCard.appendChild(speechBubble);
+    speechBubbleLayer += 1;
+    speechBubble.style.zIndex = String(1500 + speechBubbleLayer);
+    speakerCard.classList.add('speech-active');
+    speakerCard.style.zIndex = String(speechBubbleLayer);
+
+    overlay.appendChild(speechBubble);
+    positionSpeechBubble(speechBubble, speakerCard);
+}
+
+function positionSpeechBubble(bubble, speakerCard) {
+    const cardRect = speakerCard.getBoundingClientRect();
+    const bubbleRect = bubble.getBoundingClientRect();
+    const margin = 10;
+    const viewportPadding = 12;
+
+    let anchorX = cardRect.left + cardRect.width / 2;
+    let anchorY = cardRect.top - margin;
+
+    // 上方空间不足时改显示在卡片下方
+    if (anchorY - bubbleRect.height < viewportPadding) {
+        anchorY = cardRect.bottom + margin;
+        bubble.classList.add('speech-bubble--below');
+        bubble.style.transform = 'translate(-50%, 0)';
+    } else {
+        bubble.classList.remove('speech-bubble--below');
+        bubble.style.transform = 'translate(-50%, -100%)';
     }
+
+    let left = anchorX;
+    const halfWidth = bubbleRect.width / 2;
+    left = Math.max(viewportPadding + halfWidth, Math.min(window.innerWidth - viewportPadding - halfWidth, left));
+
+    bubble.style.left = `${left}px`;
+    bubble.style.top = `${anchorY}px`;
 }
 
 export function showCurrentSpeakerIndicator(speaker) {
@@ -280,11 +309,18 @@ export function hideSpeechPresentation(speaker) {
         card.classList.remove('speaking');
     });
 
+    const overlay = document.getElementById('speechBubbleOverlay');
+    if (overlay) {
+        if (speaker) {
+            overlay.querySelectorAll(`.speech-bubble[data-speaker="${speaker}"]`).forEach(b => b.remove());
+        } else {
+            overlay.innerHTML = '';
+        }
+    }
+
     if (speaker) {
         const speakerCard = document.querySelector(`.player-card[data-player-name="${speaker}"]`);
         if (speakerCard) {
-            const bubble = speakerCard.querySelector('.speech-bubble');
-            if (bubble) bubble.remove();
             speakerCard.classList.remove('speech-active');
             speakerCard.style.zIndex = '';
         }

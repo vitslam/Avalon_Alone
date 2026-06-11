@@ -1,4 +1,4 @@
-// 聊天功能
+// 战报展示（只读，无人类输入）
 
 export function addChatMessage(sender, message, type = 'system') {
     const chatMessages = document.getElementById('chatMessages');
@@ -7,14 +7,4 @@ export function addChatMessage(sender, message, type = 'system') {
     messageDiv.innerHTML = `<strong>${sender}:</strong> ${message}`;
     chatMessages.appendChild(messageDiv);
     chatMessages.scrollTop = chatMessages.scrollHeight;
-}
-
-export function sendMessage() {
-    const chatInput = document.getElementById('chatInput');
-    const message = chatInput.value.trim();
-
-    if (message) {
-        addChatMessage('玩家', message, 'player');
-        chatInput.value = '';
-    }
 }
