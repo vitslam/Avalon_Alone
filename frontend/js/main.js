@@ -8,9 +8,9 @@ import { loadClientConfig } from './config.js';
 document.addEventListener('DOMContentLoaded', async function() {
     await loadClientConfig();
     initializeEventListeners();
-    connectWebSocket();
     initializeDefaultPlayers();
-    loadTTSModule();
+    await loadTTSModule();
+    connectWebSocket();
 });
 
 window.addPlayer = addPlayer;

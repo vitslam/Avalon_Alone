@@ -12,10 +12,26 @@ import {
 } from './table.js';
 import { clearSpeechQueue } from './speechPresenter.js';
 import { updatePlayerList, updateStartButton } from './players.js';
+import { preconfigureAIVoices, markUserStartedSession, promptSpeechUnlockIfNeeded } from './voice.js';
 import { playMissionVideo, playAssassinationVideo, stopMissionVideo, setMissionResult } from './missionVideo.js';
 
+function syncPlayersFromGameState(gameState) {
+    if (!gameState?.players?.length) return;
+
+    state.players = gameState.players.map(p => ({
+        name: p.name,
+        is_ai: p.is_ai !== false,
+    }));
+    preconfigureAIVoices();
+}
+
 export function updateGameState(newState) {
+    if (!newState || newState.status === 'not_started') {
+        return;
+    }
+
     state.gameState = newState;
+    syncPlayersFromGameState(newState);
 
     updateGameStatus();
     updateMissionProgress();
@@ -25,6 +41,10 @@ export function updateGameState(newState) {
     if (newState.state === 'playing' || newState.phase) {
         document.getElementById('gameSetup').style.display = 'none';
         document.getElementById('gameInterface').style.display = 'flex';
+    }
+
+    if (newState.state === 'playing') {
+        promptSpeechUnlockIfNeeded();
     }
 }
 
@@ -284,6 +304,8 @@ export function handleGameReset(data) {
 }
 
 export async function startGame() {
+    markUserStartedSession();
+
     if (!state.players || state.players.length === 0) {
         alert('请先添加玩家');
         return;

@@ -1,7 +1,8 @@
 // WebSocket 连接和消息路由
 import state from './state.js';
 import { addChatMessage, appendChatLogEntry, renderChatLog } from './chat.js';
-import { enqueuePlayerSpeech } from './speechPresenter.js';
+import { enqueuePlayerSpeech, pauseForBackground, resumeSpeechQueue } from './speechPresenter.js';
+import { unlockSpeechAudio } from './voice.js';
 import {
     handleGameStarted, handleTeamSelected,
     handleTeamVotePhaseStart, handleTeamVoteProgress, handleTeamVoteCompleted, handleTeamVoteRecorded,
@@ -12,32 +13,84 @@ import {
     handleGameReset,
 } from './game.js';
 
-export function connectWebSocket() {
+const MAX_RECONNECT_DELAY_MS = 30000;
+let reconnectTimer = null;
+let reconnectAttempts = 0;
+let intentionalClose = false;
+let disconnectNotified = false;
+let lifecycleListenersBound = false;
+
+function getReconnectDelay() {
+    return Math.min(1000 * Math.pow(2, reconnectAttempts), MAX_RECONNECT_DELAY_MS);
+}
+
+function clearReconnectTimer() {
+    if (reconnectTimer) {
+        clearTimeout(reconnectTimer);
+        reconnectTimer = null;
+    }
+}
+
+function scheduleReconnect() {
+    if (intentionalClose || reconnectTimer) return;
+
+    const delay = getReconnectDelay();
+    reconnectAttempts += 1;
+    console.log(`WebSocket 将在 ${delay}ms 后重连（第 ${reconnectAttempts} 次）`);
+
+    reconnectTimer = setTimeout(() => {
+        reconnectTimer = null;
+        connectWebSocketInternal(true);
+    }, delay);
+}
+
+function notifyDisconnectedOnce() {
+    if (disconnectNotified) return;
+    disconnectNotified = true;
+    addChatMessage('系统', '与服务器连接已断开，正在尝试重连…', 'system');
+}
+
+function onSocketOpen(isReconnect) {
+    reconnectAttempts = 0;
+    clearReconnectTimer();
+    disconnectNotified = false;
+
+    console.log(isReconnect ? 'WebSocket 已重新连接' : 'WebSocket连接已建立');
+    if (isReconnect) {
+        addChatMessage('系统', '已重新连接到游戏服务器', 'system');
+    } else {
+        addChatMessage('系统', '已连接到游戏服务器', 'system');
+    }
+
+    fetchChatHistory().then(() => fetchCurrentGameState());
+}
+
+function connectWebSocketInternal(isReconnect = false) {
+    if (
+        state.websocket &&
+        (state.websocket.readyState === WebSocket.OPEN ||
+            state.websocket.readyState === WebSocket.CONNECTING)
+    ) {
+        return;
+    }
+
+    if (state.websocket) {
+        state.websocket.onopen = null;
+        state.websocket.onmessage = null;
+        state.websocket.onclose = null;
+        state.websocket.onerror = null;
+        try {
+            state.websocket.close();
+        } catch (_) {
+            // 忽略旧连接关闭异常
+        }
+    }
+
     const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
     state.websocket = new WebSocket(`${wsProtocol}//${window.location.host}/ws`);
 
-    window.onVoiceStart = function(playerName, text) {
-        if (state.websocket && state.websocket.readyState === WebSocket.OPEN) {
-            state.websocket.send(JSON.stringify({
-                event: 'voice_start',
-                data: { player_name: playerName, text: text }
-            }));
-        }
-    };
-
-    window.onVoiceEnd = function(playerName, text) {
-        if (state.websocket && state.websocket.readyState === WebSocket.OPEN) {
-            state.websocket.send(JSON.stringify({
-                event: 'voice_complete',
-                data: { player_name: playerName, text: text }
-            }));
-        }
-    };
-
     state.websocket.onopen = function() {
-        console.log('WebSocket连接已建立');
-        addChatMessage('系统', '已连接到游戏服务器', 'system');
-        fetchChatHistory().then(() => fetchCurrentGameState());
+        onSocketOpen(isReconnect);
     };
 
     state.websocket.onmessage = function(event) {
@@ -47,14 +100,79 @@ export function connectWebSocket() {
 
     state.websocket.onclose = function() {
         console.log('WebSocket连接已关闭');
-        addChatMessage('系统', '与服务器连接已断开', 'system');
+        if (!intentionalClose) {
+            notifyDisconnectedOnce();
+            scheduleReconnect();
+        }
     };
 
     state.websocket.onerror = function(error) {
+        // Safari 切后台时常同时触发 error + close，避免重复刷战报
         console.error('WebSocket错误:', error);
-        addChatMessage('系统', '连接错误', 'system');
     };
 }
+
+function resumeAfterForeground() {
+    unlockSpeechAudio();
+    resumeSpeechQueue();
+
+    reconnectAttempts = 0;
+    clearReconnectTimer();
+
+    if (!state.websocket || state.websocket.readyState !== WebSocket.OPEN) {
+        connectWebSocketInternal(true);
+    }
+
+    fetchChatHistory().then(() => fetchCurrentGameState());
+}
+
+function bindLifecycleListeners() {
+    if (lifecycleListenersBound) return;
+    lifecycleListenersBound = true;
+
+    document.addEventListener('visibilitychange', () => {
+        if (document.hidden) {
+            pauseForBackground();
+            return;
+        }
+        resumeAfterForeground();
+    });
+
+    window.addEventListener('online', () => {
+        resumeAfterForeground();
+    });
+
+    window.addEventListener('pageshow', (event) => {
+        if (event.persisted) {
+            resumeAfterForeground();
+        }
+    });
+}
+
+export function connectWebSocket() {
+    bindLifecycleListeners();
+    intentionalClose = false;
+    disconnectNotified = false;
+    connectWebSocketInternal(false);
+}
+
+window.onVoiceStart = function(playerName, text) {
+    if (state.websocket && state.websocket.readyState === WebSocket.OPEN) {
+        state.websocket.send(JSON.stringify({
+            event: 'voice_start',
+            data: { player_name: playerName, text: text }
+        }));
+    }
+};
+
+window.onVoiceEnd = function(playerName, text) {
+    if (state.websocket && state.websocket.readyState === WebSocket.OPEN) {
+        state.websocket.send(JSON.stringify({
+            event: 'voice_complete',
+            data: { player_name: playerName, text: text }
+        }));
+    }
+};
 
 export async function fetchChatHistory() {
     try {
@@ -75,7 +193,6 @@ export async function fetchCurrentGameState() {
         const response = await fetch(`${state.API_BASE}/game/state`);
         if (response.ok) {
             const stateData = await response.json();
-            // 动态导入避免循环依赖
             const { updateGameState } = await import('./game.js');
             updateGameState(stateData);
         }
@@ -133,12 +250,14 @@ function handleWebSocketMessage(data) {
         case 'game_reset':
             handleGameReset(data.data);
             break;
+        case 'current_state':
+            import('./game.js').then(({ updateGameState }) => updateGameState(data.data));
+            break;
         default:
             console.log('未知事件类型:', data.event);
     }
 }
 
 function handlePlayerSpeaking(speakingData) {
-    // 战报由后端 chat_log 维护；此处仅处理气泡、呼吸灯、TTS
     enqueuePlayerSpeech(speakingData);
 }

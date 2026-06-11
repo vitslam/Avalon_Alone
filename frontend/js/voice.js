@@ -1,19 +1,28 @@
 // 语音/TTS 功能
 import state from './state.js';
 
+let resolveTtsReady;
+export const whenTtsReady = new Promise((resolve) => {
+    resolveTtsReady = resolve;
+});
+
+let speechAudioUnlocked = false;
+let userStartedSession = false;
+let unlockPromptShown = false;
+
 export async function loadTTSModule() {
     try {
         const module = await import('../tts.js');
         state.tts = module.tts;
         console.log('语音合成模块已加载');
+        resolveTtsReady();
 
         if (state.players.length > 0) {
-            setTimeout(() => {
-                preconfigureAIVoices();
-            }, 1000);
+            preconfigureAIVoices();
         }
     } catch (error) {
         console.error('加载语音合成模块失败:', error);
+        resolveTtsReady();
     }
 }
 
@@ -25,6 +34,53 @@ export function preconfigureAIVoices() {
         state.tts.preconfigureAIVoices(aiPlayers);
         console.log(`已预配置 ${aiPlayers.length} 个AI玩家的语音`);
     }
+}
+
+export function unlockSpeechAudio() {
+    if (state.tts) {
+        state.tts.unlockAudio();
+    } else if ('speechSynthesis' in window) {
+        window.speechSynthesis.resume();
+    }
+    speechAudioUnlocked = true;
+    const tip = document.getElementById('speechUnlockTip');
+    if (tip) tip.remove();
+}
+
+export function markUserStartedSession() {
+    userStartedSession = true;
+    unlockSpeechAudio();
+}
+
+export function promptSpeechUnlockIfNeeded() {
+    if (userStartedSession || speechAudioUnlocked || unlockPromptShown) return;
+    unlockPromptShown = true;
+
+    const tip = document.createElement('div');
+    tip.id = 'speechUnlockTip';
+    tip.textContent = '点击页面任意处启用语音';
+    tip.style.cssText = `
+        position: fixed;
+        top: 16px;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 2000;
+        background: rgba(0, 0, 0, 0.85);
+        color: #fff;
+        padding: 10px 18px;
+        border-radius: 8px;
+        font-size: 14px;
+        pointer-events: none;
+    `;
+    document.body.appendChild(tip);
+
+    const unlock = () => {
+        unlockSpeechAudio();
+        document.removeEventListener('click', unlock, true);
+        document.removeEventListener('keydown', unlock, true);
+    };
+    document.addEventListener('click', unlock, true);
+    document.addEventListener('keydown', unlock, true);
 }
 
 export function initializeVoiceControl() {
@@ -157,6 +213,8 @@ export function testVoice() {
         return;
     }
 
+    unlockSpeechAudio();
+
     const rate = parseFloat(document.getElementById('voiceRateControl')?.value || '1');
     const pitch = parseFloat(document.getElementById('voicePitchControl')?.value || '1');
     const volume = parseFloat(document.getElementById('voiceVolumeControl')?.value || '1');
@@ -164,7 +222,6 @@ export function testVoice() {
     state.tts.configureVoice('测试语音', null, pitch, rate, volume);
     state.tts.speak('这是一段测试语音，您可以通过上方的滑块调整语速、音调和音量。', '测试语音');
 
-    // 动态导入 chat 模块避免循环依赖
     import('./chat.js').then(({ addChatMessage }) => {
         addChatMessage('测试语音', '这是一段测试语音，您可以通过上方的滑块调整语速、音调和音量。', 'system');
     });

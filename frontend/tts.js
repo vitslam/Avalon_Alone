@@ -212,11 +212,11 @@ class TextToSpeech {
             }
         };
         
-        // 播放语音
+        this.unlockAudio();
         this.speechSynthesis.speak(utterance);
     }
 
-    // 停止正在播放的语音
+    // 停止正在播放的语音（cancel 不会触发 onend，调用方需自行推进展示队列）
     stop() {
         if (!this.isSupported) return;
         this.speechSynthesis.cancel();
@@ -224,6 +224,11 @@ class TextToSpeech {
         this.currentUtterance = null;
         this.utteranceQueue = [];
         console.log('语音已停止，队列已清空');
+    }
+
+    // 页面从后台恢复时唤醒 speechSynthesis
+    resumeAfterSuspend() {
+        this.unlockAudio();
     }
 
     // 是否正在播放语音
@@ -265,6 +270,15 @@ class TextToSpeech {
         if (!this.isSupported) return;
         this._lastAiPlayers = aiPlayers;
         this._applyAIVoiceAssignments(aiPlayers);
+    }
+
+    // 解除浏览器对 speechSynthesis 的暂停（刷新后需用户交互或主动 resume）
+    unlockAudio() {
+        if (!this.isSupported) return;
+        this.speechSynthesis.resume();
+        if (this.voices.length === 0) {
+            this.initVoices();
+        }
     }
 
     // 启用/禁用语音合成功能
