@@ -45,8 +45,8 @@
     flex-shrink: 0;
 }
 
-/* 电脑版：牌桌区域在装饰内框中居中缩放 */
-#app:not(.mobile-ui) .players-container {
+/* 牌桌区域在装饰内框中居中缩放（电脑版 / 手机版共用 fitTableScale） */
+#app .players-container {
     padding-top: 0;
 }
 

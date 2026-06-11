@@ -57,12 +57,8 @@ function applyLayout() {
     syncMenuActiveState();
     changeListeners.forEach((fn) => fn(mobile));
 
-    if (mobile) {
-        requestAnimationFrame(() => fitTableScale());
-    } else {
-        resetMobileTableScale();
-        requestAnimationFrame(() => fitTableScale());
-    }
+    resetTableScale();
+    requestAnimationFrame(() => fitTableScale());
 }
 
 function getGameTableInnerBounds(gameTable) {
@@ -75,10 +71,13 @@ function getGameTableInnerBounds(gameTable) {
     };
 }
 
+const MIN_TABLE_SCALE = 0.25;
+const MAX_TABLE_SCALE = 1.5;
+
 /**
- * 按 .game-table 内边框区域等比缩放牌桌（含玩家卡片）。
- * 电脑版：可放大（大屏）或缩小（小窗），始终保持在装饰边框内。
- * 手机版：仅缩小，原点靠上。
+ * 按 .game-table 内边框区域等比缩放牌桌（含四周玩家卡片）。
+ * 电脑版：整体居中缩放。
+ * 手机版：整体（桌+四边卡片）缩放进内框，桌子与边框之间保留侧列/顶底行卡片。
  */
 export function fitTableScale() {
     const gameTable = document.querySelector('.game-table');
@@ -94,29 +93,35 @@ export function fitTableScale() {
     const neededH = container.offsetHeight;
     if (neededW <= 0 || neededH <= 0 || inner.width <= 0 || inner.height <= 0) return;
 
-    let scale = Math.min(inner.width / neededW, inner.height / neededH);
+    const scaleW = inner.width / neededW;
+    const scaleH = inner.height / neededH;
 
     if (isMobileLayout()) {
-        scale = Math.min(1, scale);
-    } else {
-        const MIN_DESKTOP_SCALE = 0.3;
-        const MAX_DESKTOP_SCALE = 1.5;
-        scale = Math.max(MIN_DESKTOP_SCALE, Math.min(MAX_DESKTOP_SCALE, scale));
+        let scale = Math.min(scaleW, scaleH);
+        scale = Math.max(MIN_TABLE_SCALE, Math.min(MAX_TABLE_SCALE, scale));
+
+        const scaledW = neededW * scale;
+        const scaledH = neededH * scale;
+        const inset = INNER_BORDER_INSET / 2;
+        const offsetX = inset + Math.max(0, (inner.width - scaledW) / 2);
+        const offsetY = inset + Math.max(0, (inner.height - scaledH) / 2);
+
+        container.style.transformOrigin = 'top left';
+        container.style.transform = `translate(${offsetX}px, ${offsetY}px) scale(${scale})`;
+        window.dispatchEvent(new CustomEvent('table-layout-fitted'));
+        return;
     }
+
+    let scale = Math.min(scaleW, scaleH);
+    scale = Math.max(MIN_TABLE_SCALE, Math.min(MAX_TABLE_SCALE, scale));
 
     if (Math.abs(scale - 1) < 0.005) {
         window.dispatchEvent(new CustomEvent('table-layout-fitted'));
         return;
     }
 
-    if (isMobileLayout()) {
-        container.style.transformOrigin = 'top center';
-        container.style.transform = `scale(${scale})`;
-        container.style.marginBottom = `${-(neededH * (1 - scale))}px`;
-    } else {
-        container.style.transformOrigin = 'center center';
-        container.style.transform = `scale(${scale})`;
-    }
+    container.style.transformOrigin = 'center center';
+    container.style.transform = `scale(${scale})`;
 
     window.dispatchEvent(new CustomEvent('table-layout-fitted'));
 }
@@ -126,12 +131,17 @@ export function fitMobileTableScale() {
     fitTableScale();
 }
 
-export function resetMobileTableScale() {
+export function resetTableScale() {
     const container = document.getElementById('playersContainer');
     if (!container) return;
     container.style.transform = '';
     container.style.marginBottom = '';
     container.style.transformOrigin = '';
+}
+
+/** @deprecated 使用 resetTableScale */
+export function resetMobileTableScale() {
+    resetTableScale();
 }
 
 let resizeTimer = null;

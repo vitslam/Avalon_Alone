@@ -23,58 +23,42 @@
     padding-bottom: 4px;
 }
 
+/* 牌桌区域与电脑版相同：固定设计尺寸 + fitTableScale() 等比缩放进内框 */
 #app.mobile-ui .game-interface > .game-table {
     flex: 1;
     min-height: 0;
-    padding: 2px;
+    padding: 10px;
     overflow: hidden;
     align-items: flex-start;
-    justify-content: center;
+    justify-content: flex-start;
 }
 
 #app.mobile-ui .players-container {
-    width: 100%;
-    max-width: 100%;
-    min-width: 0;
-    height: auto;
-    padding-top: 2px;
-    gap: 2px;
-}
-
-/* 桌子撑满中心格，边缘紧贴四周卡片 */
-#app.mobile-ui .table-center {
-    width: 100%;
-    height: 100%;
-    min-height: 0;
-}
-
-#app.mobile-ui .table-center::before {
-    font-size: 0.8rem;
-    letter-spacing: 2px;
-}
-
-#app.mobile-ui .table-center .table-info {
-    font-size: 0.65rem;
-    bottom: 6px;
-}
-
-#app.mobile-ui .players-top,
-#app.mobile-ui .players-bottom {
-    width: min(220px, 92vw);
-    gap: 3px;
-    flex-wrap: wrap;
-    justify-content: space-evenly;
+    row-gap: 0;
+    column-gap: 10px;
 }
 
 #app.mobile-ui .players-left,
 #app.mobile-ui .players-right {
-    gap: 3px;
+    gap: 10px;
 }
 
+/* 竖屏收窄牌桌宽度，左右各留一列玩家卡片位 */
+#app.mobile-ui .table-center,
+#app.mobile-ui .players-top,
+#app.mobile-ui .players-bottom {
+    width: 320px;
+}
+
+#app.mobile-ui .table-center {
+    height: 520px;
+}
+
+/* 手机版玩家卡片：较基准缩小 40%（×0.6） */
 #app.mobile-ui .player-card {
-    min-width: 62px;
-    max-width: 72px;
-    padding: 6px 4px;
+    min-width: 83px;
+    max-width: 97px;
+    padding: 11px 8px;
 }
 
 #app.mobile-ui .player-card:hover {
@@ -82,30 +66,29 @@
 }
 
 #app.mobile-ui .player-avatar {
-    width: 30px;
-    height: 30px;
-    font-size: 11px;
-    margin-bottom: 4px;
+    width: 40px;
+    height: 40px;
+    font-size: 16px;
+    margin-bottom: 7px;
 }
 
 #app.mobile-ui .player-avatar.avatar-dual {
-    font-size: 9px;
+    font-size: 12px;
 }
 
 #app.mobile-ui .player-role {
-    font-size: 9px;
-    padding: 1px 4px;
-    margin-bottom: 3px;
+    font-size: 8px;
+    padding: 1px 6px;
+    margin-bottom: 4px;
 }
 
 #app.mobile-ui .player-status {
     font-size: 8px;
-    margin-top: 2px;
-    line-height: 1.2;
+    margin-top: 3px;
 }
 
 #app.mobile-ui .player-card.leader::after {
-    font-size: 12px;
+    font-size: 11px;
     top: 4px;
     right: 4px;
 }
