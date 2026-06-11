@@ -2,6 +2,8 @@
 
 const STORAGE_KEY = 'avalon_layout_pref';
 const MOBILE_MQ = window.matchMedia('(max-width: 768px)');
+/** 与 .game-table::before 内框 inset(10px) 对齐，避免牌桌压线 */
+const INNER_BORDER_INSET = 20;
 
 let preference = 'auto';
 const changeListeners = [];
@@ -56,36 +58,72 @@ function applyLayout() {
     changeListeners.forEach((fn) => fn(mobile));
 
     if (mobile) {
-        requestAnimationFrame(() => fitMobileTableScale());
+        requestAnimationFrame(() => fitTableScale());
     } else {
         resetMobileTableScale();
+        requestAnimationFrame(() => fitTableScale());
     }
 }
 
-/** 按 game-table 可用高度等比缩小牌桌区域，避免上下溢出屏幕 */
-export function fitMobileTableScale() {
-    if (!isMobileLayout()) {
-        resetMobileTableScale();
-        return;
-    }
+function getGameTableInnerBounds(gameTable) {
+    const style = getComputedStyle(gameTable);
+    const padX = parseFloat(style.paddingLeft) + parseFloat(style.paddingRight);
+    const padY = parseFloat(style.paddingTop) + parseFloat(style.paddingBottom);
+    return {
+        width: gameTable.clientWidth - padX - INNER_BORDER_INSET,
+        height: gameTable.clientHeight - padY - INNER_BORDER_INSET,
+    };
+}
 
+/**
+ * 按 .game-table 内边框区域等比缩放牌桌（含玩家卡片）。
+ * 电脑版：可放大（大屏）或缩小（小窗），始终保持在装饰边框内。
+ * 手机版：仅缩小，原点靠上。
+ */
+export function fitTableScale() {
     const gameTable = document.querySelector('.game-table');
     const container = document.getElementById('playersContainer');
     if (!gameTable || !container) return;
 
     container.style.transform = 'none';
     container.style.marginBottom = '0';
+    container.style.transformOrigin = '';
 
-    const available = gameTable.clientHeight - 12;
-    const needed = container.offsetHeight;
-    if (available <= 0 || needed <= 0) return;
+    const inner = getGameTableInnerBounds(gameTable);
+    const neededW = container.offsetWidth;
+    const neededH = container.offsetHeight;
+    if (neededW <= 0 || neededH <= 0 || inner.width <= 0 || inner.height <= 0) return;
 
-    const scale = Math.min(1, available / needed);
-    if (scale >= 0.995) return;
+    let scale = Math.min(inner.width / neededW, inner.height / neededH);
 
-    container.style.transformOrigin = 'top center';
-    container.style.transform = `scale(${scale})`;
-    container.style.marginBottom = `${-(needed * (1 - scale))}px`;
+    if (isMobileLayout()) {
+        scale = Math.min(1, scale);
+    } else {
+        const MIN_DESKTOP_SCALE = 0.3;
+        const MAX_DESKTOP_SCALE = 1.5;
+        scale = Math.max(MIN_DESKTOP_SCALE, Math.min(MAX_DESKTOP_SCALE, scale));
+    }
+
+    if (Math.abs(scale - 1) < 0.005) {
+        window.dispatchEvent(new CustomEvent('table-layout-fitted'));
+        return;
+    }
+
+    if (isMobileLayout()) {
+        container.style.transformOrigin = 'top center';
+        container.style.transform = `scale(${scale})`;
+        container.style.marginBottom = `${-(neededH * (1 - scale))}px`;
+    } else {
+        container.style.transformOrigin = 'center center';
+        container.style.transform = `scale(${scale})`;
+    }
+
+    window.dispatchEvent(new CustomEvent('table-layout-fitted'));
+}
+
+/** @deprecated 使用 fitTableScale */
+export function fitMobileTableScale() {
+    fitTableScale();
 }
 
 export function resetMobileTableScale() {
@@ -93,12 +131,13 @@ export function resetMobileTableScale() {
     if (!container) return;
     container.style.transform = '';
     container.style.marginBottom = '';
+    container.style.transformOrigin = '';
 }
 
 let resizeTimer = null;
 window.addEventListener('resize', () => {
     clearTimeout(resizeTimer);
-    resizeTimer = setTimeout(() => fitMobileTableScale(), 150);
+    resizeTimer = setTimeout(() => fitTableScale(), 150);
 });
 
 function syncMenuActiveState() {

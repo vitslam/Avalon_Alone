@@ -5,7 +5,7 @@
     border-radius: 12px;
     padding: 16px;
     position: relative;
-    overflow: auto;
+    overflow: hidden;
     height: 100%;
     display: flex;
     align-items: center;
@@ -35,15 +35,19 @@
     grid-template-columns: auto auto auto;
     grid-template-rows: auto auto auto;
     width: max-content;
-    min-width: 100%;
-    height: 100%;
+    height: max-content;
     gap: 4px;
     align-items: center;
     justify-items: center;
     justify-content: center;
-    align-content: start;
-    padding-top: 10px;
+    align-content: center;
     margin: 0 auto;
+    flex-shrink: 0;
+}
+
+/* 电脑版：牌桌区域在装饰内框中居中缩放 */
+#app:not(.mobile-ui) .players-container {
+    padding-top: 0;
 }
 
 .table-center {

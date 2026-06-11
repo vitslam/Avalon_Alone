@@ -4,7 +4,7 @@ import { startGame, resetGame } from './game.js';
 import { connectWebSocket } from './websocket.js';
 import { loadTTSModule, initializeVoiceControl, testVoice } from './voice.js';
 import { loadClientConfig } from './config.js';
-import { initLayout, bindLayoutMenu, fitMobileTableScale } from './layout.js';
+import { initLayout, bindLayoutMenu, fitTableScale } from './layout.js';
 
 document.addEventListener('DOMContentLoaded', async function() {
     initLayout();
@@ -85,6 +85,6 @@ function initChatCollapse() {
 
     toggle.addEventListener('click', () => {
         chatPanel.classList.toggle('collapsed');
-        requestAnimationFrame(() => fitMobileTableScale());
+        requestAnimationFrame(() => fitTableScale());
     });
 }

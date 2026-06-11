@@ -1,12 +1,16 @@
 // 桌面显示和玩家卡片
 import state from './state.js';
 import { stripMarkdownQuotes } from './chat.js';
-import { isMobileLayout, onLayoutChange, fitMobileTableScale } from './layout.js';
+import { isMobileLayout, onLayoutChange, fitTableScale } from './layout.js';
 
 onLayoutChange(() => {
     if (state.gameState?.players?.length) {
         updatePlayersDisplay();
     }
+});
+
+window.addEventListener('table-layout-fitted', () => {
+    refreshActiveSpeechBubble();
 });
 
 let speechBubbleLayer = 10;
@@ -82,14 +86,10 @@ export function updatePlayersDisplay() {
     playersContainer.appendChild(rightCol);
     playersContainer.appendChild(bottomRow);
 
-    if (isMobileLayout()) {
-        requestAnimationFrame(() => {
-            fitMobileTableScale();
-            refreshActiveSpeechBubble();
-        });
-    } else {
+    requestAnimationFrame(() => {
+        fitTableScale();
         refreshActiveSpeechBubble();
-    }
+    });
 }
 
 function refreshActiveSpeechBubble() {
