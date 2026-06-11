@@ -322,7 +322,7 @@ class AIController:
         await self.notify_frontend("team_selected", result)
 
     async def handle_mission_vote(self):
-        """处理任务投票阶段：车队成员并行 LLM 投票（秘密表决，不发言）"""
+        """处理任务投票阶段：好人固定 success，坏人并行 LLM 决策（秘密表决，不发言）"""
         print("处理任务投票阶段")
 
         total_team_members = len(self.game.current_team)
@@ -352,10 +352,7 @@ class AIController:
             return
 
         async def fetch_mission_vote(player):
-            vote = await self._ai_decide_mission_vote_with_llm(player)
-            if not vote:
-                print(f"AI API失败，使用发言解析/兜底逻辑为 {player.name}")
-                vote = self.ai_decide_mission_vote(player)
+            vote = await self._decide_mission_vote_for_player(player)
             return player, vote
 
         tasks = [asyncio.create_task(fetch_mission_vote(p)) for p in ai_pending]
@@ -540,6 +537,18 @@ class AIController:
         game_context = self.game.get_game_state()
         return await ai_service.get_ai_vote_decision(player.name, player.role, game_context, "team")
 
+    async def _decide_mission_vote_for_player(self, player) -> Optional[str]:
+        """任务投票：好人按规则固定 success，仅坏人调用 LLM。"""
+        if ROLES.get(player.role, {}).get('team') == 'good':
+            print(f"AI好人 {player.name} 任务投票: success（规则固定）")
+            return 'success'
+
+        vote = await self._ai_decide_mission_vote_with_llm(player)
+        if not vote:
+            print(f"AI API失败，使用发言解析/兜底逻辑为 {player.name}")
+            vote = self.ai_decide_mission_vote(player)
+        return vote
+
     async def _ai_decide_mission_vote_with_llm(self, player) -> Optional[str]:
         """使用LLM API决定任务投票"""
         game_context = self.game.get_game_state()
@@ -698,14 +707,15 @@ class AIController:
         return "approve"
 
     def ai_decide_mission_vote(self, player) -> str:
-        """AI任务投票决策备用逻辑：解析本队讨论发言，无法解析时按阵营投票"""
+        """AI任务投票决策备用逻辑（仅坏人）：解析讨论发言，无法解析时投 fail"""
+        if ROLES.get(player.role, {}).get('team') == 'good':
+            return "success"
+
         speech = self._get_player_last_speech(player.name, GAME_PHASES['team_vote'])
         vote = self._parse_vote_from_speech(speech, "mission")
         if vote:
             return vote
-        if ROLES.get(player.role, {}).get('team') == 'evil':
-            return "fail"
-        return "success"
+        return "fail"
 
     def ai_select_assassination_target(self, assassin, good_players: List[str]) -> str:
         """AI刺杀目标选择备用逻辑"""
