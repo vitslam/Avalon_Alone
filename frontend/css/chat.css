@@ -25,6 +25,11 @@
     flex-shrink: 0;
 }
 
+/* 战报折叠切换图标（仅手机版可见、可点击） */
+.chat-collapse-icon {
+    display: none;
+}
+
 .chat-messages {
     flex: 1;
     border: 1px solid var(--border-stone);

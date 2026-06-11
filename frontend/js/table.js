@@ -1,6 +1,13 @@
 // 桌面显示和玩家卡片
 import state from './state.js';
 import { stripMarkdownQuotes } from './chat.js';
+import { isMobileLayout, onLayoutChange, fitMobileTableScale } from './layout.js';
+
+onLayoutChange(() => {
+    if (state.gameState?.players?.length) {
+        updatePlayersDisplay();
+    }
+});
 
 let speechBubbleLayer = 10;
 
@@ -61,20 +68,63 @@ export function updatePlayersDisplay() {
     for (let i = 0; i < bottomCount && playerIndex < totalPlayers; i++, playerIndex++) {
         bottomPlayers.push(state.gameState.players[playerIndex]);
     }
-    // 下侧逆序排列（顺时针绕桌）
+    // 下侧、左侧逆序排列（顺时针绕桌：底行从右到左，左列从下到上）
     bottomPlayers.reverse().forEach(p => bottomRow.appendChild(createPlayerCard(p)));
+    const leftPlayers = [];
     for (let i = 0; i < leftCount && playerIndex < totalPlayers; i++, playerIndex++) {
-        leftCol.appendChild(createPlayerCard(state.gameState.players[playerIndex]));
+        leftPlayers.push(state.gameState.players[playerIndex]);
     }
+    leftPlayers.reverse().forEach(p => leftCol.appendChild(createPlayerCard(p)));
 
     playersContainer.appendChild(topRow);
     playersContainer.appendChild(leftCol);
     playersContainer.appendChild(tableCenter);
     playersContainer.appendChild(rightCol);
     playersContainer.appendChild(bottomRow);
+
+    if (isMobileLayout()) {
+        requestAnimationFrame(() => {
+            fitMobileTableScale();
+            refreshActiveSpeechBubble();
+        });
+    } else {
+        refreshActiveSpeechBubble();
+    }
+}
+
+function refreshActiveSpeechBubble() {
+    const overlay = document.getElementById('speechBubbleOverlay');
+    const bubble = overlay?.querySelector('.speech-bubble');
+    if (!bubble) return;
+
+    const speaker = bubble.dataset.speaker;
+    if (!speaker) return;
+
+    const speakerCard = document.querySelector(`.player-card[data-player-name="${speaker}"]`);
+    if (!speakerCard) return;
+
+    speakerCard.classList.add('speech-active');
+    positionSpeechBubble(bubble, speakerCard);
+}
+
+function getMobileSeatLayout(totalPlayers) {
+    // 尽量少占上下行，把玩家分到左右两侧，降低纵向高度
+    const layouts = {
+        5: { top: 1, right: 2, bottom: 1, left: 1 },
+        6: { top: 1, right: 2, bottom: 1, left: 2 },
+        7: { top: 1, right: 3, bottom: 1, left: 2 },
+        8: { top: 1, right: 3, bottom: 1, left: 3 },
+        9: { top: 1, right: 4, bottom: 1, left: 3 },
+        10: { top: 1, right: 4, bottom: 1, left: 4 },
+    };
+    return layouts[totalPlayers] || { top: 1, right: 2, bottom: 1, left: 1 };
 }
 
 function getSeatLayout(totalPlayers) {
+    if (isMobileLayout()) {
+        return getMobileSeatLayout(totalPlayers);
+    }
+
     const overrides = {
         9: { top: 3, right: 1, bottom: 4, left: 1 },
         10: { top: 4, right: 1, bottom: 4, left: 1 },
@@ -245,18 +295,29 @@ export function updateCurrentSpeaker(speaker) {
 }
 
 export function showPlayerSpeaking(speaker, message) {
+    const overlay = document.getElementById('speechBubbleOverlay');
+    if (overlay) {
+        overlay.querySelectorAll('.speech-bubble').forEach((b) => b.remove());
+    }
+    document.querySelectorAll('.player-card.speech-active').forEach((card) => {
+        card.classList.remove('speech-active');
+        card.style.zIndex = '';
+    });
+
     if (!state.gameState || !state.gameState.players) return;
 
     const speakerCard = document.querySelector(`.player-card[data-player-name="${speaker}"]`);
-    const overlay = document.getElementById('speechBubbleOverlay');
     if (!speakerCard || !overlay) return;
-
-    overlay.querySelectorAll('.speech-bubble').forEach(b => b.remove());
 
     const speechBubble = document.createElement('div');
     speechBubble.className = 'speech-bubble';
     speechBubble.dataset.speaker = speaker;
-    speechBubble.textContent = stripMarkdownQuotes(message);
+
+    let bubbleText = stripMarkdownQuotes(message);
+    if (isMobileLayout() && bubbleText.length > 50) {
+        bubbleText = bubbleText.slice(0, 50) + '...';
+    }
+    speechBubble.textContent = bubbleText;
 
     speechBubbleLayer += 1;
     speechBubble.style.zIndex = String(1500 + speechBubbleLayer);
@@ -295,6 +356,9 @@ function positionSpeechBubble(bubble, speakerCard) {
 }
 
 export function showCurrentSpeakerIndicator(speaker) {
+    // 手机版不显示右上角"正在发言"弹窗
+    if (isMobileLayout()) return;
+
     const indicator = document.getElementById('currentSpeaker');
     const speakerNameElement = document.getElementById('speakerName');
 
@@ -312,20 +376,12 @@ export function hideSpeechPresentation(speaker) {
 
     const overlay = document.getElementById('speechBubbleOverlay');
     if (overlay) {
-        if (speaker) {
-            overlay.querySelectorAll(`.speech-bubble[data-speaker="${speaker}"]`).forEach(b => b.remove());
-        } else {
-            overlay.innerHTML = '';
-        }
+        overlay.querySelectorAll('.speech-bubble').forEach((b) => b.remove());
     }
-
-    if (speaker) {
-        const speakerCard = document.querySelector(`.player-card[data-player-name="${speaker}"]`);
-        if (speakerCard) {
-            speakerCard.classList.remove('speech-active');
-            speakerCard.style.zIndex = '';
-        }
-    }
+    document.querySelectorAll('.player-card.speech-active').forEach((card) => {
+        card.classList.remove('speech-active');
+        card.style.zIndex = '';
+    });
 
     const indicator = document.getElementById('currentSpeaker');
     if (indicator) {

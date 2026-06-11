@@ -44,6 +44,7 @@ body {
     margin: 0 auto;
     padding: 10px 12px;
     height: 100vh;
+    height: 100dvh;
     display: flex;
     flex-direction: column;
     overflow: hidden;

@@ -12,6 +12,7 @@
     <link rel="stylesheet" href="/static/css/chat.css">
     <link rel="stylesheet" href="/static/css/modal.css">
     <link rel="stylesheet" href="/static/css/responsive.css">
+    <link rel="stylesheet" href="/static/css/layout-mobile.css">
     <link rel="stylesheet" href="/static/css/missionVideo.css">
     <link rel="icon" href="/static/favicon.ico" type="image/x-icon">
 </head>
@@ -33,6 +34,11 @@
                     <span class="menu-toggle-bar"></span>
                 </button>
                 <div class="header-dropdown" id="headerDropdown" hidden>
+                    <div class="header-dropdown-label">布局</div>
+                    <button type="button" class="header-dropdown-item header-dropdown-item--checkable" data-layout-pref="auto">自动</button>
+                    <button type="button" class="header-dropdown-item header-dropdown-item--checkable" data-layout-pref="desktop">电脑版</button>
+                    <button type="button" class="header-dropdown-item header-dropdown-item--checkable" data-layout-pref="mobile">手机版</button>
+                    <div class="header-dropdown-divider" role="separator"></div>
                     <button type="button" class="header-dropdown-item header-dropdown-item--danger" id="resetGameMenuItem">
                         放弃本局
                     </button>
@@ -80,8 +86,11 @@
             </div>
 
             <!-- 战报侧栏（独立于牌桌网格，避免被裁切） -->
-            <aside class="chat-panel">
-                <h3>战报</h3>
+            <aside class="chat-panel" id="chatPanel">
+                <h3 class="chat-panel-title" id="chatPanelToggle">
+                    <span>战报</span>
+                    <span class="chat-collapse-icon" aria-hidden="true">▾</span>
+                </h3>
                 <div class="chat-messages" id="chatMessages">
                     <!-- 聊天消息将在这里显示 -->
                 </div>

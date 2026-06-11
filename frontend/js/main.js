@@ -4,8 +4,10 @@ import { startGame, resetGame } from './game.js';
 import { connectWebSocket } from './websocket.js';
 import { loadTTSModule, initializeVoiceControl, testVoice } from './voice.js';
 import { loadClientConfig } from './config.js';
+import { initLayout, bindLayoutMenu, fitMobileTableScale } from './layout.js';
 
 document.addEventListener('DOMContentLoaded', async function() {
+    initLayout();
     await loadClientConfig();
     initializeEventListeners();
     initializeDefaultPlayers();
@@ -68,5 +70,21 @@ function initializeEventListeners() {
     });
 
     initializeHeaderMenu();
+    bindLayoutMenu();
+    initChatCollapse();
     initializeVoiceControl();
+}
+
+function initChatCollapse() {
+    const chatPanel = document.getElementById('chatPanel');
+    const toggle = document.getElementById('chatPanelToggle');
+    if (!chatPanel || !toggle) return;
+
+    // 默认收起（仅手机版 CSS 生效，电脑版战报始终展开）
+    chatPanel.classList.add('collapsed');
+
+    toggle.addEventListener('click', () => {
+        chatPanel.classList.toggle('collapsed');
+        requestAnimationFrame(() => fitMobileTableScale());
+    });
 }
