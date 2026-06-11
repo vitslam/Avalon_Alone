@@ -55,30 +55,6 @@
     box-shadow: 0 0 20px rgba(212, 168, 67, 0.4);
 }
 
-/* ===== 重置按钮 ===== */
-.reset-button {
-    position: fixed;
-    top: 20px;
-    right: 20px;
-    background: transparent;
-    color: var(--evil-red);
-    border: 1px solid var(--evil-red);
-    padding: 8px 15px;
-    border-radius: 4px;
-    cursor: pointer;
-    font-size: 13px;
-    z-index: 1000;
-    font-family: inherit;
-    transition: all 0.3s;
-    letter-spacing: 1px;
-}
-
-.reset-button:hover {
-    background: var(--evil-red);
-    color: white;
-    box-shadow: 0 0 12px rgba(224, 64, 64, 0.3);
-}
-
 /* ===== 发言者指示器 ===== */
 .current-speaker-indicator {
     position: fixed;

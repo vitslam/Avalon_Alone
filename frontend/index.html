@@ -19,6 +19,25 @@
     <div id="app">
         <!-- 游戏标题 -->
         <header class="game-header">
+            <div class="header-menu" id="headerMenu">
+                <button
+                    type="button"
+                    class="menu-toggle"
+                    id="menuToggle"
+                    aria-label="打开菜单"
+                    aria-expanded="false"
+                    aria-controls="headerDropdown"
+                >
+                    <span class="menu-toggle-bar"></span>
+                    <span class="menu-toggle-bar"></span>
+                    <span class="menu-toggle-bar"></span>
+                </button>
+                <div class="header-dropdown" id="headerDropdown" hidden>
+                    <button type="button" class="header-dropdown-item header-dropdown-item--danger" id="resetGameMenuItem">
+                        放弃本局
+                    </button>
+                </div>
+            </div>
             <h1>AVALON</h1>
             <div class="game-status" id="gameStatus">等待开始游戏</div>
         </header>
@@ -94,8 +113,6 @@
             正在发言: <span id="speakerName"></span>
         </div>
         
-        <!-- 重置游戏按钮 -->
-        <button onclick="resetGame()" class="reset-button">放弃本局</button>
     </div>
 
     <script type="module" src="/static/js/main.js"></script>

@@ -112,10 +112,18 @@
         font-size: 12px;
     }
 
-    .reset-button {
-        top: 10px;
-        right: 10px;
-        padding: 6px 10px;
-        font-size: 11px;
+    .menu-toggle {
+        width: 36px;
+        height: 36px;
+        padding: 7px;
+    }
+
+    .header-dropdown {
+        min-width: 120px;
+    }
+
+    .header-dropdown-item {
+        padding: 12px 14px;
+        font-size: 13px;
     }
 }
