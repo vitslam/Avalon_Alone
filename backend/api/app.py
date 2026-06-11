@@ -9,7 +9,6 @@ import asyncio
 import os
 from ..core.game import AvalonGame
 from ..models.player import AIPlayer
-from ..models.god import God
 from ..ai.ai_controller import AIController
 from config import FRONTEND_CONFIG
 
@@ -78,9 +77,7 @@ async def start_game(config: GameConfig):
         for player_config in config.players
     ]
 
-    # 创建上帝和游戏实例
-    god = God()
-    game_instance = AvalonGame(players, god)
+    game_instance = AvalonGame(players)
 
     # 创建AI控制器，传递WebSocket通知函数
     ai_controller = AIController(game_instance, notify_all_connections)

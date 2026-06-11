@@ -2,7 +2,13 @@
 角色定义与阵营说明
 """
 
-from typing import List, Dict, Any
+import random
+from typing import List, Dict, Any, TYPE_CHECKING
+
+from .constants import ROLE_ASSIGNMENT
+
+if TYPE_CHECKING:
+    from ..models.player import Player
 
 # 游戏基本说明
 GAME_BASIC_DESCRIPTION = """
@@ -317,3 +323,23 @@ def get_team_description(role: str) -> str:
 13. 不要使用括号；
 13. 发言不超过300字
 """
+
+
+def assign_roles(players: List["Player"]) -> Dict[str, str]:
+    """随机分配角色并写入各玩家对象，返回 {玩家名: 角色 id}。"""
+    if len(players) < 5 or len(players) > 10:
+        raise ValueError("玩家数量必须在5-10人之间")
+
+    role_config = ROLE_ASSIGNMENT.get(len(players), [])
+    if not role_config:
+        raise ValueError(f"不支持的玩家数量: {len(players)}")
+
+    available_roles = role_config.copy()
+    random.shuffle(available_roles)
+
+    assignments: Dict[str, str] = {}
+    for player, role in zip(players, available_roles):
+        player.set_role(role)
+        assignments[player.name] = role
+
+    return assignments

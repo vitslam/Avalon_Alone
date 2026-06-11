@@ -66,9 +66,8 @@ class LogManager:
         with open(self.global_log_path, 'a') as f:
             f.write(json.dumps(log_entry, ensure_ascii=False) + '\n')
 
-    def log_game_start_with_roles(self, role_assignments: Dict[str, str], secret_messages: Dict[str, str] = None):
-        """记录游戏开始和身份信息到全局日志"""
-        # 记录公开的角色分配信息（不包含秘密信息）
+    def log_game_start_with_roles(self, role_assignments: Dict[str, str]):
+        """记录游戏开始和角色分配到全局日志"""
         log_entry = self._base_entry()
         log_entry.update({
             'event_type': 'game_start',
@@ -79,19 +78,6 @@ class LogManager:
 
         with open(self.global_log_path, 'a') as f:
             f.write(json.dumps(log_entry, ensure_ascii=False) + '\n')
-
-        # 如果有秘密信息，也记录下来
-        if secret_messages:
-            for player_name, message in secret_messages.items():
-                secret_entry = self._base_entry()
-                secret_entry.update({
-                    'event_type': 'secret_message',
-                    'data': {
-                        'player_name': player_name,
-                        'message': message
-                    }
-                })
-                f.write(json.dumps(secret_entry, ensure_ascii=False) + '\n')
 
     def log_player_interaction(
         self,

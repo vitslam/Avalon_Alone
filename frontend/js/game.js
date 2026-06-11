@@ -128,12 +128,6 @@ function updateCurrentPhase() {
 
 export function handleGameStarted(data) {
     addChatMessage('系统', '游戏开始！角色已分配完成', 'system');
-
-    if (data.secret_messages) {
-        Object.entries(data.secret_messages).forEach(([playerName, message]) => {
-            addChatMessage('上帝', `${playerName}: ${message}`, 'system');
-        });
-    }
 }
 
 export function handleTeamSelected(data) {
@@ -331,12 +325,6 @@ export async function startGame() {
             document.getElementById('gameInterface').style.display = 'flex';
 
             addChatMessage('系统', '游戏开始！角色已分配完成', 'system');
-
-            if (result.secret_messages) {
-                Object.entries(result.secret_messages).forEach(([playerName, message]) => {
-                    addChatMessage('上帝', `${playerName}: ${message}`, 'system');
-                });
-            }
 
             const { fetchCurrentGameState } = await import('./websocket.js');
             setTimeout(fetchCurrentGameState, 100);

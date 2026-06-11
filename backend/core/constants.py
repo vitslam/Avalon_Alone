@@ -6,7 +6,6 @@
 GAME_PHASES = {
     'init': '初始化',
     'role_assignment': '分配角色',
-    'secret_info': '传递秘密信息',
     'team_selection': '选择队伍',
     'team_vote': '队伍投票',
     'mission_vote': '任务投票',

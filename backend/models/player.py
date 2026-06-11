@@ -11,12 +11,6 @@ class Player:
         self.is_leader = False
         self.is_on_mission = False
         self.vote_history = []
-        self.messages = []
-
-    def receive_message(self, message: str):
-        """玩家收到信息"""
-        self.messages.append(message)
-        print(f"{self.name} 收到消息: {message}")
 
     def set_role(self, role: str):
         """设置玩家角色"""

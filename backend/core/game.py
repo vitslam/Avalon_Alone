@@ -4,13 +4,12 @@ from .constants import (
     EVIL_ROLES, MAX_ASSASSINATION_DISCUSSION_ROUNDS,
 )
 from ..models.player import Player
-from ..models.god import God
+from .roles import assign_roles
 
 
 class AvalonGame:
-    def __init__(self, players: List[Player], god: God):
+    def __init__(self, players: List[Player]):
         self.players = players
-        self.god = god
         self.current_round = 1
         self.current_mission = 1
         self.mission_results = []
@@ -40,26 +39,14 @@ class AvalonGame:
 
         self.state = GAME_STATES['playing']
         self.phase = GAME_PHASES['role_assignment']
+        role_assignments = assign_roles(self.players)
 
-        # 分配角色
-        role_assignments = self.god.assign_roles(self.players)
-
-        # 发送秘密信息
-        self.phase = GAME_PHASES['secret_info']
-        secret_messages = {}
-        for player in self.players:
-            message = self.god.send_secret_info(player)
-            player.receive_message(message)
-            secret_messages[player.name] = message
-
-        # 开始第一轮
         self.phase = GAME_PHASES['team_selection']
         self.current_leader_index = 0
 
         return {
             'status': 'started',
             'role_assignments': role_assignments,
-            'secret_messages': secret_messages,
             'current_leader': self.players[self.current_leader_index].name
         }
 

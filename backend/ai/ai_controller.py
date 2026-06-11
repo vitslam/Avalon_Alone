@@ -59,10 +59,9 @@ class AIController:
             game_start_result = self.game.start_game()
 
             # 记录游戏开始和角色分配信息到全局日志
-            if 'role_assignments' in game_start_result and 'secret_messages' in game_start_result:
+            if 'role_assignments' in game_start_result:
                 self.log_manager.log_game_start_with_roles(
-                    role_assignments=game_start_result['role_assignments'],
-                    secret_messages=game_start_result['secret_messages']
+                    role_assignments=game_start_result['role_assignments']
                 )
                 print(f"游戏角色分配已记录到全局日志")
 
