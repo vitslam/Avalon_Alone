@@ -1,6 +1,7 @@
 // 玩家管理（设置阶段，纯 AI）
 import state from './state.js';
 import { preconfigureAIVoices } from './voice.js';
+import { applyPlayerColorToElement } from './playerColors.js';
 
 export function addPlayer() {
     const nameInput = document.getElementById('playerName');
@@ -65,6 +66,7 @@ export function updatePlayerList() {
             playerItem.appendChild(playerName);
             playerItem.appendChild(playerInfo);
             playerItem.appendChild(deleteButton);
+            applyPlayerColorToElement(playerItem, index);
             playerList.appendChild(playerItem);
         } catch (error) {
             console.error(`创建玩家项目 ${index} 时出错:`, error);

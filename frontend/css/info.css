@@ -1,51 +1,52 @@
-/* ===== 游戏信息面板 ===== */
+/* ===== 信息面板 — 彩窗仪表盘 ===== */
 
-/* 任务战况（牌桌上方） */
 .mission-board {
     background: var(--bg-panel);
-    border: 1px solid var(--border-gold);
-    border-radius: 8px;
-    padding: 12px 16px;
-    box-shadow: 0 4px 20px var(--shadow-dark);
+    border: 2px solid var(--border-gold);
+    border-radius: 6px;
+    padding: 14px 18px;
+    box-shadow: 0 4px 24px var(--shadow-dark);
     text-align: center;
 }
 
 .mission-board h3 {
-    color: var(--gold);
-    margin-bottom: 10px;
-    font-size: 1rem;
-    font-family: 'MedievalSharp', 'Noto Serif SC', serif;
-    letter-spacing: 2px;
-    border-bottom: 1px solid var(--border-stone);
+    color: var(--gold-bright);
+    margin-bottom: 12px;
+    font-size: 0.95rem;
+    font-family: var(--font-display);
+    letter-spacing: 0.25em;
+    text-shadow: 0 0 10px rgba(212, 160, 32, 0.35);
+    border-bottom: 2px solid var(--border-stone);
     padding-bottom: 8px;
 }
 
-/* 任务进度：gap 留出间距，连线从圆右缘画满整段 gap */
 .mission-progress {
     display: flex;
     flex-direction: row;
     gap: var(--mission-connector-length);
-    margin-top: 4px;
+    margin-top: 6px;
     flex-wrap: wrap;
     justify-content: center;
-    --mission-connector-length: 12px;
+    --mission-connector-length: 14px;
 }
 
+/* 宝石色窗格 */
 .mission-item {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 42px;
-    height: 42px;
-    background: var(--bg-card);
+    width: 44px;
+    height: 44px;
+    background: rgba(0, 0, 0, 0.4);
     border: 2px solid var(--border-stone);
     border-radius: 50%;
-    font-size: 16px;
-    font-weight: bold;
+    font-size: 14px;
+    font-weight: 700;
+    font-family: var(--font-display);
     position: relative;
     flex-shrink: 0;
     z-index: 1;
-    transition: all 0.3s;
+    transition: all 0.35s;
     color: var(--text-dim);
 }
 
@@ -56,48 +57,50 @@
     top: 50%;
     transform: translateY(-50%);
     width: var(--mission-connector-length);
-    height: 2px;
-    background: var(--border-stone);
+    height: 3px;
+    background: linear-gradient(90deg, var(--gold-dim), var(--border-stone));
     z-index: 0;
     pointer-events: none;
 }
 
 .mission-item.success {
-    background: linear-gradient(135deg, #1a5c2a, #2d8a4e);
-    border-color: #3daa6e;
-    color: #a0f0b0;
-    box-shadow: 0 0 10px rgba(61, 170, 110, 0.3);
+    background: linear-gradient(145deg, rgba(52, 211, 153, 0.45), rgba(16, 120, 80, 0.6));
+    border-color: var(--emerald);
+    color: #fff;
+    box-shadow: 0 0 18px rgba(52, 211, 153, 0.45), inset 0 0 12px rgba(255, 255, 255, 0.1);
 }
 
 .mission-item.success::before {
-    content: '\2714';
+    content: '✓';
+    text-shadow: 0 0 8px rgba(255, 255, 255, 0.6);
 }
 
 .mission-item.fail {
-    background: linear-gradient(135deg, #6b1a1a, #a03030);
-    border-color: #c04040;
-    color: #f0a0a0;
-    box-shadow: 0 0 10px rgba(192, 64, 64, 0.3);
+    background: linear-gradient(145deg, rgba(244, 63, 94, 0.5), rgba(140, 20, 50, 0.65));
+    border-color: var(--ruby);
+    color: #fff;
+    box-shadow: 0 0 18px rgba(244, 63, 94, 0.45), inset 0 0 12px rgba(255, 255, 255, 0.1);
 }
 
 .mission-item.fail::before {
-    content: '\2718';
+    content: '✕';
 }
 
 .mission-item.current {
-    background: linear-gradient(135deg, #1a3a6b, #2a5aa0);
-    border-color: var(--good-blue);
-    color: #a0c8ff;
-    animation: pulse 2s infinite;
-    box-shadow: 0 0 12px rgba(74, 158, 255, 0.3);
+    background: linear-gradient(145deg, rgba(59, 130, 246, 0.45), rgba(30, 60, 180, 0.6));
+    border-color: var(--sapphire);
+    color: #fff;
+    animation: glass-glow 2s ease-in-out infinite;
+    box-shadow: 0 0 22px rgba(59, 130, 246, 0.5), inset 0 0 14px rgba(255, 255, 255, 0.12);
 }
 
 .mission-item.current::before {
     content: attr(data-mission-num);
+    font-family: var(--font-display);
 }
 
 .mission-item.pending {
-    background: var(--bg-card);
+    background: rgba(0, 0, 0, 0.35);
     border-color: var(--border-stone);
     color: var(--text-dim);
 }
@@ -106,46 +109,46 @@
     content: attr(data-mission-num);
 }
 
-@keyframes pulse {
-    0% { transform: scale(1); box-shadow: 0 0 12px rgba(74, 158, 255, 0.3); }
-    50% { transform: scale(1.08); box-shadow: 0 0 20px rgba(74, 158, 255, 0.5); }
-    100% { transform: scale(1); box-shadow: 0 0 12px rgba(74, 158, 255, 0.3); }
+@keyframes glass-glow {
+    0%, 100% { box-shadow: 0 0 16px rgba(59, 130, 246, 0.4); }
+    50% { box-shadow: 0 0 28px rgba(52, 211, 153, 0.45); }
 }
 
-/* 当前阶段（任务战况下方、牌桌上方） */
 .current-phase {
     background: var(--bg-panel);
-    border: 1px solid var(--border-gold);
-    border-radius: 8px;
-    padding: 12px 16px;
-    box-shadow: 0 4px 20px var(--shadow-dark);
+    border: 2px solid var(--border-gold);
+    border-radius: 6px;
+    padding: 14px 18px;
+    box-shadow: 0 4px 24px var(--shadow-dark);
 }
 
 .current-phase h3 {
-    color: var(--gold);
-    margin-bottom: 10px;
-    font-size: 14px;
-    font-family: 'MedievalSharp', 'Noto Serif SC', serif;
-    letter-spacing: 2px;
+    color: var(--gold-bright);
+    margin-bottom: 12px;
+    font-size: 0.95rem;
+    font-family: var(--font-display);
+    letter-spacing: 0.25em;
+    text-shadow: 0 0 10px rgba(212, 160, 32, 0.35);
 }
 
 #currentPhase {
     display: flex;
     align-items: center;
     justify-content: center;
-    min-height: 44px;
+    min-height: 48px;
     font-size: 15px;
-    font-weight: 700;
-    color: var(--gold-bright);
-    padding: 8px 12px;
-    background: rgba(212, 168, 67, 0.08);
-    border: 1px solid var(--border-gold);
-    border-radius: 6px;
+    font-weight: 600;
+    color: var(--text-primary);
+    padding: 10px 16px;
+    background: rgba(0, 0, 0, 0.2);
+    border: 2px solid var(--border-stone);
+    border-radius: 4px;
     text-align: center;
-    letter-spacing: 1px;
+    letter-spacing: 0.08em;
     line-height: 1;
     white-space: nowrap;
     overflow: hidden;
+    box-shadow: inset 0 0 16px rgba(0, 0, 0, 0.15);
 }
 
 .phase-situation-line {
@@ -161,7 +164,7 @@
 .phase-situation-text {
     flex-shrink: 0;
     color: var(--gold-bright);
-    letter-spacing: 1px;
+    text-shadow: 0 0 8px rgba(212, 160, 32, 0.3);
 }
 
 .phase-situation-chips {
@@ -176,15 +179,16 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    min-width: 26px;
-    height: 26px;
+    min-width: 28px;
+    height: 28px;
     padding: 0 8px;
-    border-radius: 13px;
-    background: linear-gradient(135deg, rgba(156, 39, 176, 0.35), rgba(106, 27, 154, 0.5));
-    border: 1px solid #ce93d8;
-    color: #f3e5f5;
+    border-radius: 4px;
+    background: linear-gradient(135deg, var(--pc-1, #3f3f46), var(--pc-2, #52525b));
+    border: 2px solid color-mix(in srgb, var(--pc-3, #a1a1aa) 70%, white);
+    color: var(--pc-text, #fff);
     font-size: 0.82rem;
     font-weight: 700;
-    letter-spacing: 0;
-    box-shadow: 0 0 8px rgba(156, 39, 176, 0.22);
+    font-family: var(--font-display);
+    box-shadow: 0 0 10px var(--pc-glow, transparent);
+    clip-path: polygon(8% 0%, 92% 0%, 100% 50%, 92% 100%, 8% 100%, 0% 50%);
 }

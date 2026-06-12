@@ -13,6 +13,7 @@ import {
 import { clearSpeechQueue } from './speechPresenter.js';
 import { updatePlayerList, updateStartButton } from './players.js';
 import { preconfigureAIVoices, markUserStartedSession, promptSpeechUnlockIfNeeded } from './voice.js';
+import { buildNomineeChipHtml } from './playerColors.js';
 import { playMissionVideo, playAssassinationVideo, stopMissionVideo, setMissionResult } from './missionVideo.js';
 
 function syncPlayersFromGameState(gameState) {
@@ -109,7 +110,7 @@ function updateCurrentPhase() {
 
     if (team?.length && isProposedTeamPhase(phase)) {
         const chipsHtml = sortTeamNames(team)
-            .map(name => `<span class="team-nominee-chip">${name}</span>`)
+            .map((name) => buildNomineeChipHtml(name, state.gameState.players))
             .join('');
         currentPhase.innerHTML = `
             <div class="phase-situation-line">

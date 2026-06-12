@@ -1,13 +1,12 @@
-/* ===== 游戏标题 ===== */
+/* ===== 标题 — 教堂彩窗顶饰 ===== */
 .game-header {
     text-align: center;
-    margin-bottom: 12px;
+    margin-bottom: 10px;
     flex-shrink: 0;
     position: relative;
     padding-top: 4px;
 }
 
-/* ===== 左上角菜单 ===== */
 .header-menu {
     position: absolute;
     top: 0;
@@ -23,23 +22,23 @@
     width: 40px;
     height: 40px;
     padding: 8px;
-    background: transparent;
-    border: none;
-    border-radius: 6px;
+    background: var(--bg-card);
+    border: 2px solid var(--border-gold);
+    border-radius: 4px;
     cursor: pointer;
-    transition: background 0.2s;
+    transition: box-shadow 0.25s;
 }
 
 .menu-toggle:hover,
 .header-menu.is-open .menu-toggle {
-    background: rgba(0, 0, 0, 0.35);
+    box-shadow: 0 0 16px rgba(212, 160, 32, 0.35);
 }
 
 .menu-toggle-bar {
     display: block;
-    width: 88%;
+    width: 100%;
     height: 2px;
-    background: var(--gold);
+    background: linear-gradient(90deg, var(--amber), var(--sapphire), var(--emerald));
     border-radius: 1px;
     transition: transform 0.2s, opacity 0.2s;
 }
@@ -60,12 +59,12 @@
     position: absolute;
     top: calc(100% + 6px);
     left: 0;
-    min-width: 140px;
+    min-width: 148px;
     padding: 6px 0;
-    background: rgba(18, 14, 10, 0.96);
-    border: 1px solid rgba(212, 168, 67, 0.35);
-    border-radius: 8px;
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+    background: var(--bg-parchment);
+    border: 2px solid var(--border-gold);
+    border-radius: 4px;
+    box-shadow: 0 8px 32px var(--shadow-dark);
 }
 
 .header-dropdown-item {
@@ -75,7 +74,7 @@
     background: transparent;
     border: none;
     color: var(--text-primary);
-    font-family: inherit;
+    font-family: var(--font-body);
     font-size: 14px;
     letter-spacing: 1px;
     text-align: left;
@@ -84,58 +83,74 @@
 }
 
 .header-dropdown-item:hover {
-    background: rgba(212, 168, 67, 0.12);
+    background: rgba(255, 255, 255, 0.06);
 }
 
 .header-dropdown-item--danger {
-    color: var(--evil-red);
+    color: var(--ruby);
 }
 
 .header-dropdown-item--danger:hover {
-    background: rgba(224, 64, 64, 0.15);
+    background: rgba(244, 63, 94, 0.12);
 }
 
 .header-dropdown-label {
     padding: 4px 16px 2px;
     font-size: 11px;
     color: var(--text-dim);
-    letter-spacing: 1px;
+    letter-spacing: 2px;
 }
 
 .header-dropdown-divider {
-    height: 1px;
-    margin: 4px 8px;
-    background: rgba(212, 168, 67, 0.2);
+    height: 2px;
+    margin: 4px 10px;
+    background: linear-gradient(90deg, transparent, var(--gold-dim), transparent);
 }
 
 .header-dropdown-item--checkable.is-active {
-    color: var(--gold);
+    color: var(--gold-bright);
 }
 
 .header-dropdown-item--checkable.is-active::before {
-    content: '✓ ';
-    opacity: 0.85;
+    content: '◆ ';
+    color: var(--emerald);
+    font-size: 9px;
 }
 
 .game-header h1 {
-    font-family: 'MedievalSharp', 'Noto Serif SC', serif;
-    font-size: 2.6rem;
-    color: var(--gold);
-    text-shadow: 0 0 20px rgba(212, 168, 67, 0.3), 0 2px 4px rgba(0, 0, 0, 0.5);
-    letter-spacing: 6px;
-    margin-bottom: 4px;
+    font-family: var(--font-display);
+    font-size: 2.5rem;
+    font-weight: 700;
+    background: linear-gradient(135deg, var(--gold-bright) 0%, var(--amber) 25%, var(--ruby) 50%, var(--sapphire) 75%, var(--emerald) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    letter-spacing: 0.35em;
+    margin-bottom: 0;
+    filter: drop-shadow(0 0 16px rgba(212, 160, 32, 0.35));
 }
 
 .game-header h1::before,
 .game-header h1::after {
-    content: '\2694';
-    margin: 0 12px;
-    font-size: 1.6rem;
-    opacity: 0.6;
+    content: '✦';
+    -webkit-text-fill-color: var(--amber);
+    margin: 0 10px;
+    font-size: 0.5em;
+    letter-spacing: 0;
+    filter: drop-shadow(0 0 6px rgba(245, 158, 11, 0.6));
+}
+
+.header-subtitle {
+    font-family: var(--font-display);
+    font-size: 0.85rem;
+    color: var(--text-dim);
+    letter-spacing: 0.6em;
+    margin: 2px 0 6px;
 }
 
 .game-status {
-    font-size: 0.95rem;
+    font-family: var(--font-body);
+    font-size: 0.88rem;
     color: var(--text-secondary);
-    letter-spacing: 2px;
+    letter-spacing: 0.2em;
 }

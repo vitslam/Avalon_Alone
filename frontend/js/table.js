@@ -2,6 +2,7 @@
 import state from './state.js';
 import { stripMarkdownQuotes } from './chat.js';
 import { isMobileLayout, onLayoutChange, fitTableScale } from './layout.js';
+import { applyPlayerColorToElement, getPlayerSeatIndex } from './playerColors.js';
 
 onLayoutChange(() => {
     if (state.gameState?.players?.length) {
@@ -216,6 +217,8 @@ function createPlayerCard(player) {
         playerCard.appendChild(voteBubble);
     }
 
+    applyPlayerColorToElement(playerCard, getPlayerSeatIndex(player.name, state.gameState.players));
+
     return playerCard;
 }
 
@@ -318,6 +321,7 @@ export function showPlayerSpeaking(speaker, message) {
         bubbleText = bubbleText.slice(0, 150) + '...';
     }
     speechBubble.textContent = bubbleText;
+    applyPlayerColorToElement(speechBubble, getPlayerSeatIndex(speaker, state.gameState.players));
 
     speechBubbleLayer += 1;
     speechBubble.style.zIndex = String(1500 + speechBubbleLayer);

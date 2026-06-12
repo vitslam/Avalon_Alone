@@ -1,11 +1,11 @@
-/* ===== 模态框 ===== */
+/* ===== 模态框 & 布局 ===== */
 .modal {
     position: fixed;
     top: 0;
     left: 0;
     width: 100%;
     height: 100%;
-    background: rgba(0, 0, 0, 0.8);
+    background: rgba(10, 10, 14, 0.88);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -13,64 +13,85 @@
 }
 
 .modal-content {
-    background: var(--bg-panel);
-    border: 2px solid var(--gold);
-    padding: 40px;
-    border-radius: 12px;
+    background: linear-gradient(160deg, rgba(32, 32, 38, 0.98), rgba(18, 18, 22, 0.99));
+    border: 3px solid var(--border-gold);
+    padding: 44px 40px;
+    border-radius: 8px;
     text-align: center;
     max-width: 500px;
     width: 90%;
-    box-shadow: 0 0 40px rgba(212, 168, 67, 0.2);
+    box-shadow:
+        0 0 30px rgba(212, 160, 32, 0.12),
+        0 20px 50px var(--shadow-dark);
+    position: relative;
+    overflow: hidden;
+}
+
+.modal-content::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 5px;
+    background: linear-gradient(90deg, var(--ruby), var(--amber), var(--emerald), var(--sapphire), var(--amethyst));
 }
 
 .modal-content h2 {
-    margin-bottom: 20px;
-    color: var(--gold);
-    font-family: 'MedievalSharp', 'Noto Serif SC', serif;
+    margin-bottom: 16px;
+    margin-top: 8px;
+    font-family: var(--font-display);
     font-size: 2rem;
-    letter-spacing: 3px;
+    font-weight: 700;
+    background: linear-gradient(135deg, var(--gold-bright), var(--ruby), var(--sapphire));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    letter-spacing: 0.2em;
+    filter: drop-shadow(0 0 14px rgba(212, 160, 32, 0.35));
 }
 
 .modal-content p {
-    margin-bottom: 20px;
+    margin-bottom: 28px;
     color: var(--text-secondary);
     line-height: 1.8;
 }
 
 .modal-content button {
-    padding: 12px 30px;
-    background: linear-gradient(180deg, var(--gold), var(--gold-dim));
-    color: var(--bg-dark);
-    border: none;
-    border-radius: 6px;
+    padding: 13px 36px;
+    background: linear-gradient(135deg, var(--amber), var(--gold-dim));
+    color: #1a0800;
+    border: 2px solid var(--gold-bright);
+    border-radius: 4px;
     cursor: pointer;
-    font-size: 16px;
+    font-size: 15px;
     font-weight: 700;
-    font-family: 'MedievalSharp', 'Noto Serif SC', serif;
-    letter-spacing: 2px;
-    transition: all 0.3s;
+    font-family: var(--font-display);
+    letter-spacing: 0.15em;
+    transition: box-shadow 0.3s, transform 0.2s;
+    box-shadow: 0 0 20px rgba(245, 158, 11, 0.35);
 }
 
 .modal-content button:hover {
-    box-shadow: 0 0 20px rgba(212, 168, 67, 0.4);
+    box-shadow: 0 0 32px rgba(245, 158, 11, 0.55);
+    transform: translateY(-2px);
 }
 
-/* ===== 发言者指示器 ===== */
 .current-speaker-indicator {
     position: fixed;
-    top: 100px;
-    right: 20px;
-    background: rgba(26, 31, 46, 0.95);
-    color: var(--gold);
-    padding: 8px 16px;
-    border-radius: 6px;
-    font-size: 14px;
+    top: 95px;
+    right: 18px;
+    background: linear-gradient(135deg, rgba(32, 32, 38, 0.95), rgba(18, 18, 22, 0.98));
+    color: var(--gold-bright);
+    padding: 9px 18px;
+    border-radius: 20px;
+    font-size: 13px;
     font-weight: 500;
     z-index: 1000;
-    box-shadow: 0 4px 12px var(--shadow-dark);
-    border: 1px solid var(--border-gold);
+    box-shadow: 0 4px 16px var(--shadow-dark), 0 0 12px rgba(212, 160, 32, 0.15);
+    border: 2px solid var(--border-gold);
     opacity: 0;
-    transition: all 0.3s ease;
+    transition: opacity 0.3s ease;
     letter-spacing: 1px;
 }
 
@@ -79,11 +100,11 @@
 }
 
 .current-speaker-indicator::before {
-    content: '\2694';
-    margin-right: 8px;
+    content: '✦ ';
+    color: var(--emerald);
+    text-shadow: 0 0 8px rgba(52, 211, 153, 0.5);
 }
 
-/* ===== 游戏主界面布局 ===== */
 .game-main {
     flex: 1;
     min-height: 0;

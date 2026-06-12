@@ -1,5 +1,6 @@
 // 战报展示（只读，无人类输入）
 import state from './state.js';
+import { applyPlayerColorToElement, getPlayerSeatIndex } from './playerColors.js';
 
 let lastChatLogId = 0;
 
@@ -151,6 +152,11 @@ function createChatMessageElement(senderOrEntry, message, type = 'system') {
     messageDiv.className = `chat-message ${entry.type}`;
     if (isEvil && entry.type !== 'system') {
         messageDiv.classList.add('role-evil-msg');
+    }
+
+    if (entry.type !== 'system' && entry.sender !== '系统') {
+        const seatIdx = getPlayerSeatIndex(entry.sender, state.gameState?.players);
+        applyPlayerColorToElement(messageDiv, seatIdx);
     }
 
     messageDiv.appendChild(buildMetaLine(entry));

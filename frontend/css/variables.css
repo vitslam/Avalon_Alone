@@ -1,5 +1,5 @@
-/* ===== 全局变量与重置 ===== */
-@import url('https://fonts.googleapis.com/css2?family=MedievalSharp&family=Noto+Serif+SC:wght@400;700&display=swap');
+/* ===== 全局变量 — 彩绘玻璃 Stained Glass ===== */
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Noto+Serif+SC:wght@400;600;700&display=swap');
 
 * {
     margin: 0;
@@ -8,31 +8,41 @@
 }
 
 :root {
-    --bg-dark: #0d1117;
-    --bg-panel: #1a1f2e;
-    --bg-card: #232a3b;
-    --bg-parchment: #2a3142;
-    --gold: #d4a843;
-    --gold-dim: #a07830;
-    --gold-bright: #f0c850;
-    --good-blue: #4a9eff;
-    --evil-red: #e04040;
-    --text-primary: #e8dcc8;
-    --text-secondary: #9a8e7a;
-    --text-dim: #6a6050;
-    --border-stone: #3a4050;
-    --border-gold: rgba(212, 168, 67, 0.3);
-    --shadow-dark: rgba(0, 0, 0, 0.5);
-    --shadow-gold: rgba(212, 168, 67, 0.15);
+    --bg-dark: #131316;
+    --bg-panel: rgba(32, 32, 36, 0.94);
+    --bg-card: rgba(40, 40, 46, 0.96);
+    --bg-parchment: rgba(48, 48, 54, 0.96);
+    --gold: #d4a020;
+    --gold-dim: #8a6810;
+    --gold-bright: #fde68a;
+    --good-blue: #34d399;
+    --evil-red: #f43f5e;
+    --text-primary: #f4f4f5;
+    --text-secondary: #a1a1aa;
+    --text-dim: #71717a;
+    --border-stone: rgba(255, 255, 255, 0.1);
+    --border-gold: rgba(212, 160, 32, 0.45);
+    --shadow-dark: rgba(0, 0, 0, 0.55);
+    --shadow-gold: rgba(212, 160, 32, 0.15);
+
+    --sapphire: #3b82f6;
+    --emerald: #34d399;
+    --ruby: #f43f5e;
+    --amethyst: #a855f7;
+    --amber: #f59e0b;
+    --lead: #27272a;
+
+    --font-display: 'Cinzel', 'Noto Serif SC', serif;
+    --font-body: 'Noto Serif SC', serif;
 }
 
 body {
-    font-family: 'Noto Serif SC', 'SimSun', serif;
-    background: var(--bg-dark);
+    font-family: var(--font-body);
+    background-color: var(--bg-dark);
     background-image:
-        radial-gradient(ellipse at 20% 50%, rgba(212, 168, 67, 0.03) 0%, transparent 50%),
-        radial-gradient(ellipse at 80% 20%, rgba(74, 158, 255, 0.03) 0%, transparent 50%),
-        radial-gradient(ellipse at 50% 80%, rgba(224, 64, 64, 0.02) 0%, transparent 50%);
+        radial-gradient(ellipse 70% 50% at 50% -5%, rgba(255, 255, 255, 0.04) 0%, transparent 55%),
+        radial-gradient(ellipse 40% 30% at 100% 100%, rgba(59, 130, 246, 0.04) 0%, transparent 50%),
+        radial-gradient(ellipse 35% 25% at 0% 80%, rgba(245, 158, 11, 0.03) 0%, transparent 45%);
     min-height: 100vh;
     color: var(--text-primary);
     overflow-x: hidden;
@@ -42,7 +52,7 @@ body {
     max-width: none;
     width: 100%;
     margin: 0 auto;
-    padding: 10px 12px;
+    padding: 10px 14px;
     height: 100vh;
     height: 100dvh;
     display: flex;
