@@ -1,5 +1,5 @@
-/* ===== 全局变量与重置 ===== */
-@import url('https://fonts.googleapis.com/css2?family=MedievalSharp&family=Noto+Serif+SC:wght@400;700&display=swap');
+/* ===== 全局变量 — 霜玻璃极简 ===== */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Noto+Sans+SC:wght@300;400;500;600&display=swap');
 
 * {
     margin: 0;
@@ -8,41 +8,52 @@
 }
 
 :root {
-    --bg-dark: #0d1117;
-    --bg-panel: #1a1f2e;
-    --bg-card: #232a3b;
-    --bg-parchment: #2a3142;
-    --gold: #d4a843;
-    --gold-dim: #a07830;
-    --gold-bright: #f0c850;
-    --good-blue: #4a9eff;
-    --evil-red: #e04040;
-    --text-primary: #e8dcc8;
-    --text-secondary: #9a8e7a;
-    --text-dim: #6a6050;
-    --border-stone: #3a4050;
-    --border-gold: rgba(212, 168, 67, 0.3);
-    --shadow-dark: rgba(0, 0, 0, 0.5);
-    --shadow-gold: rgba(212, 168, 67, 0.15);
+    --bg-dark: #0c1017;
+    --bg-panel: rgba(255, 255, 255, 0.04);
+    --bg-card: rgba(255, 255, 255, 0.06);
+    --bg-parchment: rgba(255, 255, 255, 0.08);
+    --gold: #94c5e8;
+    --gold-dim: #6a9ab8;
+    --gold-bright: #d4ecfa;
+    --good-blue: #5eead4;
+    --evil-red: #f87171;
+    --text-primary: #f0f4f8;
+    --text-secondary: #8b9cb3;
+    --text-dim: #5a6a80;
+    --border-stone: rgba(255, 255, 255, 0.08);
+    --border-gold: rgba(148, 197, 232, 0.22);
+    --shadow-dark: rgba(0, 0, 0, 0.35);
+    --shadow-gold: rgba(148, 197, 232, 0.1);
+
+    --frost-blur: 20px;
+    --radius-sm: 8px;
+    --radius-md: 14px;
+    --radius-lg: 20px;
+
+    --font-display: 'Inter', 'Noto Sans SC', sans-serif;
+    --font-ui: 'Inter', 'Noto Sans SC', sans-serif;
+    --font-body: 'Noto Sans SC', sans-serif;
 }
 
 body {
-    font-family: 'Noto Serif SC', 'SimSun', serif;
-    background: var(--bg-dark);
+    font-family: var(--font-body);
+    font-weight: 400;
+    background-color: var(--bg-dark);
     background-image:
-        radial-gradient(ellipse at 20% 50%, rgba(212, 168, 67, 0.03) 0%, transparent 50%),
-        radial-gradient(ellipse at 80% 20%, rgba(74, 158, 255, 0.03) 0%, transparent 50%),
-        radial-gradient(ellipse at 50% 80%, rgba(224, 64, 64, 0.02) 0%, transparent 50%);
+        radial-gradient(ellipse 60% 50% at 20% 10%, rgba(148, 197, 232, 0.07) 0%, transparent 55%),
+        radial-gradient(ellipse 50% 40% at 85% 80%, rgba(94, 234, 212, 0.05) 0%, transparent 50%),
+        radial-gradient(ellipse 40% 30% at 60% 40%, rgba(167, 139, 250, 0.04) 0%, transparent 45%);
     min-height: 100vh;
     color: var(--text-primary);
     overflow-x: hidden;
+    -webkit-font-smoothing: antialiased;
 }
 
 #app {
     max-width: none;
     width: 100%;
     margin: 0 auto;
-    padding: 10px 12px;
+    padding: 12px 20px;
     height: 100vh;
     height: 100dvh;
     display: flex;

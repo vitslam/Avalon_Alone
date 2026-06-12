@@ -241,9 +241,15 @@
 }
 
 #app.mobile-ui .game-header h1 {
-    font-size: 1.4rem;
-    letter-spacing: 2px;
-    margin-bottom: 2px;
+    font-size: 1.1rem;
+    letter-spacing: 0.25em;
+    margin-bottom: 0;
+}
+
+#app.mobile-ui .header-subtitle {
+    font-size: 0.62rem;
+    letter-spacing: 0.15em;
+    margin-bottom: 6px;
 }
 
 #app.mobile-ui .game-status {

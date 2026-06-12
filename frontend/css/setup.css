@@ -1,128 +1,123 @@
-/* ===== 游戏设置面板 ===== */
+/* ===== 设置面板 ===== */
 .game-setup {
     background: var(--bg-panel);
-    border: 1px solid var(--border-gold);
-    border-radius: 8px;
-    padding: 24px;
-    margin-bottom: 12px;
-    box-shadow: 0 4px 20px var(--shadow-dark), inset 0 1px 0 rgba(255, 255, 255, 0.03);
+    backdrop-filter: blur(var(--frost-blur));
+    -webkit-backdrop-filter: blur(var(--frost-blur));
+    border: 1px solid var(--border-stone);
+    border-radius: var(--radius-lg);
+    padding: 32px 28px;
+    margin-bottom: 14px;
+    box-shadow: 0 4px 24px var(--shadow-dark);
     flex-shrink: 0;
-    position: relative;
-}
-
-.game-setup::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 20px;
-    right: 20px;
-    height: 1px;
-    background: linear-gradient(90deg, transparent, var(--gold-dim), transparent);
 }
 
 .game-setup h2 {
-    margin-bottom: 18px;
-    color: var(--gold);
+    margin-bottom: 24px;
+    color: var(--text-primary);
     text-align: center;
-    font-size: 1.4rem;
-    font-family: 'MedievalSharp', 'Noto Serif SC', serif;
-    letter-spacing: 3px;
+    font-size: 1rem;
+    font-family: var(--font-ui);
+    font-weight: 500;
+    letter-spacing: 0.05em;
 }
 
 .player-config {
-    max-width: 600px;
+    max-width: 520px;
     margin: 0 auto;
 }
 
 .player-input {
     display: flex;
-    gap: 8px;
-    margin-bottom: 15px;
+    gap: 10px;
+    margin-bottom: 20px;
     align-items: center;
     flex-wrap: wrap;
 }
 
 .player-input input[type="text"] {
     flex: 1;
-    padding: 10px 14px;
+    padding: 12px 16px;
     border: 1px solid var(--border-stone);
-    border-radius: 4px;
+    border-radius: var(--radius-sm);
     font-size: 14px;
     min-width: 120px;
-    background: var(--bg-card);
+    background: rgba(0, 0, 0, 0.2);
     color: var(--text-primary);
-    font-family: inherit;
-    transition: border-color 0.3s;
+    font-family: var(--font-ui);
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.player-input input[type="text"]::placeholder {
+    color: var(--text-dim);
 }
 
 .player-input input[type="text"]:focus {
     outline: none;
-    border-color: var(--gold-dim);
-    box-shadow: 0 0 8px rgba(212, 168, 67, 0.15);
+    border-color: var(--border-gold);
+    box-shadow: 0 0 0 3px rgba(148, 197, 232, 0.1);
 }
 
 .player-input select {
-    padding: 10px;
+    padding: 12px;
     border: 1px solid var(--border-stone);
-    border-radius: 4px;
+    border-radius: var(--radius-sm);
     font-size: 14px;
-    background: var(--bg-card);
+    background: rgba(0, 0, 0, 0.2);
     color: var(--text-primary);
-    font-family: inherit;
+    font-family: var(--font-ui);
 }
 
 .player-input label {
     color: var(--text-secondary);
-    font-size: 14px;
+    font-size: 13px;
+    font-family: var(--font-ui);
     display: flex;
     align-items: center;
-    gap: 4px;
+    gap: 6px;
 }
 
 .player-input label input[type="checkbox"] {
-    accent-color: var(--gold);
+    accent-color: var(--good-blue);
 }
 
 .player-input button {
-    padding: 10px 18px;
-    background: linear-gradient(180deg, var(--gold), var(--gold-dim));
+    padding: 12px 20px;
+    background: var(--text-primary);
     color: var(--bg-dark);
     border: none;
-    border-radius: 4px;
+    border-radius: var(--radius-sm);
     cursor: pointer;
-    font-size: 14px;
-    font-weight: 700;
-    font-family: inherit;
-    transition: all 0.3s;
-    letter-spacing: 1px;
+    font-size: 13px;
+    font-weight: 500;
+    font-family: var(--font-ui);
+    transition: opacity 0.2s, transform 0.15s;
 }
 
 .player-input button:hover {
-    background: linear-gradient(180deg, var(--gold-bright), var(--gold));
-    box-shadow: 0 0 12px rgba(212, 168, 67, 0.3);
+    opacity: 0.9;
+    transform: translateY(-1px);
 }
 
 .player-list {
-    margin-bottom: 15px;
+    margin-bottom: 16px;
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: 8px;
 }
 
 .player-item {
     display: flex;
     align-items: center;
-    gap: 10px;
-    padding: 8px 12px 8px 8px;
+    gap: 12px;
+    padding: 10px 14px;
     background: var(--bg-card);
-    border-radius: 20px;
-    border: 1px solid var(--border-stone);
-    transition: all 0.2s;
-    position: relative;
+    border-radius: var(--radius-sm);
+    border: 1px solid transparent;
+    transition: border-color 0.2s, background 0.2s;
 }
 
 .player-item:hover {
-    border-color: var(--gold-dim);
+    border-color: var(--border-stone);
     background: var(--bg-parchment);
 }
 
@@ -130,107 +125,108 @@
     width: 32px;
     height: 32px;
     border-radius: 50%;
-    background: linear-gradient(135deg, #2a5a3c, #1a3a2c);
-    color: #80d0a0;
+    background: rgba(94, 234, 212, 0.12);
+    color: var(--good-blue);
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 13px;
-    font-weight: 700;
+    font-size: 12px;
+    font-weight: 600;
+    font-family: var(--font-ui);
     flex-shrink: 0;
 }
 
 .player-item.ai .player-avatar-small {
-    background: linear-gradient(135deg, #5a2a2a, #3a1a1a);
-    color: #d08080;
+    background: rgba(248, 113, 113, 0.1);
+    color: var(--evil-red);
 }
 
 .player-item .player-name {
-    font-weight: 600;
+    font-weight: 500;
     color: var(--text-primary);
-    font-size: 13px;
+    font-size: 14px;
+    font-family: var(--font-ui);
     white-space: nowrap;
 }
 
 .player-item .player-info {
     color: var(--text-dim);
-    font-size: 11px;
+    font-size: 12px;
+    font-family: var(--font-ui);
     white-space: nowrap;
 }
 
 .player-item .ai-engine {
-    color: var(--evil-red);
-    font-style: italic;
-    font-size: 11px;
+    color: var(--text-dim);
+    font-size: 12px;
 }
 
 .player-item .remove-btn {
-    width: 20px;
-    height: 20px;
+    width: 28px;
+    height: 28px;
     border-radius: 50%;
     background: transparent;
     color: var(--text-dim);
     border: none;
     cursor: pointer;
-    font-size: 14px;
+    font-size: 18px;
     line-height: 1;
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: all 0.2s;
+    transition: background 0.15s, color 0.15s;
     padding: 0;
     flex-shrink: 0;
     margin-left: auto;
 }
 
 .player-item .remove-btn:hover {
-    background: var(--evil-red);
-    color: white;
+    background: rgba(248, 113, 113, 0.12);
+    color: var(--evil-red);
 }
 
 .add-player-btn {
     width: 100%;
-    padding: 12px;
+    padding: 14px;
     background: transparent;
-    color: var(--gold);
-    border: 2px dashed var(--border-gold);
-    border-radius: 6px;
-    font-size: 24px;
+    color: var(--text-secondary);
+    border: 1px dashed var(--border-stone);
+    border-radius: var(--radius-sm);
+    font-size: 20px;
     cursor: pointer;
-    transition: all 0.3s;
-    font-family: inherit;
+    transition: border-color 0.2s, color 0.2s;
+    font-family: var(--font-ui);
     line-height: 1;
 }
 
 .add-player-btn:hover {
-    background: rgba(212, 168, 67, 0.08);
-    border-color: var(--gold);
-    box-shadow: 0 0 12px rgba(212, 168, 67, 0.15);
+    border-color: var(--border-gold);
+    color: var(--text-primary);
 }
 
 #startButton {
-    padding: 10px 18px;
-    background: linear-gradient(180deg, var(--gold), var(--gold-dim));
+    padding: 12px 24px;
+    background: var(--text-primary);
     color: var(--bg-dark);
     border: none;
-    border-radius: 4px;
+    border-radius: var(--radius-sm);
     font-size: 14px;
-    font-weight: 700;
+    font-weight: 500;
     cursor: pointer;
-    transition: all 0.3s;
-    font-family: 'MedievalSharp', 'Noto Serif SC', serif;
-    letter-spacing: 2px;
+    transition: opacity 0.2s, transform 0.15s;
+    font-family: var(--font-ui);
+    letter-spacing: 0.02em;
     white-space: nowrap;
 }
 
 #startButton:hover:not(:disabled) {
-    background: linear-gradient(180deg, var(--gold-bright), var(--gold));
-    box-shadow: 0 0 20px rgba(212, 168, 67, 0.3);
+    opacity: 0.92;
+    transform: translateY(-1px);
 }
 
 #startButton:disabled {
     background: var(--bg-card);
     color: var(--text-dim);
     cursor: not-allowed;
-    border: 1px solid var(--border-stone);
+    transform: none;
 }

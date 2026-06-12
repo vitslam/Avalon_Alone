@@ -1,7 +1,9 @@
 .mission-video-overlay {
     position: fixed;
     inset: 0;
-    background: rgba(0, 0, 0, 0.88);
+    background: rgba(8, 10, 16, 0.88);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
     z-index: 2000;
     display: none;
     align-items: center;
@@ -11,8 +13,9 @@
 .mission-video-overlay video {
     max-width: 90vw;
     max-height: 85vh;
-    border-radius: 8px;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border-stone);
+    box-shadow: 0 16px 48px var(--shadow-dark);
 }
 
 .mission-video-waiting {
@@ -20,21 +23,24 @@
     align-items: center;
     justify-content: center;
     gap: 24px;
-    color: #f5f5f5;
+    color: var(--text-primary);
 }
 
 .mission-video-spinner {
-    width: 64px;
-    height: 64px;
-    border: 5px solid rgba(255, 255, 255, 0.2);
-    border-top-color: #c8a44d;
+    width: 40px;
+    height: 40px;
+    border: 2px solid var(--border-stone);
+    border-top-color: var(--gold);
     border-radius: 50%;
-    animation: mission-video-spin 0.9s linear infinite;
+    animation: mission-video-spin 0.8s linear infinite;
 }
 
 .mission-video-waiting-text {
-    font-size: 20px;
-    letter-spacing: 2px;
+    font-family: var(--font-ui);
+    font-size: 14px;
+    font-weight: 400;
+    letter-spacing: 0.02em;
+    color: var(--text-secondary);
 }
 
 @keyframes mission-video-spin {

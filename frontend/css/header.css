@@ -1,13 +1,12 @@
-/* ===== 游戏标题 ===== */
+/* ===== 标题栏 — 极简顶栏 ===== */
 .game-header {
     text-align: center;
-    margin-bottom: 12px;
+    margin-bottom: 14px;
     flex-shrink: 0;
     position: relative;
-    padding-top: 4px;
+    padding-top: 2px;
 }
 
-/* ===== 左上角菜单 ===== */
 .header-menu {
     position: absolute;
     top: 0;
@@ -20,32 +19,35 @@
     flex-direction: column;
     justify-content: center;
     gap: 5px;
-    width: 40px;
-    height: 40px;
+    width: 36px;
+    height: 36px;
     padding: 8px;
-    background: transparent;
-    border: none;
-    border-radius: 6px;
+    background: var(--bg-panel);
+    backdrop-filter: blur(var(--frost-blur));
+    -webkit-backdrop-filter: blur(var(--frost-blur));
+    border: 1px solid var(--border-stone);
+    border-radius: var(--radius-sm);
     cursor: pointer;
-    transition: background 0.2s;
+    transition: background 0.2s, border-color 0.2s;
 }
 
 .menu-toggle:hover,
 .header-menu.is-open .menu-toggle {
-    background: rgba(0, 0, 0, 0.35);
+    background: var(--bg-card);
+    border-color: var(--border-gold);
 }
 
 .menu-toggle-bar {
     display: block;
-    width: 88%;
-    height: 2px;
-    background: var(--gold);
+    width: 100%;
+    height: 1.5px;
+    background: var(--text-secondary);
     border-radius: 1px;
     transition: transform 0.2s, opacity 0.2s;
 }
 
 .header-menu.is-open .menu-toggle-bar:nth-child(1) {
-    transform: translateY(7px) rotate(45deg);
+    transform: translateY(6.5px) rotate(45deg);
 }
 
 .header-menu.is-open .menu-toggle-bar:nth-child(2) {
@@ -53,38 +55,42 @@
 }
 
 .header-menu.is-open .menu-toggle-bar:nth-child(3) {
-    transform: translateY(-7px) rotate(-45deg);
+    transform: translateY(-6.5px) rotate(-45deg);
 }
 
 .header-dropdown {
     position: absolute;
-    top: calc(100% + 6px);
+    top: calc(100% + 8px);
     left: 0;
-    min-width: 140px;
-    padding: 6px 0;
-    background: rgba(18, 14, 10, 0.96);
-    border: 1px solid rgba(212, 168, 67, 0.35);
-    border-radius: 8px;
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+    min-width: 148px;
+    padding: 6px;
+    background: rgba(16, 20, 28, 0.85);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border: 1px solid var(--border-stone);
+    border-radius: var(--radius-md);
+    box-shadow: 0 8px 32px var(--shadow-dark);
 }
 
 .header-dropdown-item {
     display: block;
     width: 100%;
-    padding: 10px 16px;
+    padding: 10px 14px;
     background: transparent;
     border: none;
+    border-radius: var(--radius-sm);
     color: var(--text-primary);
-    font-family: inherit;
-    font-size: 14px;
-    letter-spacing: 1px;
+    font-family: var(--font-ui);
+    font-size: 13px;
+    font-weight: 400;
+    letter-spacing: 0;
     text-align: left;
     cursor: pointer;
-    transition: background 0.2s;
+    transition: background 0.15s;
 }
 
 .header-dropdown-item:hover {
-    background: rgba(212, 168, 67, 0.12);
+    background: var(--bg-card);
 }
 
 .header-dropdown-item--danger {
@@ -92,50 +98,73 @@
 }
 
 .header-dropdown-item--danger:hover {
-    background: rgba(224, 64, 64, 0.15);
+    background: rgba(248, 113, 113, 0.08);
 }
 
 .header-dropdown-label {
-    padding: 4px 16px 2px;
+    padding: 6px 14px 4px;
     font-size: 11px;
+    font-weight: 500;
     color: var(--text-dim);
-    letter-spacing: 1px;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
 }
 
 .header-dropdown-divider {
     height: 1px;
     margin: 4px 8px;
-    background: rgba(212, 168, 67, 0.2);
+    background: var(--border-stone);
 }
 
 .header-dropdown-item--checkable.is-active {
-    color: var(--gold);
+    color: var(--gold-bright);
+    background: var(--bg-card);
 }
 
 .header-dropdown-item--checkable.is-active::before {
-    content: '✓ ';
-    opacity: 0.85;
+    content: '';
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    background: var(--good-blue);
+    border-radius: 50%;
+    margin-right: 8px;
+    vertical-align: middle;
 }
 
 .game-header h1 {
-    font-family: 'MedievalSharp', 'Noto Serif SC', serif;
-    font-size: 2.6rem;
-    color: var(--gold);
-    text-shadow: 0 0 20px rgba(212, 168, 67, 0.3), 0 2px 4px rgba(0, 0, 0, 0.5);
-    letter-spacing: 6px;
-    margin-bottom: 4px;
+    font-family: var(--font-display);
+    font-size: 1.5rem;
+    font-weight: 300;
+    color: var(--text-primary);
+    letter-spacing: 0.35em;
+    margin-bottom: 0;
 }
 
 .game-header h1::before,
 .game-header h1::after {
-    content: '\2694';
-    margin: 0 12px;
-    font-size: 1.6rem;
-    opacity: 0.6;
+    display: none;
+}
+
+.header-subtitle {
+    font-family: var(--font-ui);
+    font-size: 0.72rem;
+    font-weight: 400;
+    color: var(--text-dim);
+    letter-spacing: 0.2em;
+    margin: 4px 0 8px;
+    text-transform: uppercase;
 }
 
 .game-status {
-    font-size: 0.95rem;
+    font-family: var(--font-ui);
+    font-size: 0.8rem;
+    font-weight: 400;
     color: var(--text-secondary);
-    letter-spacing: 2px;
+    letter-spacing: 0.02em;
+}
+
+.game-status::before,
+.game-status::after {
+    display: none;
 }
