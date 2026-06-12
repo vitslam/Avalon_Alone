@@ -61,24 +61,23 @@
 }
 
 #app.mobile-ui .players-container {
+    --table-edge-width: 320px;
+    --table-edge-height: 520px;
     row-gap: 0;
     column-gap: 10px;
 }
 
-#app.mobile-ui .players-left,
-#app.mobile-ui .players-right {
-    gap: 10px;
-}
-
-/* 竖屏收窄牌桌宽度，左右各留一列玩家卡片位 */
-#app.mobile-ui .table-center,
+/* 上下行宽、左右列高与桌子一致，space-evenly 等分边长（与电脑端相同逻辑） */
 #app.mobile-ui .players-top,
 #app.mobile-ui .players-bottom {
-    width: 320px;
+    width: var(--table-edge-width);
+    justify-content: space-evenly;
 }
 
-#app.mobile-ui .table-center {
-    height: 520px;
+#app.mobile-ui .players-left,
+#app.mobile-ui .players-right {
+    height: var(--table-edge-height);
+    justify-content: space-evenly;
 }
 
 /* 手机版玩家卡片：较基准缩小 40%（×0.6） */

@@ -27,6 +27,8 @@
 }
 
 .players-container {
+    --table-edge-width: 800px;
+    --table-edge-height: 320px;
     display: grid;
     grid-template-areas:
         ".    top    ."
@@ -52,8 +54,8 @@
 
 .table-center {
     grid-area: table;
-    width: 800px;
-    height: 320px;
+    width: var(--table-edge-width);
+    height: var(--table-edge-height);
     background: linear-gradient(135deg, #1a2a1a, #2a3a2a);
     border: 2px solid var(--gold-dim);
     border-radius: 12px;
@@ -85,37 +87,35 @@
 .players-top {
     grid-area: top;
     display: flex;
-    gap: 10px;
     justify-content: space-evenly;
     align-items: center;
-    width: 800px;
+    width: var(--table-edge-width);
 }
 
 .players-bottom {
     grid-area: bottom;
     display: flex;
-    gap: 10px;
     justify-content: space-evenly;
     align-items: center;
-    width: 800px;
+    width: var(--table-edge-width);
 }
 
 .players-left {
     grid-area: left;
     display: flex;
     flex-direction: column;
-    gap: 10px;
-    justify-content: center;
+    justify-content: space-evenly;
     align-items: end;
+    height: var(--table-edge-height);
 }
 
 .players-right {
     grid-area: right;
     display: flex;
     flex-direction: column;
-    gap: 10px;
-    justify-content: center;
+    justify-content: space-evenly;
     align-items: start;
+    height: var(--table-edge-height);
 }
 
 /* ===== 玩家卡片 ===== */
