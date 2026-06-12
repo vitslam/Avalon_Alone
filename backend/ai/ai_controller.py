@@ -17,6 +17,43 @@ except ImportError:
     GAME_CONFIG = {}
 
 
+def _player_sort_key(name: str):
+    return int(name) if str(name).isdigit() else name
+
+
+def _format_team_selected_message(leader: str, team: List[str]) -> str:
+    return f"队长 {leader} 已选择队伍: {', '.join(team)}"
+
+
+def _format_mission_result_message(result: Dict[str, Any]) -> str:
+    mission_number = result.get('mission_number')
+    success = result.get('mission_result')
+    success_count = result.get('success_count', 0)
+    fail_count = result.get('fail_count', 0)
+    outcome = '成功' if success else '失败'
+    vote_detail = f"（{success_count}票成功 / {fail_count}票失败）"
+    if mission_number is not None:
+        return f"第{mission_number}轮任务完成，结果: {outcome}{vote_detail}"
+    return f"任务完成，结果: {outcome}{vote_detail}"
+
+
+def _format_team_vote_sides(votes: List[Dict[str, Any]]) -> str:
+    """格式化队伍表决的赞成/反对人选。"""
+    if not votes:
+        return ''
+    approve = sorted(
+        [v['player'] for v in votes if v.get('vote') == 'approve'],
+        key=_player_sort_key,
+    )
+    reject = sorted(
+        [v['player'] for v in votes if v.get('vote') == 'reject'],
+        key=_player_sort_key,
+    )
+    approve_str = ', '.join(approve) if approve else '无'
+    reject_str = ', '.join(reject) if reject else '无'
+    return f"；赞成：{approve_str}；反对：{reject_str}"
+
+
 class AIController:
     def __init__(self, game, websocket_notifier: Optional[Callable] = None):
         self.game = game
@@ -178,7 +215,7 @@ class AIController:
                 if 'error' not in result:
                     await self._publish_chat(
                         '系统',
-                        f"队伍已选择: {', '.join(result['team'])}",
+                        _format_team_selected_message(current_leader.name, result['team']),
                         'system',
                     )
                     await self.notify_frontend("team_selected", result)
@@ -327,7 +364,7 @@ class AIController:
         )
         await self._publish_chat(
             '系统',
-            f"队伍已选择: {', '.join(result['team'])}",
+            _format_team_selected_message(current_leader.name, result['team']),
             'system',
         )
         await self.notify_frontend("team_selected", result)
@@ -793,25 +830,21 @@ class AIController:
 
     async def _publish_mission_vote_chat(self, result: Dict[str, Any]) -> None:
         status = result.get('status')
+        mission_msg = _format_mission_result_message(result)
         if status == 'good_mission_win':
             await self._publish_chat(
                 '系统',
-                '好人获得3次任务成功！坏人阵营进入秘密讨论',
+                f"{mission_msg}！好人获得3次任务成功，坏人阵营进入秘密讨论",
                 'system',
             )
         elif status == 'mission_completed':
-            success = result.get('mission_result')
-            await self._publish_chat(
-                '系统',
-                f"任务完成，结果: {'成功' if success else '失败'}",
-                'system',
-            )
+            await self._publish_chat('系统', mission_msg, 'system')
         elif status == 'evil_win':
-            await self._publish_chat(
-                '系统',
-                result.get('reason', '坏人获胜'),
-                'system',
-            )
+            reason = result.get('reason', '坏人获胜')
+            if result.get('mission_result') is not None:
+                await self._publish_chat('系统', f"{mission_msg}！{reason}", 'system')
+            else:
+                await self._publish_chat('系统', reason, 'system')
 
     async def _publish_assassination_result_chat(self, result: Dict[str, Any]) -> None:
         status = result.get('status')
@@ -832,13 +865,17 @@ class AIController:
         status = result.get('status')
         approve = result.get('approve_count', 0)
         reject = result.get('reject_count', 0)
+        vote_detail = _format_team_vote_sides(result.get('votes', []))
         if status == 'team_approved':
-            return f"表决通过（{approve} 赞成 / {reject} 反对），远征队即将出发执行任务…"
+            return f"表决通过（{approve} 赞成 / {reject} 反对{vote_detail}），远征队即将出发执行任务…"
         if status == 'team_rejected':
             leader = result.get('next_leader', '')
-            return f"表决未通过（{approve} 赞成 / {reject} 反对），队长移交给 {leader}，重新组队…"
+            return f"表决未通过（{approve} 赞成 / {reject} 反对{vote_detail}），队长移交给 {leader}，重新组队…"
         if status == 'evil_win':
-            return result.get('reason', '坏人获胜')
+            reason = result.get('reason', '坏人获胜')
+            if vote_detail:
+                return f"{reason}（{approve} 赞成 / {reject} 反对{vote_detail}）"
+            return reason
         return ''
 
     async def _notify_team_vote_completed(self, result: Dict[str, Any]):

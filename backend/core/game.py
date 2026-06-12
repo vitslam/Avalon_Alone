@@ -243,6 +243,8 @@ class AvalonGame:
                     'status': 'good_mission_win',
                     'mission_number': completed_mission,
                     'mission_result': mission_success,
+                    'success_count': success_count,
+                    'fail_count': fail_count,
                     'good_wins': good_wins,
                     'evil_wins': evil_wins,
                     'next_phase': 'assassination'
@@ -254,6 +256,8 @@ class AvalonGame:
                     'status': 'evil_win',
                     'mission_number': completed_mission,
                     'mission_result': mission_success,
+                    'success_count': success_count,
+                    'fail_count': fail_count,
                     'good_wins': good_wins,
                     'evil_wins': evil_wins,
                     'reason': '坏人获得3次任务成功'
@@ -265,6 +269,8 @@ class AvalonGame:
                     'status': 'mission_completed',
                     'mission_number': completed_mission,
                     'mission_result': mission_success,
+                    'success_count': success_count,
+                    'fail_count': fail_count,
                     'good_wins': good_wins,
                     'evil_wins': evil_wins,
                     'next_round': self.current_round,
