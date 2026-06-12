@@ -314,8 +314,8 @@ export function showPlayerSpeaking(speaker, message) {
     speechBubble.dataset.speaker = speaker;
 
     let bubbleText = stripMarkdownQuotes(message);
-    if (isMobileLayout() && bubbleText.length > 50) {
-        bubbleText = bubbleText.slice(0, 50) + '...';
+    if (isMobileLayout() && bubbleText.length > 150) {
+        bubbleText = bubbleText.slice(0, 150) + '...';
     }
     speechBubble.textContent = bubbleText;
 
