@@ -43,28 +43,34 @@ function processNext() {
     updateCurrentSpeaker(speaker);
     showPlayerSpeaking(speaker, message);
 
-    const durationMs = estimateSpeechDurationMs(message);
-
     const advance = () => {
-        if (advanceTimer) {
-            clearTimeout(advanceTimer);
-            advanceTimer = null;
-        }
-        // 仅收起气泡/推进展示队列，不 stop TTS——语音由 tts.js 内部队列串行播完
         hideSpeechPresentation(speaker);
         currentSpeaker = null;
         finishCurrentSpeech(processNext);
     };
 
+    let advanced = false;
+    const advanceOnce = () => {
+        if (advanced) return;
+        advanced = true;
+        if (advanceTimer) {
+            clearTimeout(advanceTimer);
+            advanceTimer = null;
+        }
+        advance();
+    };
+
     whenTtsReady.then(() => {
         unlockSpeechAudio();
 
-        // 气泡节奏与后端 ai_speak 估算时长对齐；TTS 独立播放，不阻塞队列（避免 iOS onend 卡死）
         if (shouldPlayTts(is_ai)) {
-            state.tts.speak(message, speaker);
+            // 气泡随 TTS 播完再消失；估算时长×2 作 iOS onend 不可靠时的兜底
+            const fallbackMs = estimateSpeechDurationMs(message) * 2;
+            advanceTimer = setTimeout(advanceOnce, fallbackMs);
+            state.tts.speak(message, speaker, advanceOnce);
+        } else {
+            advanceTimer = setTimeout(advanceOnce, estimateSpeechDurationMs(message));
         }
-
-        advanceTimer = setTimeout(advance, durationMs);
     });
 }
 
