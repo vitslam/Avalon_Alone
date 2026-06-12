@@ -20,14 +20,15 @@
     padding-bottom: 8px;
 }
 
-/* 任务进度 */
+/* 任务进度：gap 留出间距，连线从圆右缘画满整段 gap */
 .mission-progress {
     display: flex;
     flex-direction: row;
-    gap: 10px;
+    gap: var(--mission-connector-length);
     margin-top: 4px;
     flex-wrap: wrap;
     justify-content: center;
+    --mission-connector-length: 12px;
 }
 
 .mission-item {
@@ -42,6 +43,8 @@
     font-size: 16px;
     font-weight: bold;
     position: relative;
+    flex-shrink: 0;
+    z-index: 1;
     transition: all 0.3s;
     color: var(--text-dim);
 }
@@ -49,13 +52,14 @@
 .mission-item:not(:last-child)::after {
     content: '';
     position: absolute;
-    right: -14px;
+    left: calc(100% + 2px);
     top: 50%;
     transform: translateY(-50%);
-    width: 8px;
+    width: var(--mission-connector-length);
     height: 2px;
     background: var(--border-stone);
-    z-index: 1;
+    z-index: 0;
+    pointer-events: none;
 }
 
 .mission-item.success {

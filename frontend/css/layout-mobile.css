@@ -226,7 +226,7 @@
 
 #app.mobile-ui .mission-progress {
     justify-content: center;
-    gap: 6px;
+    --mission-connector-length: 10px;
     margin-top: 0;
 }
 
