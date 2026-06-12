@@ -18,9 +18,36 @@
 
 #app.mobile-ui .mission-board h3,
 #app.mobile-ui .current-phase h3 {
-    font-size: 0.8rem;
+    font-size: 0.7rem;
     margin-bottom: 4px;
     padding-bottom: 4px;
+}
+
+/* 当前局势：各阶段文案缩小约 12% */
+#app.mobile-ui #currentPhase {
+    min-height: 39px;
+    font-size: 13px;
+    padding: 7px 10px;
+    letter-spacing: 0.5px;
+}
+
+#app.mobile-ui .phase-situation-line {
+    gap: 7px;
+}
+
+#app.mobile-ui .phase-situation-text {
+    letter-spacing: 0.5px;
+}
+
+#app.mobile-ui .phase-situation-chips {
+    gap: 5px;
+}
+
+#app.mobile-ui .team-nominee-chip {
+    min-width: 23px;
+    height: 23px;
+    padding: 0 7px;
+    font-size: 0.72rem;
 }
 
 /* 牌桌区域与电脑版相同：固定设计尺寸 + fitTableScale() 等比缩放进内框 */
