@@ -19,7 +19,7 @@
     color: var(--gold);
     border-bottom: 1px solid var(--border-stone);
     padding-bottom: 8px;
-    font-size: 1rem;
+    font-size: 0.88rem;
     font-family: 'MedievalSharp', 'Noto Serif SC', serif;
     letter-spacing: 2px;
     flex-shrink: 0;
@@ -37,7 +37,7 @@
     padding: 10px;
     overflow-y: auto;
     margin-bottom: 10px;
-    font-size: 13px;
+    font-size: 11px;
     line-height: 1.5;
     min-height: 0;
     background: var(--bg-dark);
@@ -57,37 +57,107 @@
 }
 
 .chat-message {
-    margin-bottom: 6px;
-    padding: 4px 0;
-    font-size: 12px;
-    line-height: 1.5;
+    margin-bottom: 10px;
+    padding: 8px 10px;
+    border-radius: 6px;
+    background: rgba(0, 0, 0, 0.22);
 }
 
-.chat-message-body {
+.chat-message:last-child {
+    margin-bottom: 0;
+}
+
+/* 元信息行：序号 / 昵称 / 身份 / 时间 */
+.chat-message-meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+    font-size: 10px;
+    line-height: 1.4;
+    margin-bottom: 6px;
+    color: var(--text-dim);
+}
+
+.chat-meta-seat {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 22px;
+    height: 18px;
+    padding: 0 5px;
+    border-radius: 4px;
+    background: rgba(212, 168, 67, 0.12);
+    border: 1px solid var(--gold-dim);
+    color: var(--gold);
+    font-weight: 700;
+    font-size: 9px;
+    letter-spacing: 0;
+}
+
+.chat-meta-name {
+    font-weight: 700;
+    color: var(--text-primary);
+    letter-spacing: 0.5px;
+}
+
+.chat-meta-role {
+    padding: 1px 7px;
+    border-radius: 10px;
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+}
+
+.chat-meta-role.role-good {
+    background: rgba(74, 158, 255, 0.14);
+    color: #9ec8ff;
+    border: 1px solid rgba(74, 158, 255, 0.28);
+}
+
+.chat-meta-role.role-evil {
+    background: rgba(192, 64, 64, 0.14);
+    color: #f0a8a8;
+    border: 1px solid rgba(192, 64, 64, 0.28);
+}
+
+.chat-meta-tag {
+    font-size: 8px;
+    padding: 1px 6px;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.06);
+    color: #8a9aaa;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.chat-meta-sender {
+    font-weight: 700;
+    color: #f0b0b0;
+    letter-spacing: 1px;
+}
+
+.chat-meta-time {
+    margin-left: auto;
+    font-size: 9px;
+    color: #6a7a8a;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+/* 发言正文：单独一行 */
+.chat-message-content {
+    font-size: 11px;
+    line-height: 1.55;
     white-space: pre-wrap;
     word-break: break-word;
+    color: #b8d4f8;
 }
 
-.chat-sender {
-    font-weight: 700;
-}
-
-/* 系统通知：红色 */
+/* 系统通知 */
 .chat-message.system {
-    color: #e8a0a0;
+    background: rgba(96, 32, 32, 0.18);
 }
 
-.chat-message.system .chat-sender {
-    color: #f0b0b0;
-}
-
-/* 玩家发言：蓝色 */
-.chat-message.ai,
-.chat-message.player {
-    color: #a8c8f0;
-}
-
-.chat-message.ai .chat-sender,
-.chat-message.player .chat-sender {
-    color: var(--good-blue);
+.chat-message.system .chat-message-content {
+    color: #e8b0b0;
 }

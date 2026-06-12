@@ -5,7 +5,7 @@ from .constants import (
     EVIL_ROLES, MAX_ASSASSINATION_DISCUSSION_ROUNDS,
 )
 from ..models.player import Player
-from .roles import assign_roles
+from .roles import ROLES, assign_roles
 
 
 class AvalonGame:
@@ -286,7 +286,11 @@ class AvalonGame:
         sender: str,
         message: str,
         msg_type: str = 'system',
+        *,
         role: Optional[str] = None,
+        role_name: Optional[str] = None,
+        seat: Optional[int] = None,
+        is_ai: Optional[bool] = None,
     ) -> Dict[str, Any]:
         """追加战报条目并返回完整记录"""
         self._chat_log_id += 1
@@ -299,8 +303,27 @@ class AvalonGame:
         }
         if role:
             entry['role'] = role
+        if role_name:
+            entry['role_name'] = role_name
+        if seat is not None:
+            entry['seat'] = seat
+        if is_ai is not None:
+            entry['is_ai'] = is_ai
         self.chat_log.append(entry)
         return entry
+
+    def get_player_chat_meta(self, player_name: str) -> Dict[str, Any]:
+        """根据玩家名解析战报展示用元数据（序号、身份等）"""
+        for index, player in enumerate(self.players):
+            if player.name == player_name:
+                role_info = ROLES.get(player.role or '', {})
+                return {
+                    'seat': index + 1,
+                    'role': player.role,
+                    'role_name': role_info.get('name'),
+                    'is_ai': player.is_ai,
+                }
+        return {}
 
     def get_chat_log(self) -> List[Dict[str, Any]]:
         """返回完整战报历史"""

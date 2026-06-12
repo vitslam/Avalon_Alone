@@ -8,7 +8,6 @@ import random
 from typing import Dict, List, Optional, Callable, Any, Awaitable
 from ..core.constants import GAME_PHASES, GAME_STATES, MAX_ASSASSINATION_DISCUSSION_ROUNDS
 from ..core.roles import ROLES
-from ..core.roles import ROLES
 from .ai_service import ai_service
 from ..core.log_manager import LogManager
 
@@ -661,7 +660,7 @@ class AIController:
         self.game.record_message(player.name, message)
 
         msg_type = 'ai' if player.is_ai else 'player'
-        await self._publish_chat(player.name, message, msg_type, player.role)
+        await self._publish_chat(player.name, message, msg_type, player=player)
 
         if self.log_manager:
             self.log_manager.log_player_speech(
@@ -759,9 +758,36 @@ class AIController:
         message: str,
         msg_type: str = 'system',
         role: Optional[str] = None,
+        player: Optional[Any] = None,
     ) -> Dict[str, Any]:
         """写入战报并通过 WebSocket 推送"""
-        entry = self.game.append_chat_log(sender, message, msg_type, role)
+        meta: Dict[str, Any] = {}
+        if player is not None:
+            for index, p in enumerate(self.game.players):
+                if p.name == player.name:
+                    role_info = ROLES.get(p.role or '', {})
+                    meta = {
+                        'seat': index + 1,
+                        'role': p.role,
+                        'role_name': role_info.get('name'),
+                        'is_ai': p.is_ai,
+                    }
+                    break
+        elif sender != '系统':
+            meta = self.game.get_player_chat_meta(sender)
+            if role and 'role' not in meta:
+                meta['role'] = role
+                meta['role_name'] = ROLES.get(role, {}).get('name')
+
+        entry = self.game.append_chat_log(
+            sender,
+            message,
+            msg_type,
+            role=meta.get('role') or role,
+            role_name=meta.get('role_name'),
+            seat=meta.get('seat'),
+            is_ai=meta.get('is_ai'),
+        )
         await self.notify_frontend('chat_log_entry', entry)
         return entry
 

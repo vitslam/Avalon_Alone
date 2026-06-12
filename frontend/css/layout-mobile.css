@@ -130,9 +130,44 @@
 }
 
 #app.mobile-ui .chat-panel h3 {
-    font-size: 0.85rem;
+    font-size: 0.75rem;
     margin-bottom: 4px;
     padding-bottom: 4px;
+}
+
+#app.mobile-ui .chat-message {
+    padding: 7px 8px;
+    margin-bottom: 8px;
+}
+
+#app.mobile-ui .chat-message-meta {
+    font-size: 9px;
+    gap: 5px;
+    margin-bottom: 5px;
+}
+
+#app.mobile-ui .chat-meta-seat {
+    min-width: 20px;
+    height: 16px;
+    font-size: 8px;
+}
+
+#app.mobile-ui .chat-meta-role {
+    font-size: 8px;
+    padding: 1px 5px;
+}
+
+#app.mobile-ui .chat-meta-tag {
+    font-size: 7px;
+}
+
+#app.mobile-ui .chat-meta-time {
+    font-size: 8px;
+}
+
+#app.mobile-ui .chat-message-content {
+    font-size: 10px;
+    line-height: 1.5;
 }
 
 /* 手机版：战报标题可点击折叠，右侧倒三角 */
