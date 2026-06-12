@@ -1,10 +1,10 @@
-/* ===== 聊天面板（右侧边栏） ===== */
+/* ===== 战报侧栏 — 秘典手稿 ===== */
 .chat-panel {
     background: var(--bg-panel);
     border: 1px solid var(--border-gold);
-    border-radius: 8px;
-    padding: 15px;
-    box-shadow: 0 4px 20px var(--shadow-dark);
+    clip-path: var(--clip-corner);
+    padding: 14px;
+    box-shadow: 0 4px 24px var(--shadow-dark);
     display: flex;
     flex-direction: column;
     width: 300px;
@@ -12,6 +12,18 @@
     align-self: stretch;
     min-height: 0;
     overflow: hidden;
+    position: relative;
+}
+
+.chat-panel::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 3px;
+    height: 100%;
+    background: linear-gradient(180deg, var(--gold-bright), var(--gold-dim), transparent);
+    opacity: 0.4;
 }
 
 .chat-panel h3 {
@@ -19,13 +31,15 @@
     color: var(--gold);
     border-bottom: 1px solid var(--border-stone);
     padding-bottom: 8px;
-    font-size: 0.88rem;
-    font-family: 'MedievalSharp', 'Noto Serif SC', serif;
-    letter-spacing: 2px;
+    padding-left: 6px;
+    font-size: 0.72rem;
+    font-family: var(--font-ui);
+    font-weight: 500;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
     flex-shrink: 0;
 }
 
-/* 战报折叠切换图标（仅手机版可见、可点击） */
 .chat-collapse-icon {
     display: none;
 }
@@ -33,47 +47,52 @@
 .chat-messages {
     flex: 1;
     border: 1px solid var(--border-stone);
-    border-radius: 6px;
+    clip-path: polygon(0 6px, 6px 0, calc(100% - 6px) 0, 100% 6px, 100% calc(100% - 6px), calc(100% - 6px) 100%, 6px 100%, 0 calc(100% - 6px));
     padding: 10px;
     overflow-y: auto;
-    margin-bottom: 10px;
+    margin-bottom: 8px;
     font-size: 11px;
     line-height: 1.5;
     min-height: 0;
-    background: var(--bg-dark);
+    background: rgba(4, 3, 8, 0.6);
 }
 
 .chat-messages::-webkit-scrollbar {
-    width: 6px;
+    width: 4px;
 }
 
 .chat-messages::-webkit-scrollbar-track {
-    background: var(--bg-dark);
+    background: transparent;
 }
 
 .chat-messages::-webkit-scrollbar-thumb {
-    background: var(--border-stone);
-    border-radius: 3px;
+    background: var(--gold-dim);
+    border-radius: 0;
 }
 
 .chat-message {
     margin-bottom: 10px;
-    padding: 8px 10px;
-    border-radius: 6px;
-    background: rgba(0, 0, 0, 0.22);
+    padding: 8px 10px 8px 12px;
+    background: rgba(255, 255, 255, 0.02);
+    border-left: 2px solid transparent;
+    transition: border-color 0.2s;
+}
+
+.chat-message:hover {
+    border-left-color: rgba(193, 127, 74, 0.3);
 }
 
 .chat-message:last-child {
     margin-bottom: 0;
 }
 
-/* 元信息行：序号 / 昵称 / 身份 / 时间 */
 .chat-message-meta {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
     gap: 6px;
     font-size: 10px;
+    font-family: var(--font-ui);
     line-height: 1.4;
     margin-bottom: 6px;
     color: var(--text-dim);
@@ -83,81 +102,87 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    min-width: 22px;
+    min-width: 20px;
     height: 18px;
     padding: 0 5px;
-    border-radius: 4px;
-    background: rgba(212, 168, 67, 0.12);
-    border: 1px solid var(--gold-dim);
-    color: var(--gold);
-    font-weight: 700;
+    clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+    background: rgba(193, 127, 74, 0.12);
+    border: 1px solid var(--border-gold);
+    color: var(--gold-bright);
+    font-weight: 600;
     font-size: 9px;
     letter-spacing: 0;
 }
 
 .chat-meta-name {
-    font-weight: 700;
+    font-weight: 600;
     color: var(--text-primary);
-    letter-spacing: 0.5px;
+    letter-spacing: 0.03em;
 }
 
 .chat-meta-role {
     padding: 1px 7px;
-    border-radius: 10px;
     font-size: 9px;
-    font-weight: 600;
-    letter-spacing: 0.5px;
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    border: 1px solid transparent;
 }
 
 .chat-meta-role.role-good {
-    background: rgba(74, 158, 255, 0.14);
-    color: #9ec8ff;
-    border: 1px solid rgba(74, 158, 255, 0.28);
+    background: rgba(106, 171, 140, 0.1);
+    color: #a8dcc8;
+    border-color: rgba(106, 171, 140, 0.25);
 }
 
 .chat-meta-role.role-evil {
-    background: rgba(192, 64, 64, 0.14);
-    color: #f0a8a8;
-    border: 1px solid rgba(192, 64, 64, 0.28);
+    background: rgba(201, 74, 66, 0.1);
+    color: #e8a8a0;
+    border-color: rgba(201, 74, 66, 0.25);
 }
 
 .chat-meta-tag {
     font-size: 8px;
     padding: 1px 6px;
-    border-radius: 8px;
-    background: rgba(255, 255, 255, 0.06);
-    color: #8a9aaa;
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    font-family: var(--font-ui);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    background: rgba(255, 255, 255, 0.04);
+    color: var(--text-dim);
+    border: 1px solid var(--border-stone);
 }
 
 .chat-meta-sender {
-    font-weight: 700;
-    color: #f0b0b0;
-    letter-spacing: 1px;
+    font-weight: 600;
+    font-family: var(--font-display);
+    color: var(--gold);
+    letter-spacing: 0.12em;
+    font-size: 10px;
 }
 
 .chat-meta-time {
     margin-left: auto;
     font-size: 9px;
-    color: #6a7a8a;
+    font-family: var(--font-ui);
+    color: var(--text-dim);
     font-variant-numeric: tabular-nums;
     white-space: nowrap;
 }
 
-/* 发言正文：单独一行 */
 .chat-message-content {
     font-size: 11px;
-    line-height: 1.55;
+    line-height: 1.6;
     white-space: pre-wrap;
     word-break: break-word;
-    color: #b8d4f8;
+    color: #c8d8e8;
 }
 
-/* 系统通知 */
 .chat-message.system {
-    background: rgba(96, 32, 32, 0.18);
+    background: rgba(193, 127, 74, 0.05);
+    border-left-color: var(--gold-dim);
 }
 
 .chat-message.system .chat-message-content {
-    color: #e8b0b0;
+    color: #e8c8a0;
+    font-style: italic;
 }

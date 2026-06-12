@@ -1,5 +1,5 @@
-/* ===== 全局变量与重置 ===== */
-@import url('https://fonts.googleapis.com/css2?family=MedievalSharp&family=Noto+Serif+SC:wght@400;700&display=swap');
+/* ===== 全局变量与重置 — Art Deco Occult Noir ===== */
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Outfit:wght@300;400;500;600&family=Noto+Serif+SC:wght@400;600&display=swap');
 
 * {
     margin: 0;
@@ -8,44 +8,75 @@
 }
 
 :root {
-    --bg-dark: #0d1117;
-    --bg-panel: #1a1f2e;
-    --bg-card: #232a3b;
-    --bg-parchment: #2a3142;
-    --gold: #d4a843;
-    --gold-dim: #a07830;
-    --gold-bright: #f0c850;
-    --good-blue: #4a9eff;
-    --evil-red: #e04040;
-    --text-primary: #e8dcc8;
-    --text-secondary: #9a8e7a;
-    --text-dim: #6a6050;
-    --border-stone: #3a4050;
-    --border-gold: rgba(212, 168, 67, 0.3);
-    --shadow-dark: rgba(0, 0, 0, 0.5);
-    --shadow-gold: rgba(212, 168, 67, 0.15);
+    /* 色板：深紫黑 + 古铜 + 象牙 */
+    --bg-dark: #07060b;
+    --bg-panel: #110e18;
+    --bg-card: #1a1524;
+    --bg-parchment: #221c30;
+    --gold: #c17f4a;
+    --gold-dim: #8a5530;
+    --gold-bright: #e8a86a;
+    --good-blue: #6aab8c;
+    --evil-red: #c94a42;
+    --text-primary: #f0e6d8;
+    --text-secondary: #9a8e82;
+    --text-dim: #5c5248;
+    --border-stone: rgba(193, 127, 74, 0.18);
+    --border-gold: rgba(193, 127, 74, 0.38);
+    --shadow-dark: rgba(0, 0, 0, 0.65);
+    --shadow-gold: rgba(193, 127, 74, 0.12);
+
+    --font-display: 'Cinzel', 'Noto Serif SC', serif;
+    --font-ui: 'Outfit', 'Noto Serif SC', sans-serif;
+    --font-body: 'Noto Serif SC', serif;
+    --ivory: #f0e6d8;
+    --good-glow: rgba(106, 171, 140, 0.35);
+    --clip-corner: polygon(
+        0 10px, 10px 0,
+        calc(100% - 10px) 0, 100% 10px,
+        100% calc(100% - 10px), calc(100% - 10px) 100%,
+        10px 100%, 0 calc(100% - 10px)
+    );
 }
 
 body {
-    font-family: 'Noto Serif SC', 'SimSun', serif;
-    background: var(--bg-dark);
+    font-family: var(--font-body, 'Noto Serif SC', serif);
+    background-color: var(--bg-dark);
     background-image:
-        radial-gradient(ellipse at 20% 50%, rgba(212, 168, 67, 0.03) 0%, transparent 50%),
-        radial-gradient(ellipse at 80% 20%, rgba(74, 158, 255, 0.03) 0%, transparent 50%),
-        radial-gradient(ellipse at 50% 80%, rgba(224, 64, 64, 0.02) 0%, transparent 50%);
+        repeating-linear-gradient(
+            -12deg,
+            transparent,
+            transparent 48px,
+            rgba(193, 127, 74, 0.015) 48px,
+            rgba(193, 127, 74, 0.015) 49px
+        ),
+        radial-gradient(ellipse 80% 60% at 50% 0%, rgba(155, 126, 200, 0.06) 0%, transparent 55%),
+        radial-gradient(ellipse 60% 50% at 100% 100%, rgba(193, 127, 74, 0.05) 0%, transparent 50%),
+        radial-gradient(ellipse 50% 40% at 0% 80%, rgba(201, 74, 66, 0.04) 0%, transparent 45%);
     min-height: 100vh;
     color: var(--text-primary);
     overflow-x: hidden;
+}
+
+body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 9999;
+    opacity: 0.35;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
 }
 
 #app {
     max-width: none;
     width: 100%;
     margin: 0 auto;
-    padding: 10px 12px;
+    padding: 10px 14px;
     height: 100vh;
     height: 100dvh;
     display: flex;
     flex-direction: column;
     overflow: hidden;
+    position: relative;
 }
