@@ -131,6 +131,7 @@ class AvalonGame:
                     'votes': votes_snapshot,
                     'next_phase': 'mission_vote',
                     'team': self.current_team,
+                    'mission_number': self.current_mission,
                 }
             else:
                 # 队伍被拒绝
@@ -215,12 +216,14 @@ class AvalonGame:
             # 检查游戏是否结束
             good_wins = sum(1 for r in self.mission_results if r['success'])
             evil_wins = len(self.mission_results) - good_wins
+            completed_mission = self.current_mission
 
             if good_wins >= 3:
                 # 好人获得3次成功，进入刺杀阶段
                 self.phase = GAME_PHASES['assassination']
                 return {
                     'status': 'good_mission_win',
+                    'mission_number': completed_mission,
                     'mission_result': mission_success,
                     'good_wins': good_wins,
                     'evil_wins': evil_wins,
@@ -231,6 +234,7 @@ class AvalonGame:
                 self.end_game('evil')
                 return {
                     'status': 'evil_win',
+                    'mission_number': completed_mission,
                     'mission_result': mission_success,
                     'good_wins': good_wins,
                     'evil_wins': evil_wins,
@@ -241,6 +245,7 @@ class AvalonGame:
                 self.next_round()
                 return {
                     'status': 'mission_completed',
+                    'mission_number': completed_mission,
                     'mission_result': mission_success,
                     'good_wins': good_wins,
                     'evil_wins': evil_wins,

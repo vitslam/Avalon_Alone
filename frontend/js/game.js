@@ -171,11 +171,14 @@ export function handleTeamVoteProgress(data) {
 export function handleTeamVoteCompleted(data) {
     showTeamVoteResult(data);
 
+    const approvedMissionNumber = data.mission_number;
+    const approvedTeam = data.team;
+
     setTimeout(async () => {
         clearTeamVoteDisplay();
 
         if (data.status === 'team_approved') {
-            triggerMissionVideo(data.team);
+            triggerMissionVideo(approvedTeam, approvedMissionNumber);
         } else if (data.status === 'evil_win') {
             showGameResult('坏人获胜', data.reason);
         }
@@ -199,18 +202,13 @@ export function handleTeamVoteRecorded(data) {
     }
 }
 
-async function triggerMissionVideo(teamFromEvent) {
-    const { fetchCurrentGameState } = await import('./websocket.js');
-    await fetchCurrentGameState();
-
-    const team = teamFromEvent?.length
-        ? teamFromEvent
-        : state.gameState?.current_team;
+async function triggerMissionVideo(teamFromEvent, missionNumberFromEvent) {
+    const team = teamFromEvent?.length ? teamFromEvent : state.gameState?.current_team;
     const players = state.gameState?.players;
-    const mission = state.gameState?.current_mission;
+    const mission = missionNumberFromEvent ?? state.gameState?.current_mission;
 
-    if (!team?.length || !players?.length) {
-        console.warn('无法播放任务视频：缺少车队或玩家信息', { team, players });
+    if (!team?.length || !players?.length || mission == null) {
+        console.warn('无法播放任务视频：缺少车队、玩家或任务轮次', { team, players, mission });
         return;
     }
 
@@ -218,8 +216,8 @@ async function triggerMissionVideo(teamFromEvent) {
 }
 
 export function handleMissionVoteRecorded(data) {
-    if (typeof data.mission_result === 'boolean') {
-        setMissionResult(data.mission_result);
+    if (typeof data.mission_result === 'boolean' && data.mission_number != null) {
+        setMissionResult(data.mission_result, data.mission_number);
     }
 
     if (data.status === 'evil_win') {
