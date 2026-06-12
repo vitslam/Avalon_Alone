@@ -1,29 +1,26 @@
-/* ===== 游戏桌子 ===== */
+/* ===== 牌桌 — 全息投影台 ===== */
 .game-table {
     background: var(--bg-panel);
+    backdrop-filter: blur(var(--glass-blur));
     border: 1px solid var(--border-gold);
-    border-radius: 12px;
-    padding: 16px;
+    border-radius: 8px;
+    padding: 18px;
     position: relative;
     overflow: hidden;
     height: 100%;
     display: flex;
     align-items: center;
     justify-content: center;
-    box-shadow: inset 0 0 40px rgba(0, 0, 0, 0.3);
+    box-shadow: inset 0 0 50px rgba(0, 229, 255, 0.03);
 }
 
 .game-table::before {
     content: '';
     position: absolute;
-    top: 10px;
-    left: 10px;
-    right: 10px;
-    bottom: 10px;
-    border: 1px solid var(--border-gold);
-    border-radius: 8px;
+    inset: 12px;
+    border: 1px dashed var(--border-stone);
+    border-radius: 6px;
     pointer-events: none;
-    opacity: 0.3;
 }
 
 .players-container {
@@ -47,7 +44,6 @@
     flex-shrink: 0;
 }
 
-/* 牌桌区域在装饰内框中居中缩放（电脑版 / 手机版共用 fitTableScale） */
 #app .players-container {
     padding-top: 0;
 }
@@ -56,10 +52,14 @@
     grid-area: table;
     width: var(--table-edge-width);
     height: var(--table-edge-height);
-    background: linear-gradient(135deg, #1a2a1a, #2a3a2a);
-    border: 2px solid var(--gold-dim);
-    border-radius: 12px;
-    box-shadow: inset 0 0 30px rgba(0, 0, 0, 0.4), 0 0 20px rgba(212, 168, 67, 0.1);
+    background:
+        radial-gradient(ellipse 80% 70% at 50% 50%, rgba(0, 229, 255, 0.06) 0%, transparent 60%),
+        rgba(4, 8, 20, 0.8);
+    border: 1px solid var(--neon-cyan);
+    border-radius: 8px;
+    box-shadow:
+        0 0 30px rgba(0, 229, 255, 0.12),
+        inset 0 0 40px rgba(0, 229, 255, 0.04);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -68,20 +68,32 @@
 }
 
 .table-center::before {
+    content: '';
+    position: absolute;
+    inset: 20px;
+    border: 1px solid rgba(0, 229, 255, 0.1);
+    border-radius: 4px;
+    pointer-events: none;
+}
+
+.table-center::after {
     content: 'AVALON';
-    font-family: 'MedievalSharp', serif;
-    font-size: 1.6rem;
-    color: var(--gold-dim);
-    opacity: 0.4;
-    letter-spacing: 8px;
+    font-family: var(--font-display);
+    font-size: 1.5rem;
+    font-weight: 900;
+    color: var(--neon-cyan);
+    opacity: 0.12;
+    letter-spacing: 0.6em;
 }
 
 .table-center .table-info {
     position: absolute;
-    bottom: 12px;
-    font-size: 0.8rem;
+    bottom: 14px;
+    font-size: 0.68rem;
+    font-family: var(--font-ui);
     color: var(--text-dim);
-    letter-spacing: 1px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
 }
 
 .players-top {
@@ -118,19 +130,21 @@
     height: var(--table-edge-height);
 }
 
-/* ===== 玩家卡片 ===== */
+/* ===== 玩家卡片 — 数据终端 ===== */
 .player-card {
     background: var(--bg-card);
-    border-radius: 8px;
-    padding: 16px 12px;
+    backdrop-filter: blur(8px);
+    border-radius: 6px;
+    padding: 14px 11px 12px;
     text-align: center;
-    min-width: 115px;
-    max-width: 135px;
-    box-shadow: 0 4px 12px var(--shadow-dark);
-    transition: all 0.3s;
+    min-width: 108px;
+    max-width: 128px;
+    box-shadow: 0 4px 16px var(--shadow-dark);
+    transition: transform 0.25s, box-shadow 0.25s, border-color 0.25s;
     position: relative;
     z-index: 1;
     border: 1px solid var(--border-stone);
+    overflow: hidden;
 }
 
 .player-card.speech-active {
@@ -143,113 +157,123 @@
     top: 0;
     left: 0;
     right: 0;
-    height: 3px;
-    background: var(--good-blue);
-    border-radius: 8px 8px 0 0;
+    height: 2px;
+    background: var(--neon-green);
+    box-shadow: 0 0 6px var(--neon-green);
 }
 
 .player-card.ai::before {
     background: var(--evil-red);
+    box-shadow: 0 0 6px var(--evil-red);
 }
 
 .player-card.leader::before {
-    background: var(--gold);
+    height: 3px;
+    background: linear-gradient(90deg, var(--neon-magenta), var(--neon-cyan));
+    box-shadow: 0 0 10px rgba(0, 229, 255, 0.4);
 }
 
 .player-card.leader::after {
-    content: '\265B';
+    content: 'CMD';
     position: absolute;
     top: 6px;
     right: 6px;
-    font-size: 16px;
-    color: var(--gold);
-    text-shadow: 0 0 6px rgba(212, 168, 67, 0.5);
+    font-size: 8px;
+    font-family: var(--font-display);
+    font-weight: 700;
+    color: var(--neon-cyan);
+    letter-spacing: 0.05em;
+    text-shadow: 0 0 6px rgba(0, 229, 255, 0.5);
 }
 
 .player-card.on-proposed-team::before {
-    background: #ab47bc;
+    background: var(--neon-purple);
+    box-shadow: 0 0 8px var(--neon-purple);
 }
 
 .player-card.on-proposed-team {
-    border-color: #ce93d8;
-    box-shadow: 0 0 10px rgba(171, 71, 188, 0.25);
+    border-color: rgba(168, 85, 247, 0.45);
+    box-shadow: 0 0 14px rgba(168, 85, 247, 0.2);
 }
 
 .player-card.on-mission::before {
-    background: #9C27B0;
+    background: var(--neon-purple);
 }
 
 .player-card:hover {
     transform: translateY(-4px);
-    box-shadow: 0 8px 24px var(--shadow-dark), 0 0 12px var(--shadow-gold);
-    border-color: var(--gold-dim);
+    border-color: var(--border-gold);
+    box-shadow: 0 8px 24px var(--shadow-dark), 0 0 16px rgba(0, 229, 255, 0.1);
 }
 
 .player-avatar {
-    width: 56px;
-    height: 56px;
-    border-radius: 50%;
-    background: linear-gradient(135deg, #2a3a5c, #1a2a4c);
-    color: var(--text-primary);
+    width: 50px;
+    height: 50px;
+    border-radius: 6px;
+    background: rgba(0, 229, 255, 0.06);
+    border: 1px solid var(--border-stone);
+    color: var(--neon-cyan);
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 22px;
-    font-weight: bold;
+    font-size: 20px;
+    font-weight: 700;
+    font-family: var(--font-display);
     margin: 0 auto 10px;
-    border: 2px solid var(--border-stone);
-    transition: all 0.3s;
+    transition: all 0.25s;
     line-height: 1;
     white-space: nowrap;
 }
 
 .player-avatar.avatar-dual {
-    font-size: 16px;
+    font-size: 14px;
     letter-spacing: -0.5px;
 }
 
 .player-card:hover .player-avatar {
-    transform: scale(1.08);
-    border-color: var(--gold-dim);
-    box-shadow: 0 0 10px rgba(212, 168, 67, 0.2);
+    border-color: var(--neon-cyan);
+    box-shadow: 0 0 12px rgba(0, 229, 255, 0.2);
 }
 
 .player-role {
-    background: rgba(212, 168, 67, 0.1);
-    color: var(--gold);
-    padding: 3px 8px;
+    background: rgba(0, 229, 255, 0.06);
+    color: var(--neon-cyan);
+    padding: 2px 8px;
     border-radius: 3px;
-    font-size: 11px;
-    font-weight: 500;
-    margin-bottom: 6px;
-    border: 1px solid var(--border-gold);
-    letter-spacing: 1px;
+    font-size: 9px;
+    font-weight: 600;
+    font-family: var(--font-ui);
+    margin-bottom: 5px;
+    border: 1px solid var(--border-stone);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
 }
 
 .player-status {
-    font-size: 11px;
-    color: var(--text-secondary);
+    font-size: 10px;
+    font-family: var(--font-ui);
+    font-weight: 300;
+    color: var(--text-dim);
     margin-top: 4px;
     line-height: 1.2;
 }
 
-/* ===== 玩家发言状态 ===== */
 .player-card.speaking {
-    background: linear-gradient(135deg, #1a2a4c, #2a3a5c);
-    box-shadow: 0 0 20px rgba(74, 158, 255, 0.3);
+    background: rgba(0, 229, 255, 0.08);
+    box-shadow: 0 0 24px rgba(0, 229, 255, 0.2);
     transform: translateY(-4px);
-    border: 1px solid var(--good-blue);
-    animation: speaking-pulse 1.5s infinite;
+    border-color: var(--neon-cyan);
+    animation: speak-pulse 1.5s ease-in-out infinite;
 }
 
 .player-card.speaking::before {
-    background: var(--good-blue) !important;
+    background: var(--neon-cyan) !important;
+    box-shadow: 0 0 12px var(--neon-cyan) !important;
 }
 
-@keyframes speaking-pulse {
-    0% { box-shadow: 0 0 20px rgba(74, 158, 255, 0.3); }
-    50% { box-shadow: 0 0 30px rgba(74, 158, 255, 0.5); }
-    100% { box-shadow: 0 0 20px rgba(74, 158, 255, 0.3); }
+@keyframes speak-pulse {
+    0%, 100% { box-shadow: 0 0 16px rgba(0, 229, 255, 0.2); }
+    50% { box-shadow: 0 0 28px rgba(0, 229, 255, 0.4); }
 }
 
 /* ===== 发言气泡 ===== */
@@ -263,24 +287,26 @@
 
 .speech-bubble {
     position: fixed;
-    background: var(--bg-panel);
+    background: rgba(6, 10, 22, 0.96);
+    backdrop-filter: blur(12px);
     color: var(--text-primary);
-    padding: 10px 16px;
-    border-radius: 8px;
+    padding: 12px 18px;
+    border-radius: 4px;
     font-size: 13px;
+    font-family: var(--font-body);
     min-width: 120px;
     max-width: min(360px, calc(100vw - 24px));
     width: max-content;
     word-wrap: break-word;
     z-index: 1501;
-    box-shadow: 0 4px 16px var(--shadow-dark);
+    box-shadow: 0 8px 28px var(--shadow-dark), 0 0 1px var(--neon-cyan);
     animation: speech-appear-fixed 0.3s ease-out;
     white-space: pre-wrap;
     overflow: visible;
     pointer-events: none;
     opacity: 1 !important;
     visibility: visible !important;
-    line-height: 1.4;
+    line-height: 1.5;
     border: 1px solid var(--border-gold);
 }
 
@@ -291,20 +317,20 @@
     left: 50%;
     transform: translateX(-50%);
     border: 6px solid transparent;
-    border-top-color: var(--border-gold);
+    border-top-color: rgba(0, 229, 255, 0.4);
 }
 
 .speech-bubble--below::after {
     top: auto;
     bottom: 100%;
     border-top-color: transparent;
-    border-bottom-color: var(--border-gold);
+    border-bottom-color: rgba(0, 229, 255, 0.4);
 }
 
 @keyframes speech-appear-fixed {
     0% {
         opacity: 0;
-        transform: translate(-50%, calc(-100% + 10px)) scale(0.9);
+        transform: translate(-50%, calc(-100% + 10px)) scale(0.92);
     }
     100% {
         opacity: 1;
@@ -324,34 +350,41 @@
 }
 
 .table-vote-progress {
-    font-size: 1.5rem;
-    font-weight: 600;
-    color: var(--gold);
-    letter-spacing: 2px;
-    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.6);
+    font-family: var(--font-display);
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: var(--neon-cyan);
+    letter-spacing: 0.15em;
+    text-shadow: 0 0 16px rgba(0, 229, 255, 0.5);
 }
 
 .table-vote-result {
     text-align: center;
-    padding: 16px 24px;
-    background: rgba(0, 0, 0, 0.55);
+    padding: 18px 26px;
+    background: rgba(4, 8, 18, 0.92);
+    backdrop-filter: blur(12px);
     border: 1px solid var(--border-gold);
-    border-radius: 10px;
+    border-radius: 6px;
     max-width: 90%;
+    box-shadow: 0 0 24px rgba(0, 229, 255, 0.1);
 }
 
 .vote-counts {
-    font-size: 1.6rem;
+    font-family: var(--font-display);
+    font-size: 1.3rem;
     font-weight: 700;
     margin-bottom: 10px;
+    letter-spacing: 0.05em;
 }
 
 .vote-count-approve {
-    color: #66bb6a;
+    color: var(--neon-green);
+    text-shadow: 0 0 8px rgba(57, 255, 136, 0.4);
 }
 
 .vote-count-reject {
-    color: #ef5350;
+    color: var(--evil-red);
+    text-shadow: 0 0 8px rgba(255, 45, 106, 0.4);
 }
 
 .vote-count-sep {
@@ -360,19 +393,20 @@
 }
 
 .vote-hint {
-    font-size: 0.95rem;
-    color: var(--text-primary);
-    line-height: 1.5;
+    font-size: 0.85rem;
+    font-family: var(--font-body);
+    color: var(--text-secondary);
+    line-height: 1.55;
 }
 
 .player-card.vote-approve {
-    border-color: #66bb6a;
-    box-shadow: 0 0 12px rgba(102, 187, 106, 0.35);
+    border-color: var(--neon-green);
+    box-shadow: 0 0 14px rgba(57, 255, 136, 0.25);
 }
 
 .player-card.vote-reject {
-    border-color: #ef5350;
-    box-shadow: 0 0 12px rgba(239, 83, 80, 0.35);
+    border-color: var(--evil-red);
+    box-shadow: 0 0 14px rgba(255, 45, 106, 0.25);
 }
 
 .vote-bubble {
@@ -380,23 +414,25 @@
     top: -8px;
     left: 50%;
     transform: translateX(-50%);
-    background: rgba(0, 0, 0, 0.85);
+    background: rgba(4, 8, 18, 0.95);
     color: var(--text-primary);
     padding: 3px 10px;
-    border-radius: 10px;
-    font-size: 11px;
-    font-weight: 600;
+    border-radius: 3px;
+    font-size: 9px;
+    font-family: var(--font-display);
+    font-weight: 700;
+    letter-spacing: 0.1em;
     white-space: nowrap;
     border: 1px solid var(--border-stone);
     z-index: 5;
 }
 
 .player-card.vote-approve .vote-bubble {
-    border-color: #66bb6a;
-    color: #a5d6a7;
+    border-color: var(--neon-green);
+    color: var(--neon-green);
 }
 
 .player-card.vote-reject .vote-bubble {
-    border-color: #ef5350;
-    color: #ef9a9a;
+    border-color: var(--evil-red);
+    color: #ff8aaa;
 }

@@ -1,7 +1,8 @@
 .mission-video-overlay {
     position: fixed;
     inset: 0;
-    background: rgba(0, 0, 0, 0.88);
+    background: rgba(3, 3, 8, 0.94);
+    backdrop-filter: blur(6px);
     z-index: 2000;
     display: none;
     align-items: center;
@@ -11,8 +12,9 @@
 .mission-video-overlay video {
     max-width: 90vw;
     max-height: 85vh;
-    border-radius: 8px;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
+    border-radius: 6px;
+    border: 1px solid var(--border-gold);
+    box-shadow: 0 0 40px rgba(0, 229, 255, 0.15), 0 12px 40px rgba(0, 0, 0, 0.7);
 }
 
 .mission-video-waiting {
@@ -20,21 +22,25 @@
     align-items: center;
     justify-content: center;
     gap: 24px;
-    color: #f5f5f5;
+    color: var(--text-primary);
 }
 
 .mission-video-spinner {
-    width: 64px;
-    height: 64px;
-    border: 5px solid rgba(255, 255, 255, 0.2);
-    border-top-color: #c8a44d;
+    width: 52px;
+    height: 52px;
+    border: 2px solid var(--border-stone);
+    border-top-color: var(--neon-cyan);
     border-radius: 50%;
-    animation: mission-video-spin 0.9s linear infinite;
+    animation: mission-video-spin 0.8s linear infinite;
+    box-shadow: 0 0 12px rgba(0, 229, 255, 0.2);
 }
 
 .mission-video-waiting-text {
-    font-size: 20px;
-    letter-spacing: 2px;
+    font-family: var(--font-display);
+    font-size: 14px;
+    letter-spacing: 0.2em;
+    color: var(--neon-cyan);
+    text-shadow: 0 0 12px rgba(0, 229, 255, 0.3);
 }
 
 @keyframes mission-video-spin {

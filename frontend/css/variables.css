@@ -1,5 +1,5 @@
-/* ===== 全局变量与重置 ===== */
-@import url('https://fonts.googleapis.com/css2?family=MedievalSharp&family=Noto+Serif+SC:wght@400;700&display=swap');
+/* ===== 全局变量 — Cyber Neon 霓虹终端 ===== */
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=IBM+Plex+Sans:wght@300;400;500;600&family=Noto+Sans+SC:wght@400;500;700&display=swap');
 
 * {
     margin: 0;
@@ -8,41 +8,69 @@
 }
 
 :root {
-    --bg-dark: #0d1117;
-    --bg-panel: #1a1f2e;
-    --bg-card: #232a3b;
-    --bg-parchment: #2a3142;
-    --gold: #d4a843;
-    --gold-dim: #a07830;
-    --gold-bright: #f0c850;
-    --good-blue: #4a9eff;
-    --evil-red: #e04040;
-    --text-primary: #e8dcc8;
-    --text-secondary: #9a8e7a;
-    --text-dim: #6a6050;
-    --border-stone: #3a4050;
-    --border-gold: rgba(212, 168, 67, 0.3);
-    --shadow-dark: rgba(0, 0, 0, 0.5);
-    --shadow-gold: rgba(212, 168, 67, 0.15);
+    --bg-dark: #030308;
+    --bg-panel: rgba(10, 14, 28, 0.72);
+    --bg-card: rgba(14, 20, 40, 0.85);
+    --bg-parchment: rgba(18, 26, 52, 0.9);
+    --gold: #00e5ff;
+    --gold-dim: #0099aa;
+    --gold-bright: #7af0ff;
+    --good-blue: #39ff88;
+    --evil-red: #ff2d6a;
+    --text-primary: #e4eeff;
+    --text-secondary: #7a8cad;
+    --text-dim: #4a5670;
+    --border-stone: rgba(0, 229, 255, 0.12);
+    --border-gold: rgba(0, 229, 255, 0.35);
+    --shadow-dark: rgba(0, 0, 0, 0.7);
+    --shadow-gold: rgba(0, 229, 255, 0.15);
+
+    --neon-cyan: #00e5ff;
+    --neon-magenta: #ff2d95;
+    --neon-green: #39ff88;
+    --neon-purple: #a855f7;
+    --glass-blur: 12px;
+
+    --font-display: 'Orbitron', 'Noto Sans SC', sans-serif;
+    --font-ui: 'IBM Plex Sans', 'Noto Sans SC', sans-serif;
+    --font-body: 'Noto Sans SC', sans-serif;
 }
 
 body {
-    font-family: 'Noto Serif SC', 'SimSun', serif;
-    background: var(--bg-dark);
+    font-family: var(--font-body);
+    background-color: var(--bg-dark);
     background-image:
-        radial-gradient(ellipse at 20% 50%, rgba(212, 168, 67, 0.03) 0%, transparent 50%),
-        radial-gradient(ellipse at 80% 20%, rgba(74, 158, 255, 0.03) 0%, transparent 50%),
-        radial-gradient(ellipse at 50% 80%, rgba(224, 64, 64, 0.02) 0%, transparent 50%);
+        linear-gradient(rgba(0, 229, 255, 0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0, 229, 255, 0.03) 1px, transparent 1px),
+        radial-gradient(ellipse 70% 50% at 50% -10%, rgba(0, 229, 255, 0.08) 0%, transparent 55%),
+        radial-gradient(ellipse 40% 30% at 100% 80%, rgba(255, 45, 105, 0.05) 0%, transparent 50%);
+    background-size: 40px 40px, 40px 40px, 100% 100%, 100% 100%;
     min-height: 100vh;
     color: var(--text-primary);
     overflow-x: hidden;
+}
+
+body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 10000;
+    background: repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 2px,
+        rgba(0, 0, 0, 0.03) 2px,
+        rgba(0, 0, 0, 0.03) 4px
+    );
+    opacity: 0.5;
 }
 
 #app {
     max-width: none;
     width: 100%;
     margin: 0 auto;
-    padding: 10px 12px;
+    padding: 10px 14px;
     height: 100vh;
     height: 100dvh;
     display: flex;
