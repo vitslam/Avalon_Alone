@@ -5,6 +5,7 @@ import { connectWebSocket } from './websocket.js';
 import { loadTTSModule, initializeVoiceControl, testVoice } from './voice.js';
 import { loadClientConfig } from './config.js';
 import { initLayout, bindLayoutMenu, fitTableScale } from './layout.js';
+import { initChatPanelResize } from './chatResize.js';
 
 document.addEventListener('DOMContentLoaded', async function() {
     initLayout();
@@ -72,6 +73,7 @@ function initializeEventListeners() {
     initializeHeaderMenu();
     bindLayoutMenu();
     initChatCollapse();
+    initChatPanelResize();
     initializeVoiceControl();
 }
 

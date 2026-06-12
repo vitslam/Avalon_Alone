@@ -1,9 +1,5 @@
 /* ===== 响应式设计 ===== */
 @media screen and (max-width: 1200px) {
-    .chat-panel {
-        width: 260px;
-    }
-
     .mission-board,
     .current-phase {
         padding: 10px 12px;

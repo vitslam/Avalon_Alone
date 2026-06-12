@@ -7,11 +7,50 @@
     box-shadow: 0 4px 24px var(--shadow-dark);
     display: flex;
     flex-direction: column;
-    width: 300px;
+    width: var(--chat-panel-width, 300px);
     flex-shrink: 0;
     align-self: stretch;
     min-height: 0;
     overflow: hidden;
+}
+
+#app:not(.mobile-ui) .game-main {
+    gap: 0;
+}
+
+.chat-panel-splitter {
+    display: none;
+    flex: 0 0 10px;
+    width: 10px;
+    align-self: stretch;
+    cursor: col-resize;
+    position: relative;
+    touch-action: none;
+    z-index: 2;
+}
+
+.chat-panel-splitter::after {
+    content: '';
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    width: 3px;
+    height: 56px;
+    border-radius: 2px;
+    background: rgba(255, 255, 255, 0.12);
+    transition: background 0.2s, height 0.2s, box-shadow 0.2s;
+}
+
+.chat-panel-splitter:hover::after,
+.game-main.is-resizing-chat .chat-panel-splitter::after {
+    background: var(--gold-dim);
+    height: 72px;
+    box-shadow: 0 0 10px rgba(212, 160, 32, 0.35);
+}
+
+#app:not(.mobile-ui) .chat-panel-splitter {
+    display: block;
 }
 
 .chat-panel h3 {
