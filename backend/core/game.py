@@ -19,6 +19,7 @@ class AvalonGame:
         self.current_leader_index = 0
         self.current_team = []
         self.team_votes = []
+        self.team_vote_history: List[Dict[str, Any]] = []
         self.mission_votes = []
         self.failed_team_votes = 0
         self.game_history = []
@@ -101,6 +102,21 @@ class AvalonGame:
             'next_phase': 'team_vote'
         }
 
+    def _record_team_vote_result(self, votes: List[Dict[str, Any]], approved: bool) -> None:
+        """记录一次已完成的队伍投票（含赞成/反对明细）。"""
+        mission = self.current_mission
+        attempt = sum(1 for r in self.team_vote_history if r.get('mission') == mission) + 1
+        approve = [v['player'] for v in votes if v.get('vote') == 'approve']
+        reject = [v['player'] for v in votes if v.get('vote') == 'reject']
+        self.team_vote_history.append({
+            'mission': mission,
+            'attempt': attempt,
+            'team': list(self.current_team),
+            'approve': approve,
+            'reject': reject,
+            'approved': approved,
+        })
+
     def vote_team(self, player_name: str, vote: str) -> Dict[str, Any]:
         """队伍投票"""
         if self.phase != GAME_PHASES['team_vote']:
@@ -123,6 +139,7 @@ class AvalonGame:
 
             if approve_count > len(self.players) / 2:
                 # 队伍通过，进入任务投票
+                self._record_team_vote_result(votes_snapshot, approved=True)
                 self.phase = GAME_PHASES['mission_vote']
                 return {
                     'status': 'team_approved',
@@ -135,6 +152,7 @@ class AvalonGame:
                 }
             else:
                 # 队伍被拒绝
+                self._record_team_vote_result(votes_snapshot, approved=False)
                 self.failed_team_votes += 1
                 self.current_leader_index = (self.current_leader_index + 1) % len(self.players)
 
@@ -395,6 +413,7 @@ class AvalonGame:
             'current_leader': self.players[self.current_leader_index].name if self.players else None,
             'current_team': self.current_team,
             'team_votes': self.team_votes,
+            'team_vote_history': self.team_vote_history,
             'mission_votes': self.mission_votes,
             'failed_team_votes': self.failed_team_votes,
             'players': [{'name': p.name, 'role': p.role, 'is_ai': p.is_ai} for p in self.players],
